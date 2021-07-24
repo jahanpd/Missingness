@@ -55,7 +55,7 @@ def spiral_missing(N, missing="MAR", rng_key=0):
     
     # create a noise column x3 and x4 transformation using x1, x2
     x3 = rng.standard_normal((N*2,1)) * 5
-    x4 = (X[:, 0] + X[:, 1] + X[:, 0]**2 + X[:, 1]**2 + X[:, 0] * X[:, 1]).reshape((-1,1))  # polynomial transformation - should be highly informative
+    x4 = (y).reshape((-1,1)) + rng.uniform(0,1,(N*2, 1)) # y with noise - should be highly informative...
     
     X = np.hstack([X, x3, x4])
     # create missingness mask

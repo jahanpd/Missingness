@@ -1,4 +1,5 @@
 from UAT.aux import flatten_params, unflatten_params
+from UAT.optimizers.optimizer import adabelief
 import numpy as np
 import jax.numpy as jnp
 import jax
@@ -12,7 +13,7 @@ from imblearn.over_sampling import RandomOverSampler
 from sklearn.metrics import\
     roc_auc_score, brier_score_loss, recall_score, roc_curve
 from sklearn.model_selection import RepeatedStratifiedKFold
-
+import functools
 
 
 def training_loop_alt(
@@ -182,6 +183,11 @@ def training_loop(
     lr=1e-3,
     ):
     
+    devices = jax.local_device_count()
+    print(devices, " device(s)")
+    params = jax.tree_map(lambda x: jnp.array([x] * devices), params)
+    in_ax1 = jax.tree_map(lambda x: 0, params)
+
     def loss(params, x_batch, y_batch, rng):
         out = model_fun(params, x_batch, rng)
         loss, _ = loss_fun(params, out, y_batch)
@@ -194,55 +200,66 @@ def training_loop(
         return metric_dict
 
     step_size = lr
-    sgd_init, sgd_update, sgd_params = optimizers.sgd(step_size)
-    # sgd_init, sgd_update, sgd_params = adabelief(step_size, b1=0.9, b2=0.999, eps=1e-8)
+    # sgd_init, sgd_update, sgd_params = optimizers.sgd(step_size)
+    sgd_init, sgd_update, sgd_params = adabelief(step_size, b1=0.9, b2=0.999, eps=1e-8)
     opt_state = sgd_init(params)
+    in_ax2 = jax.tree_map(lambda x: 0, opt_state)
 
-    @jax.jit
+    @functools.partial(
+        jax.pmap,
+        axis_name='num_devices',
+        in_axes=(None, in_ax1, 0, 0 , None, in_ax2),
+        out_axes=(in_ax1, in_ax2),
+        static_broadcasted_argnums=0)
     def sgd_step(step, params, x_batch, y_batch, rng, opt_state):
-        """ Compute the gradient for a batch and update the parameters """
-        grads = jax.grad(loss)(params, x_batch, y_batch, rng)
-        opt_state = sgd_update(step, grads, opt_state)
+        """ Compute the gradient for a batch and update the parameters """        
+        grads = jax.jit(jax.grad(loss))(params, x_batch, y_batch, rng)
+        grads = jax.lax.pmean(grads, axis_name='num_devices')
+        opt_state = jax.jit(sgd_update)(step, grads, opt_state)
         return sgd_params(opt_state), opt_state
     
+    if devices == 1:
+        sgd_step = jax.jit(sgd_step)
     history = []  # store training metrics
 
     pbar1 = tqdm(total=epochs, leave=False)
     step = 0
     for epoch in range(epochs):
         rng, key = random.split(rng, 2)
-        rows = random.permutation(key, X.shape[0])
-        batches = np.array_split(rows, 
-            X.shape[0] / batch_size)
+        mod = X.shape[0] % (batch_size*devices)
+        rows = random.permutation(key, X.shape[0] - mod)
+        batches = np.split(rows, 
+            X.shape[0] // (batch_size*devices))
         pbar2 = tqdm(total=len(batches), leave=True)
         for i, b in enumerate(batches):
             step += 1
             rng, key = random.split(rng, 2)
             batch_x = X[np.array(b),...]
             batch_y = y[np.array(b)]
+            batch_x = batch_x.reshape((devices, batch_size, -1))
+            batch_y = batch_y.reshape((devices, batch_size))
+
+            # parallelized step function
             params, opt_state = sgd_step(
                step, params, batch_x, batch_y, key, opt_state)
 
-            metrics_dict = metrics(params, batch_x, batch_y, None)
-
             pbar2.update(1)
             if i % 20 == 0:
-                for key in metrics_dict.keys():
-                    metrics_dict[key] = np.mean(
-                        [l[key] for l in history]
-                    )
+                params_ = jax.device_get(jax.tree_map(lambda x: x[0], params))
+                metrics_dict = metrics(params_, batch_x.reshape((batch_size*devices,-1)), batch_y.reshape((batch_size*devices,-1)), None)
+                metrics_dict["epoch"]=epoch
+                metrics_dict["step"]=step
+                history.append(metrics_dict)
+                # for key in metrics_dict.keys():
+                #     metrics_dict[key] = np.mean(
+                #         [l[key] for l in history]
+                #     )
                 pbar2.set_postfix(metrics_dict)
-            else:
-                pbar2.set_postfix(metrics_dict)
-
-            metrics_dict["epoch"]=epoch
-            metrics_dict["step"]=step
-            history.append(metrics_dict)
 
         pbar2.close()
         pbar1.update(1)
     pbar1.close()
-
+    params = jax.device_get(jax.tree_map(lambda x: x[0], params))
     return params, history, rng
 
 

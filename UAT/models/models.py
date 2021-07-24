@@ -17,14 +17,13 @@ def EnsembleModel(
         W_init=glorot_normal(),
         b_init = zeros,
         activation=relu,
-        reg={"reg":1e-5}
     ):
     f_init_funs = []
     f_apply_funs = []
     
     # create a list of indexes combinations
     cols = []
-    for f in range(1,features):
+    for f in range(1,features+1):
         combs = list(combinations(list(range(features)), f))
         # tuples to list
         cols += [list(l) for l in combs]
@@ -54,20 +53,27 @@ def EnsembleModel(
         rng, key = random.split(rng)
         params["null_set"] = normal()(key, (z_size,))
 
+        params["set_order"] = ones(key, (len(cols)+1,) )
+
 
         return params
     
-    def apply_fun(params, X):
+    def apply_fun(params, X, rng):
         """ Takes a list of datasets U (derived from X) of length 2^D - 1 
-            where D is the number of variables in original dataset X """
+            where D is the number of variables in original dataset X """ 
 
         # prep null set
         latent_space = []
+        nan_mask = []
         for i, (ds, f_) in enumerate(zip(cols, f_apply_funs)):
             U_k = X[np.array(ds)]
+            nan_mask.append(jnp.isnan(U_k.sum()))
+            U_k = jnp.nan_to_num(U_k, nan=0.0)
             z = f_(params["f"][i], U_k)
             latent_space.append(z)
         latent_space.append(jnp.ones_like(latent_space[0]) * params["null_set"])
+        nan_mask.append(False) # to account for empty set
+        nan_mask = jnp.where(jnp.array(nan_mask), 0.0, 1.0)
 
         def g_fun(carry, x):
             logits = g_apply_fun(carry,x)
@@ -75,12 +81,12 @@ def EnsembleModel(
         latent_space = jnp.stack(latent_space, axis=0)
         # scan to avoid another for loop during jit compilation
         _, logits = jax.lax.scan(g_fun, params["g"], xs=latent_space)
-        return logits, latent_space
+        return logits, latent_space, nan_mask
 
 
-    vapply = jax.vmap(apply_fun, in_axes=(None, 0), out_axes=(0, 0))
+    vapply = jax.vmap(apply_fun, in_axes=(None, 0, None), out_axes=(0, 0, 0))
 
-    return init_fun, vapply
+    return init_fun, vapply, cols
 
 def AttentionModel(
         features,
@@ -103,7 +109,6 @@ def AttentionModel(
         b_init = zeros,
         temp = 0.1,
         eps = 1e-7,
-        reg = {"reg":1e-5, "drop":1e-5}
     ):
     # temp = 1 / (features - 1)
     init_net1, net1 = NeuralNetGeneral(
@@ -173,9 +178,9 @@ def AttentionModel(
         # sattn = sattn.mean(0).mean(0)  # (feat, feat)
         attn = attn.mean(0).mean(0)  # (out, feat)
         # attn_out = attn @ sattn  # (out, feat)
-        return logits, attn
+        return logits, attn, z2
     
-    vapply = jax.vmap(apply_fun, in_axes=(None, 0, None), out_axes=(0, 0) )
+    vapply = jax.vmap(apply_fun, in_axes=(None, 0, None), out_axes=(0, 0, 0) )
 
     return init_fun, vapply
 

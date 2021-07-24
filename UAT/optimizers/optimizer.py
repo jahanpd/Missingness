@@ -13,7 +13,7 @@ from jax._src.util import partial, safe_zip, safe_map, unzip2
 from jax import tree_util
 from jax.tree_util import (tree_map, tree_flatten, tree_unflatten,
                            register_pytree_node)
-from aux import flatten_params, unflatten_params
+from UAT.aux import flatten_params, unflatten_params
 
 @optimizer
 def adabelief(step_size, b1=0.9, b2=0.999, eps=1e-8):
