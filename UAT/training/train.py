@@ -1,5 +1,6 @@
+from jax._src.api import jit
 from UAT.aux import flatten_params, unflatten_params
-from UAT.optimizers.optimizer import adabelief
+from UAT.optimizers.optimizer import adabelief, adascore
 import numpy as np
 import jax.numpy as jnp
 import jax
@@ -13,6 +14,7 @@ from imblearn.over_sampling import RandomOverSampler
 from sklearn.metrics import\
     roc_auc_score, brier_score_loss, recall_score, roc_curve
 from sklearn.model_selection import RepeatedStratifiedKFold
+from scipy.stats import halfnorm
 import functools
 
 
@@ -181,6 +183,10 @@ def training_loop(
     batch_size=32,
     epochs=100,
     lr=1e-3,
+    optim="sgd",
+    X_test=None,
+    y_test=None,
+    p=0.2
     ):
     
     devices = jax.local_device_count()
@@ -188,6 +194,7 @@ def training_loop(
     params = jax.tree_map(lambda x: jnp.array([x] * devices), params)
     in_ax1 = jax.tree_map(lambda x: 0, params)
 
+    @jax.jit
     def loss(params, x_batch, y_batch, rng):
         out = model_fun(params, x_batch, rng)
         loss, _ = loss_fun(params, out, y_batch)
@@ -200,9 +207,37 @@ def training_loop(
         return metric_dict
 
     step_size = lr
-    # sgd_init, sgd_update, sgd_params = optimizers.sgd(step_size)
-    sgd_init, sgd_update, sgd_params = adabelief(step_size, b1=0.9, b2=0.999, eps=1e-8)
-    opt_state = sgd_init(params)
+    if optim == "sgd":
+        print("optimizer: sgd, lr: ", step_size)
+        optim_init, optim_update, optim_params = optimizers.sgd(step_size)
+    
+    elif optim == "adascore":
+        optim_init, optim_update, optim_params, get_other = adascore(
+            step_size, p=p, b1=0.9, b2=0.9, b3=0.999, eps=1e-8)
+        thresh = halfnorm.ppf(p)
+        print("optimizer: adascore, lr: {}, thresh: {}".format(step_size, thresh))
+        jit_other = jax.jit(get_other)
+
+        # this function is for determining proportion of weights 'on'
+        def weights_on_fn(opt_state):
+            I = jit_other(opt_state)
+            I = jax.tree_map(lambda x: jnp.where(x != 0, 1.0, 0.0), I)
+            leaves, _ = jax.tree_flatten(I)
+            weights_on = np.sum([np.sum(x) for x in leaves])
+            total = np.sum([jnp.size(x) for x in leaves])
+            return weights_on, total
+    
+    elif optim == "adam":
+        print("optimizer: adam, lr: ", step_size)
+        optim_init, optim_update, optim_params = optimizers.adam(
+            step_size, b1=0.9, b2=0.99, eps=1e-8)
+    
+    elif optim == "adabelief":
+        print("optimizer: adabelief, lr: ", step_size)
+        optim_init, optim_update, optim_params = adabelief(
+            step_size, b1=0.9, b2=0.99, eps=1e-8)
+
+    opt_state = optim_init(params)
     in_ax2 = jax.tree_map(lambda x: 0, opt_state)
 
     @functools.partial(
@@ -211,27 +246,33 @@ def training_loop(
         in_axes=(None, in_ax1, 0, 0 , None, in_ax2),
         out_axes=(in_ax1, in_ax2),
         static_broadcasted_argnums=0)
-    def sgd_step(step, params, x_batch, y_batch, rng, opt_state):
+    def take_step(step, params, x_batch, y_batch, rng, opt_state):
         """ Compute the gradient for a batch and update the parameters """        
         grads = jax.jit(jax.grad(loss))(params, x_batch, y_batch, rng)
         grads = jax.lax.pmean(grads, axis_name='num_devices')
-        opt_state = jax.jit(sgd_update)(step, grads, opt_state)
-        return sgd_params(opt_state), opt_state
-    
+        opt_state = jax.jit(optim_update)(step, grads, opt_state)
+        return optim_params(opt_state), opt_state
+
     if devices == 1:
-        sgd_step = jax.jit(sgd_step)
+        take_step = jax.jit(take_step)
     history = []  # store training metrics
 
-    pbar1 = tqdm(total=epochs, leave=False)
+    pbar1 = tqdm(total=epochs, leave=True)
     step = 0
+    weights_on, total, prop = 0, 0, 1.0
     for epoch in range(epochs):
         rng, key = random.split(rng, 2)
         mod = X.shape[0] % (batch_size*devices)
         rows = random.permutation(key, X.shape[0] - mod)
         batches = np.split(rows, 
             X.shape[0] // (batch_size*devices))
-        pbar2 = tqdm(total=len(batches), leave=True)
+        pbar2 = tqdm(total=len(batches), leave=False)
+        if (X_test is not None) and (y_test is not None):
+            params_ = jax.device_get(jax.tree_map(lambda x: x[0], params))
+            test_loss = loss(params_, X_test, y_test, None)
+
         for i, b in enumerate(batches):
+                
             step += 1
             rng, key = random.split(rng, 2)
             batch_x = X[np.array(b),...]
@@ -239,25 +280,43 @@ def training_loop(
             batch_x = batch_x.reshape((devices, batch_size, -1))
             batch_y = batch_y.reshape((devices, batch_size))
 
+
             # parallelized step function
-            params, opt_state = sgd_step(
+            params, opt_state = take_step(
                step, params, batch_x, batch_y, key, opt_state)
 
+            if step % 20 == 0 and optim == "adascore":
+                weights_on, total = weights_on_fn(opt_state)
+
+            # initialize some training metrics
+            if step == 1:
+                params_ = jax.device_get(jax.tree_map(lambda x: x[0], params))
+                metrics_ewa = metrics(params_, batch_x.reshape((batch_size*devices,-1)), batch_y.reshape((batch_size*devices,-1)), None)
+                metrics_ewa["step"]=step
+
             pbar2.update(1)
-            if i % 20 == 0:
+            if step % 5 == 0:
                 params_ = jax.device_get(jax.tree_map(lambda x: x[0], params))
                 metrics_dict = metrics(params_, batch_x.reshape((batch_size*devices,-1)), batch_y.reshape((batch_size*devices,-1)), None)
-                metrics_dict["epoch"]=epoch
                 metrics_dict["step"]=step
-                history.append(metrics_dict)
-                # for key in metrics_dict.keys():
-                #     metrics_dict[key] = np.mean(
-                #         [l[key] for l in history]
-                #     )
-                pbar2.set_postfix(metrics_dict)
+                metrics_ewa = jax.tree_map(lambda x, y : 0.1 * y + 0.9 * x, metrics_ewa, metrics_dict)
+                metrics_ewa["step"]=step
 
+                # evaluate loss on test set for early stopping
+                metrics_ewa_ = metrics_ewa.copy()
+                metrics_ewa_["test_loss"] = test_loss
+                metrics_ewa_["epoch"] = epoch
+                metrics_ewa_["weights_on"] = weights_on
+                metrics_ewa_["total_weights"] = total
+                metrics_ewa_["prop"] = weights_on / (total + 1e-8)
+                # enforce dtype float for dict object while saving
+                for k in metrics_ewa_.keys():
+                    metrics_ewa_[k] = float(metrics_ewa_[k])
+                pbar1.set_postfix(metrics_ewa_)
+                history.append(metrics_ewa_)
         pbar2.close()
         pbar1.update(1)
+
     pbar1.close()
     params = jax.device_get(jax.tree_map(lambda x: x[0], params))
     return params, history, rng

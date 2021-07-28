@@ -11,6 +11,7 @@ from jax.experimental.optimizers import l2_norm
 from UAT.models.models import AttentionModel, EnsembleModel
 from UAT.training.train import training_loop
 from UAT.uncertainty.laplace import laplace_approximation
+from UAT.models.layers import NeuralNet as nn
 
 """ 
 Scikit wrappers for models where they are initialized with dicts of kwargs for defining:
@@ -92,7 +93,7 @@ class UAT:
             **self.training_kwargs
             )
         self.params = params
-        self.history = history
+        self._history = history
         self.key = rng
 
         if self.posterior_params is not None:
@@ -113,13 +114,13 @@ class UAT:
         out = self.apply_fun(self.params, X, None)
         logits = out[0]
         probs = jnp.mean(jnp.stack(jax.nn.sigmoid(logits), axis=0), axis=0)
-        return probs
+        return jnp.squeeze(probs)
     
     def predict(self, X):
         out = self.apply_fun(self.params, X, None)
-        logits = out[0]
-        probs = jnp.mean(jnp.stack(jax.nn.sigmoid(logits), axis=0), axis=0)
-        return probs
+        output = out[0]
+        output = jnp.mean(jnp.stack(output, axis=0), axis=0)
+        return jnp.squeeze(output)
     
     def distances(self, X, y):
         cols = []
@@ -172,6 +173,9 @@ class UAT:
             index=[str(s) for s in sets[:-1]] + ["{}"],
             )  # (feat, 2)
         return distances, dist_full
+    
+    def history(self):
+        return self._history
 
 
 class Ensemble:
@@ -259,3 +263,76 @@ class Ensemble:
             index=[str(s) for s in sets[:-1]] + ["{}"],
             )  # (feat, 2)
         return distances, dist_full
+
+
+class NeuralNet:
+    def __init__(
+        self,
+        model_kwargs,
+        training_kwargs,
+        loss_fun,
+        rng_key=42,
+        feat_names=None,
+        posterior_params=None,
+        ):
+        
+        """
+        model_kwargs: dict, dict(
+                        features=features,
+                        hidden_size=64,
+                        hidden_layers=5,
+                        out_size=1,
+                        W_init = glorot_normal(),
+                        b_init = zeros,
+                        eps = 1e-7,
+                    )
+        training_kwargs: dict, dict(
+                        batch_size=32,
+                        epochs=100,
+                        lr=1e-3,
+                    )
+        loss_fun: callable, takes (params, output, labels) 
+                            and return (loss: scalar, loss_dict: dict for metric monitoring)
+        """
+
+        init_fun, apply_fun = nn(
+            **model_kwargs
+            )
+        key = jax.random.PRNGKey(rng_key)
+        key, init_key = random.split(key)
+        self.key = key
+        self.params = init_fun(init_key)
+        self.apply_fun = jax.vmap(apply_fun, in_axes=(None, 0, None), out_axes=(0))
+        self.loss_fun = loss_fun
+        self.posterior_params = posterior_params
+        self.training_kwargs = training_kwargs
+
+    def fit(self, X, y):
+
+        params, history, rng = training_loop(
+            X=X,
+            y=y,
+            model_fun=self.apply_fun,
+            params=self.params,
+            loss_fun=self.loss_fun,
+            metric_fun=self.loss_fun,
+            rng=self.key,
+            **self.training_kwargs
+            )
+        self.params = params
+        self._history = history
+        self.key = rng
+
+    def predict_proba(self, X):
+        logits = self.apply_fun(self.params, X, None)
+        probs = jnp.mean(jnp.stack(jax.nn.sigmoid(logits), axis=0), axis=0)
+        return jnp.squeeze(probs)
+    
+    def predict(self, X):
+        output = self.apply_fun(self.params, X, None)
+        output = jnp.mean(jnp.stack(output, axis=0), axis=0)
+        return jnp.squeeze(output)
+   
+    def history(self):
+        return self._history
+

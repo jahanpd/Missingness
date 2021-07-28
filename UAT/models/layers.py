@@ -123,7 +123,7 @@ def NeuralNet(
     num_hidden = 1,
     W_init = glorot_normal(),
     b_init = normal(),
-    activation=sigmoid
+    activation=relu
     ):
     init_l1, layer_1 = Dense(
         in_dim, hidden_dim, W_init=W_init, b_init=b_init)
@@ -154,7 +154,7 @@ def NeuralNet(
 
         return params
     
-    def apply_fun(params, inputs):
+    def apply_fun(params, inputs, rng=None):
         h = activation(layer_1(params["l1"], inputs))
 
         def body(carry, x):
