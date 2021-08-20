@@ -9,6 +9,7 @@ from .layers import (DenseGeneral, Dense, NeuralNet, NeuralNetGeneral,
                      AttentionBlock, AttentionLayer)
 from itertools import combinations
 
+
 def EnsembleModel(
         features,
         net_hidden_size=32,
@@ -58,7 +59,7 @@ def EnsembleModel(
 
         return params
     
-    def apply_fun(params, X, rng):
+    def apply_fun(params, X, placeholder1, placeholder2):
         """ Takes a list of datasets U (derived from X) of length 2^D - 1 
             where D is the number of variables in original dataset X """ 
 
@@ -84,11 +85,112 @@ def EnsembleModel(
         return logits, latent_space, nan_mask
 
 
-    vapply = jax.vmap(apply_fun, in_axes=(None, 0, None), out_axes=(0, 0, 0))
+    vapply = jax.vmap(apply_fun, in_axes=(None, 0, None, None), out_axes=(0, 0, 0))
 
     return init_fun, vapply, cols
 
-def AttentionModel(
+
+# convenience function for processing attention
+def process_attn(sattn, attn):
+    # process attention
+    sattn = sattn.mean(0).mean(0)  # (layers, heads, feat, feat)
+    attn = attn.mean(0).mean(0)  # (layers, heads, out, feat)
+    # attn_out = attn @ sattn  # (out, feat)
+    return  attn
+
+def AttentionModel_MAP(
+        features,
+        d_model=32,
+        embed_hidden_size=64,
+        embed_hidden_layers=5,
+        embed_activation=relu,
+        encoder_layers=10,
+        encoder_heads=5,
+        enc_activation=relu,
+        decoder_layers=10,
+        decoder_heads=5,
+        dec_activation=relu,
+        net_hidden_size=64,
+        net_hidden_layers=5,
+        net_activation=relu,
+        last_layer_size=64,
+        out_size=1,
+        W_init = glorot_normal(),
+        b_init = zeros,
+        temp = 0.1,
+        eps = 1e-7,
+    ):
+    # temp = 1 / (features - 1)
+    init_net1, net1 = NeuralNetGeneral(
+        features, 1, embed_hidden_size, d_model, embed_hidden_layers, W_init=W_init, b_init=b_init, activation=embed_activation)
+    init_enc, enc = AttentionBlock(
+        encoder_layers, d_model, encoder_heads, W_init=W_init, b_init=b_init, activation=enc_activation)
+    init_dec, dec = AttentionBlock(
+        decoder_layers, d_model, decoder_heads, W_init=W_init, b_init=b_init, activation=dec_activation)
+    init_net2, net2 = NeuralNet(
+        d_model, net_hidden_size, last_layer_size, net_hidden_layers, W_init=W_init, b_init=b_init, activation=net_activation)
+    init_ll, last_layer = Dense(last_layer_size, out_size, bias=True, W_init=W_init, b_init=b_init)
+
+    def init_fun(rng):
+
+        params = {}        
+        rng, key = random.split(rng)
+        params["net1"] = init_net1(key)
+        rng, key = random.split(rng)
+        params["enc"] = init_enc(key)
+        rng, key = random.split(rng)
+        params["dec"] = init_dec(key)
+        rng, key = random.split(rng)
+        params["net2"] = init_net2(key)
+        rng, key = random.split(rng)
+        params["last_layer"] = init_ll(key)
+        rng, key = random.split(rng)
+        params["y"] = W_init(key, (1, d_model))
+        rng, key = random.split(rng)
+        params["x_shift"] = W_init(key, (features, d_model))
+        rng, key = random.split(rng)
+        params["logits"] = jnp.zeros((1, features))
+
+        return params
+
+    def apply_fun(params, inputs, rng, dropout):
+        # mask missing variables through forward pass
+        nan_mask = jnp.where(jnp.isnan(inputs), 0.0, 1.0).reshape((1,-1))
+        # replace nans in data to -1 to preserve output, will still be masked
+        inputs = jnp.nan_to_num(inputs, nan=-1.0)
+        # use concrete dropout to further drop features
+        if dropout:
+            probs = jax.nn.sigmoid(params["logits"])
+            rng, unif_rng = random.split(rng)
+            unif_noise = random.uniform(unif_rng, (1, features))
+            drop_prob = (jnp.log(probs + eps) 
+                            - jnp.log(1.0 - probs + eps)
+                            + jnp.log(unif_noise + eps)
+                            - jnp.log(1.0 - unif_noise + eps)
+                            )
+            drop_prob = jax.nn.sigmoid(drop_prob / temp)
+            random_arr = 1.0 - drop_prob  # (1 if keeping 0 if removing)
+            mask = nan_mask * random_arr
+        else:
+            mask = nan_mask
+
+        # apply embedding to input of (features)
+        x = inputs[..., None]
+        z1 = net1(params["net1"], x) + params["x_shift"]
+        enc_output, sattn = enc(params["enc"], z1, mask=mask, enc_output=None)
+        z2, attn = dec(params["dec"], params["y"], enc_output=enc_output, mask=mask)
+        h = net2(params["net2"], z2)
+        logits = last_layer(params["last_layer"], h)
+
+        attn = process_attn(sattn, attn)
+        return jnp.squeeze(logits), attn, z2
+    
+    vapply = jax.vmap(apply_fun, in_axes=(None, 0, 0, None), out_axes=(0, 0, 0) )
+
+    return init_fun, vapply
+
+
+def AttentionModel_Dropout(
         features,
         d_model=32,
         embed_hidden_size=64,
@@ -143,13 +245,203 @@ def AttentionModel(
 
         return params
 
-    def apply_fun(params, inputs, rng):
+    def apply_fun(params, inputs, rng, dropout):
         # mask missing variables through forward pass
         nan_mask = jnp.where(jnp.isnan(inputs), 0.0, 1.0).reshape((1,-1))
         # replace nans in data to -1 to preserve output, will still be masked
         inputs = jnp.nan_to_num(inputs, nan=-1.0)
         # use concrete dropout to further drop features
-        if rng is not None:
+        if dropout:
+            probs = jax.nn.sigmoid(params["logits"])
+            rng, unif_rng = random.split(rng)
+            unif_noise = random.uniform(unif_rng, (1, features))
+            drop_prob = (jnp.log(probs + eps) 
+                            - jnp.log(1.0 - probs + eps)
+                            + jnp.log(unif_noise + eps)
+                            - jnp.log(1.0 - unif_noise + eps)
+                            )
+            drop_prob = jax.nn.sigmoid(drop_prob / temp)
+            random_arr = 1.0 - drop_prob  # (1 if keeping 0 if removing)
+            mask = nan_mask * random_arr
+        else:
+            mask = nan_mask
+
+        # apply embedding to input of (features)
+        x = inputs[..., None]
+        z1 = net1(params["net1"], x) + params["x_shift"]
+        enc_output, sattn = enc(params["enc"], z1, mask=mask, enc_output=None)
+        z2, attn = dec(params["dec"], params["y"], enc_output=enc_output, mask=mask)
+        h = net2(params["net2"], z2)
+        logits = last_layer(params["last_layer"], h)
+
+        # process attention
+        attn = process_attn(sattn, attn)
+        return logits, attn, z2
+    
+    vapply = jax.vmap(apply_fun, in_axes=(None, 0, None, None), out_axes=(0, 0, 0) )
+
+    return init_fun, vapply
+
+
+def AttentionModel_Variational(
+        features,
+        d_model=32,
+        embed_hidden_size=64,
+        embed_hidden_layers=5,
+        embed_activation=relu,
+        encoder_layers=10,
+        encoder_heads=5,
+        enc_activation=relu,
+        decoder_layers=10,
+        decoder_heads=5,
+        dec_activation=relu,
+        net_hidden_size=64,
+        net_hidden_layers=5,
+        net_activation=relu,
+        last_layer_size=64,
+        out_size=1,
+        W_init = glorot_normal(),
+        b_init = zeros,
+        temp = 0.1,
+        eps = 1e-7,
+    ):
+    # temp = 1 / (features - 1)
+    init_net1, net1 = NeuralNetGeneral(
+        features, 1, embed_hidden_size, d_model, embed_hidden_layers, W_init=W_init, b_init=b_init, activation=embed_activation)
+    init_enc, enc = AttentionBlock(
+        encoder_layers, d_model, encoder_heads, W_init=W_init, b_init=b_init, activation=enc_activation)
+    init_dec, dec = AttentionBlock(
+        decoder_layers, d_model, decoder_heads, W_init=W_init, b_init=b_init, activation=dec_activation)
+    init_net2, net2 = NeuralNet(
+        d_model, net_hidden_size, last_layer_size, net_hidden_layers, W_init=W_init, b_init=b_init, activation=net_activation)
+    init_ll, last_layer = Dense(last_layer_size, out_size, bias=True, W_init=W_init, b_init=b_init)
+
+    def init_fun(rng):
+
+        params = {}        
+        rng, key = random.split(rng)
+        params["net1"] = init_net1(key)
+        rng, key = random.split(rng)
+        params["enc"] = init_enc(key)
+        rng, key = random.split(rng)
+        params["dec"] = init_dec(key)
+        rng, key = random.split(rng)
+        params["net2"] = init_net2(key)
+        rng, key = random.split(rng)
+        params["last_layer_mu"] = [init_ll(key)]
+        rng, key = random.split(rng)
+        params["last_layer_logstd"] = [init_ll(key)]
+        rng, key = random.split(rng)
+        params["y"] = W_init(key, (1, d_model))
+        rng, key = random.split(rng)
+        params["x_shift"] = W_init(key, (features, d_model))
+        rng, key = random.split(rng)
+        params["logits"] = jnp.zeros((1, features))
+
+        return params
+
+    def apply_fun(params, inputs, rng, dropout):
+        # mask missing variables through forward pass
+        nan_mask = jnp.where(jnp.isnan(inputs), 0.0, 1.0).reshape((1,-1))
+        # replace nans in data to -1 to preserve output, will still be masked
+        inputs = jnp.nan_to_num(inputs, nan=-1.0)
+        # use concrete dropout to further drop features
+        if dropout:
+            probs = jax.nn.sigmoid(params["logits"])
+            rng, unif_rng = random.split(rng)
+            unif_noise = random.uniform(unif_rng, (1, features))
+            drop_prob = (jnp.log(probs + eps) 
+                            - jnp.log(1.0 - probs + eps)
+                            + jnp.log(unif_noise + eps)
+                            - jnp.log(1.0 - unif_noise + eps)
+                            )
+            drop_prob = jax.nn.sigmoid(drop_prob / temp)
+            random_arr = 1.0 - drop_prob  # (1 if keeping 0 if removing)
+            mask = nan_mask * random_arr
+        else:
+            mask = nan_mask
+
+        # apply embedding to input of (features)
+        x = inputs[..., None]
+        z1 = net1(params["net1"], x) + params["x_shift"]
+        enc_output, sattn = enc(params["enc"], z1, mask=mask, enc_output=None)
+        z2, attn = dec(params["dec"], params["y"], enc_output=enc_output, mask=mask)
+        h = net2(params["net2"], z2)
+        norm_noise = random.normal(rng, params["last_layer_mu"].shape)
+        params_sample = params["last_layer_mu"] * params["last_layer_logstd"] * norm_noise
+        logits = last_layer(params_sample, h)
+
+        # process attention
+        attn = process_attn(sattn, attn)
+        return logits, attn, z2
+    
+    vapply = jax.vmap(apply_fun, in_axes=(None, 0, None, None), out_axes=(0, 0, 0) )
+
+    return init_fun, vapply
+
+
+def AttentionModel_LastLayer(
+        features,
+        d_model=32,
+        embed_hidden_size=64,
+        embed_hidden_layers=5,
+        embed_activation=relu,
+        encoder_layers=10,
+        encoder_heads=5,
+        enc_activation=relu,
+        decoder_layers=10,
+        decoder_heads=5,
+        dec_activation=relu,
+        net_hidden_size=64,
+        net_hidden_layers=5,
+        net_activation=relu,
+        last_layer_size=64,
+        out_size=1,
+        W_init = glorot_normal(),
+        b_init = zeros,
+        temp = 0.1,
+        eps = 1e-7,
+    ):
+    # temp = 1 / (features - 1)
+    init_net1, net1 = NeuralNetGeneral(
+        features, 1, embed_hidden_size, d_model, embed_hidden_layers, W_init=W_init, b_init=b_init, activation=embed_activation)
+    init_enc, enc = AttentionBlock(
+        encoder_layers, d_model, encoder_heads, W_init=W_init, b_init=b_init, activation=enc_activation)
+    init_dec, dec = AttentionBlock(
+        decoder_layers, d_model, decoder_heads, W_init=W_init, b_init=b_init, activation=dec_activation)
+    init_net2, net2 = NeuralNet(
+        d_model, net_hidden_size, last_layer_size, net_hidden_layers, W_init=W_init, b_init=b_init, activation=net_activation)
+    init_ll, last_layer = Dense(last_layer_size, out_size, bias=True, W_init=W_init, b_init=b_init)
+
+    def init_fun(rng):
+
+        params = {}        
+        rng, key = random.split(rng)
+        params["net1"] = init_net1(key)
+        rng, key = random.split(rng)
+        params["enc"] = init_enc(key)
+        rng, key = random.split(rng)
+        params["dec"] = init_dec(key)
+        rng, key = random.split(rng)
+        params["net2"] = init_net2(key)
+        rng, key = random.split(rng)
+        params["last_layer"] = [init_ll(key)]
+        rng, key = random.split(rng)
+        params["y"] = W_init(key, (1, d_model))
+        rng, key = random.split(rng)
+        params["x_shift"] = W_init(key, (features, d_model))
+        rng, key = random.split(rng)
+        params["logits"] = jnp.zeros((1, features))
+
+        return params
+
+    def apply_fun(params, inputs, rng, dropout):
+        # mask missing variables through forward pass
+        nan_mask = jnp.where(jnp.isnan(inputs), 0.0, 1.0).reshape((1,-1))
+        # replace nans in data to -1 to preserve output, will still be masked
+        inputs = jnp.nan_to_num(inputs, nan=-1.0)
+        # use concrete dropout to further drop features
+        if dropout:
             probs = jax.nn.sigmoid(params["logits"])
             rng, unif_rng = random.split(rng)
             unif_noise = random.uniform(unif_rng, (1, features))
@@ -174,13 +466,10 @@ def AttentionModel(
         for layer in params["last_layer"]:
             logits.append(last_layer(layer, h))
 
-        # process attention
-        # sattn = sattn.mean(0).mean(0)  # (feat, feat)
-        attn = attn.mean(0).mean(0)  # (out, feat)
-        # attn_out = attn @ sattn  # (out, feat)
+        attn = process_attn(sattn, attn)
         return logits, attn, z2
     
-    vapply = jax.vmap(apply_fun, in_axes=(None, 0, None), out_axes=(0, 0, 0) )
+    vapply = jax.vmap(apply_fun, in_axes=(None, 0, None, None), out_axes=(0, 0, 0) )
 
     return init_fun, vapply
 

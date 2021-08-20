@@ -5,9 +5,9 @@ import pandas as pd
 from scipy.stats import t
 import jax
 import jax.numpy as jnp
-from UAT import UAT, Ensemble
+from UAT import UAT, Ensemble, create_early_stopping
 from UAT import binary_cross_entropy
-from UAT.datasets import spiral
+import UAT.datasets as data
 import os
 
 # jax.config.update("jax_debug_nans", True)
@@ -33,25 +33,40 @@ def run(iterations, missing="None", epochs=10):
                 net_hidden_layers=2,
                 net_activation=jax.nn.relu,
                 last_layer_size=32,
+                out_size=1,
                 W_init = jax.nn.initializers.glorot_uniform(),
                 b_init = jax.nn.initializers.normal(0.01),
                 )
+
+    early_stopping = create_early_stopping(1000, 5, metric_name="loss", tol=1e-4)
     training_kwargs_uat = dict(
         batch_size=32,
-        epochs=10,
-        lr=1e-3
+        epochs=100,
+        lr=1e-3,
+        optim="adascore",
+        X_test="proportion",
+        y_test="proportion",
+        p=0.2,
+        anneal=0.998,
+        early_stopping=early_stopping,
     )
 
     model_kwargs_ens = dict(
         features=4,
-        net_hidden_size=128,
+        net_hidden_size=64,
         z_size=32,
         net_hidden_layers=2
     )
     training_kwargs_ens = dict(
         batch_size=32,
-        epochs=10,
-        lr=1e-3
+        epochs=100,
+        lr=1e-3,
+        optim="adascore",
+        X_test="proportion",
+        y_test="proportion",
+        p=0.2,
+        anneal=0.998,
+        early_stopping=early_stopping,
     )
     # loss function for ensemble model
     def binary_cross_entropy2(
@@ -81,12 +96,12 @@ def run(iterations, missing="None", epochs=10):
         return loss_fun
     loss_fun = binary_cross_entropy(l2_reg=1e-3, dropout_reg=1e-5)
     loss_fun2 = binary_cross_entropy2()
-
+    
     # create data, initialize models, train and record distances bootstraps
     d1_uat, d2_uat = [], []
     d1_ens, d2_ens = [], []
     for i in range(iterations):
-        X, y, _ = spiral(2048, missing=missing, rng_key=i)
+        X, _, _, y, _, _, _, _  = data.spiral(2048, missing=missing, rng_key=i)
         model1 = UAT(
             model_kwargs=model_kwargs_uat,
             training_kwargs=training_kwargs_uat,
@@ -111,13 +126,11 @@ def run(iterations, missing="None", epochs=10):
     
     d1_uat = pd.concat(d1_uat)
     d2_uat = pd.concat(d2_uat)
-    d2_uat = d2_uat.groupby(d2_uat.index).mean()
     
     d1_ens = pd.concat(d1_ens)
     d2_ens = pd.concat(d2_ens)
-    d2_ens = d2_ens.groupby(d2_ens.index).mean()
 
-    def p_value(df):
+    def p_value1(df):
         df["diff"] = df["+noise"] - df["+signal"]
         df_mean = df.groupby(df.index).mean()
         df_std = df.groupby(df.index).std(ddof=1)
@@ -129,16 +142,31 @@ def run(iterations, missing="None", epochs=10):
         df_mean["p-value"] = p
         return df_mean[["+noise", "+signal", "p-value"]]
     
+    def p_value2(df):
+        df_mean = df.groupby(df.index).mean()
+        df_std = df.groupby(df.index).std(ddof=1)
+        # calculate t-test
+        t_stat = df_mean["{}"].values / (df_std["{}"].values / np.sqrt(iterations))
+        p = t.cdf(t_stat, df=(2*iterations - 2))
+        p = 2 * np.minimum(p, 1-p) # two tailed t-test
+        df_mean["p-value"] = p
+        return df_mean[["{}", "p-value"]]
+
+    
     print(missing)
-    d1_uat = p_value(d1_uat)
-    d1_ens = p_value(d1_ens)
+    d1_uat = p_value1(d1_uat)
+    d1_ens = p_value1(d1_ens)
+    d2_uat = p_value2(d2_uat)
+    d2_ens = p_value2(d2_ens)
 
     print(d1_uat)
+    print(d2_uat)
     print(d1_ens)
-    d1_uat.to_csv("results/UAT_Distances1_{}.csv".format(missing))
-    d1_ens.to_csv("results/Ensemble_Distances1_{}.csv".format(missing))
-    d2_uat.to_csv("results/UAT_Distances2_{}.csv".format(missing))
-    d2_ens.to_csv("results/Ensemble_Distances2_{}.csv".format(missing))
+    print(d2_ens)
+    d1_uat.to_csv("results/latent_space/UAT_Distances1_{}.csv".format(missing))
+    d1_ens.to_csv("results/latent_space/Ensemble_Distances1_{}.csv".format(missing))
+    d2_uat.to_csv("results/latent_space/UAT_Distances2_{}.csv".format(missing))
+    d2_ens.to_csv("results/latent_space/Ensemble_Distances2_{}.csv".format(missing))
 
 
 

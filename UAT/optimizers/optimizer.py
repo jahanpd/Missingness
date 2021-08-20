@@ -102,14 +102,14 @@ def optimizer2(opt_maker: Callable[...,
     def tree_get_other(opt_state):
       states_flat, tree, subtrees = opt_state
       states = map(tree_unflatten, subtrees, states_flat)
-      f = map(get_other, states)
-      return tree_unflatten(tree, f)
+      out = map(get_other, states)
+      return tuple(tree_unflatten(tree, i) for i in zip(*out))
 
     return Optimizer2(tree_init, tree_update, tree_get_params, tree_get_other)
   return tree_opt_maker
 
 @optimizer2
-def adascore(step_size, p=0.2, b1=0.9, b2=0.9, b3=0.999, eps=1e-8):
+def adascore(step_size, p=0.2, b1=0.9, b2=0.9, b3=0.999, eps=1e-8, anneal=0.9998):
   # https://statswithr.github.io/book/hypothesis-testing-with-normal-populations.html
   """Construct optimizer triple for Adam.
 
@@ -128,13 +128,17 @@ def adascore(step_size, p=0.2, b1=0.9, b2=0.9, b3=0.999, eps=1e-8):
   """
   step_size = make_schedule(step_size)
   thresh = halfnorm.ppf(p)
+  if type(anneal) == float:
+    schedule = lambda x: 100 * anneal**(x) + 1
+  else:
+    schedule = lambda x : 1.0
   def init(x0):
     m0 = jnp.zeros_like(x0)
     v0 = jnp.zeros_like(x0)
     z0 = jnp.ones_like(x0) * thresh
-    return x0, m0, v0, z0, v0
+    return x0, m0, v0, z0
   def update(i, g, state):
-    x, m, v, z, I  = state
+    x, m, v, z  = state
     # include EWVar into calculation
     delta = g - m
     m = m + (1 - b1)*delta # first moment
@@ -143,33 +147,25 @@ def adascore(step_size, p=0.2, b1=0.9, b2=0.9, b3=0.999, eps=1e-8):
     mhat = m / (1 - jnp.asarray(b2, m.dtype) ** (i + 1))  # Bias correction.
     inv_std = 1 / (jnp.sqrt(vhat) + eps)
     z_new = jnp.abs(m) * inv_std
-    # dzdm = inv_std
-    # dzds = jnp.abs(m) * jnp.square(inv_std)
-    # r = jnp.where(
-    #   dzdm > dzds,
-    #   1.0,
-    #   0.0
-    # )
-    
     z = (1 - b3) * z_new + b3*z
     zhat = z / (1 - jnp.asarray(b2, m.dtype) ** (i + 1))  # Bias correction.
     I = jnp.where(
-      zhat >= thresh,
+      zhat >= thresh/schedule(i),
       step_size(i) * mhat * inv_std,
-      step_size(i) * mhat * inv_std * 0.0)
+      0.0)
     x = x - I
-    return x, m, v, z, I
+    return x, m, v, z
   def get_params(state):
-    x, _, _, _, _= state
+    x, _, _, _ = state
     return x
   def get_other(state):
-    x, m, v, z, I = state
-    return I
+    x, m, v, z = state
+    return m, v, z, thresh
   return init, update, get_params, get_other
 
 @optimizer
 def adabelief(step_size, b1=0.9, b2=0.999, eps=1e-8):
-  """Construct optimizer triple for Adam.
+  """Construct optimizer triple for Adabelief.
 
   Args:
     step_size: positive scalar, or a callable representing a step size schedule

@@ -9,7 +9,7 @@ def binary_cross_entropy(
     ):
     def loss_fun(params, output, labels):
             logits = output[0]
-            probs = jnp.mean(jax.nn.sigmoid(jnp.stack(logits, axis=0)), axis=0)
+            probs = jax.nn.sigmoid(logits)
             p_drop = jax.nn.sigmoid(params["logits"])
             @jax.vmap
             def binary_cross_entropy(probs, labels):
@@ -25,7 +25,7 @@ def binary_cross_entropy(
             loss = bce + l2_reg*l2 + dropout_reg*entropy
 
             loss_dict = {
-                "bce":bce,
+                "loss":bce,
                 "l2":l2,
                 "ent":entropy
                 }
@@ -41,7 +41,8 @@ def cross_entropy(
     def loss_fun(params, output, labels):
             logits = output[0]
             one_hot = jax.nn.one_hot(labels, classes)
-            probs = jnp.mean(jax.nn.sigmoid(jnp.stack(logits, axis=0)), axis=0)
+            probs = jax.nn.softmax(logits)
+            # probs = jnp.mean(jax.nn.sigmoid(jnp.stack(logits, axis=0)), axis=0)
             p_drop = jax.nn.sigmoid(params["logits"])
             @jax.vmap
             def cross_entropy(probs, labels):
@@ -57,7 +58,7 @@ def cross_entropy(
             loss = ce + l2_reg*l2 + dropout_reg*entropy
 
             loss_dict = {
-                "bce":ce,
+                "loss":ce,
                 "l2":l2,
                 "ent":entropy
                 }
@@ -96,7 +97,6 @@ def mse(
     ):
     def loss_fun(params, output, labels):
             est = output[0]
-            est = jnp.mean(jnp.stack(est, axis=0), axis=0)
             p_drop = jax.nn.sigmoid(params["logits"])
             @jax.vmap
             def mean_squared_error(est, true):
@@ -111,7 +111,7 @@ def mse(
             loss = error + l2_reg*l2 + dropout_reg*entropy
 
             loss_dict = {
-                "mse":error,
+                "loss":error,
                 "l2":l2,
                 "ent":entropy
                 }
@@ -139,4 +139,39 @@ def mse_(
                 }
 
             return loss, loss_dict
+    return loss_fun
+
+
+def get_metric_fun(
+    problem="classification", # vs 'regression'
+    classes=2, 
+    metrics={} # dict of name and callable eg {"auc": auc}
+    ):
+    def loss_fun(params, output, labels):
+            
+            if problem == "classification":
+                probs = jax.nn.sigmoid(output)
+                one_hot = jax.nn.one_hot(labels, classes)
+                @jax.vmap
+                def loss_calc(probs, labels):
+                    return -(labels * jnp.log(probs + 1e-7) 
+                            + (1-labels) * jnp.log(1 - probs + 1e-7)).sum()
+                loss_val = loss_calc(probs, one_hot).mean()
+            
+            elif problem == "regression":
+                @jax.vmap
+                def loss_calc(est, true):
+                    return jnp.square(est - true)
+                loss_val = loss_calc(output, labels).mean()
+            
+            metric_dict = {
+                "loss":loss_val,
+                }
+            
+            for metric_name, metric_call in metrics.items():
+                metric_dict[metric_name] = metric_call(
+                    output, labels
+                )
+
+            return loss_val, metric_dict
     return loss_fun
