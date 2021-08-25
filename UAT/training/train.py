@@ -4,10 +4,11 @@ import jax.numpy as jnp
 import jax
 from jax import random
 from jax.experimental import optimizers
+from jax.experimental.optimizers import make_schedule
 from tqdm import tqdm
 from scipy.stats import halfnorm
 import functools
-
+from UAT.aux import flatten_params, unflatten_params
 
 def training_loop(
     X,
@@ -25,17 +26,17 @@ def training_loop(
     frequency=5,
     X_test=None, # either a test set or a string - "proportion"
     y_test=None,
-    p=0.2,
-    anneal=0.9998, # good range is 0.9990 - 0.9999, where lower reaches thresh faster
+    start_score=100, # epochs when to start 
     early_stopping=None, # or callable
     ):
-    
     devices = jax.local_device_count()
-    print(devices, " device(s)")
+    assert batch_size % devices == 0, "batch size must be divisible by number of devices"
+    tqdm.write("{} device(s)".format(devices))
+    params_flat, params_build = jax.tree_util.tree_flatten(params)
     params = jax.tree_map(lambda x: jnp.array([x] * devices), params)
     in_ax1 = jax.tree_map(lambda x: 0, params)
 
-    @jax.jit
+    
     def loss(params, x_batch, y_batch, rng):
         out = model_fun(params, x_batch, rng, True)
         loss, _ = loss_fun(params, out, y_batch)
@@ -47,9 +48,10 @@ def training_loop(
         _, metric_dict = metric_fun(params, out, y_batch)
         return metric_dict
 
+    print_step = make_schedule(lr)
     step_size = lr
     if optim == "sgd":
-        print("optimizer: sgd, lr: ", step_size)
+        tqdm.write("optimizer: sgd, lr: {}".format(print_step(1)))
         if optim_kwargs is None:
             optim_kwargs = dict(step_size=step_size)
         else:
@@ -60,43 +62,35 @@ def training_loop(
     elif optim == "adascore":
         if optim_kwargs is None:
             optim_kwargs = dict(
-                step_size=step_size, p=p, b1=0.9, b2=0.9, b3=0.999, eps=1e-8, anneal=anneal
+                step_size=step_size, batch_size=batch_size, N = X.shape[0], start_score=start_score, b1=0.9, b2=0.999, eps=1e-8
             )
         else:
             optim_kwargs["step_size"] = step_size
-            optim_kwargs["p"] = p
-            optim_kwargs["anneal"] = anneal
+            optim_kwargs["start_score"] = start_score
+            optim_kwargs["batch_size"] = batch_size
+            optim_kwargs["N"] = X.shape[0]
 
         optim_init, optim_update, optim_params, get_other = adascore(**optim_kwargs)
-        thresh = halfnorm.ppf(p)
-        print("optimizer: adascore, lr: {}, thresh: {}".format(step_size, thresh))
+        tqdm.write("optimizer: adascore, lr: {}, start score: {}".format(print_step(1), start_score))
         jit_other = jax.jit(get_other)
 
         # this function is for determining proportion of weights 'on'
         def weights_on_fn(opt_state, step):
-            m, v, z, thresh_ = jit_other(opt_state)
-            z, _ = jax.tree_flatten(z)
-            z = np.concatenate([x.ravel() for x in z])
-            if type(anneal) == float:
-                schedule = lambda x: 100 * anneal**(x) + 1
-            else:
-                schedule = lambda x : 1.0
-            weights_on = np.sum(z >= thresh / schedule(step))
-            total = np.size(z)
+            m, v, vn, p = jit_other(opt_state)
+            p, _ = flatten_params(p)
+            v, _ = flatten_params(v)
+            vn, _ = flatten_params(vn)
+            # get ratio of dzdx > dzdy
 
             out_dict = {
-                "weights_on":weights_on,
-                "total":total,
-                "prop":weights_on / (total + 1e-8),
-                "thresh":thresh / schedule(step),
-                "z": np.mean(z),
-                "z_max":np.max(z),
-                "z_min":np.min(z),
+                "avg_vn":np.mean(vn),
+                "avg_v":np.mean(v),
+                "avg_p":np.mean(p),
             }
             return out_dict
     
     elif optim == "adam":
-        print("optimizer: adam, lr: ", step_size)
+        tqdm.write("optimizer: adam, lr: {}".format(print_step(1)))
         if optim_kwargs is None:
             optim_kwargs = dict(
                 step_size=step_size, b1=0.9, b2=0.99, eps=1e-8
@@ -107,7 +101,7 @@ def training_loop(
         optim_init, optim_update, optim_params = optimizers.adam(**optim_kwargs)
     
     elif optim == "adabelief":
-        print("optimizer: adabelief, lr: ", step_size)
+        tqdm.write("optimizer: adabelief, lr: {}".format(print_step(1)))
         if optim_kwargs is None:
             optim_kwargs = dict(
                 step_size=step_size, b1=0.9, b2=0.99, eps=1e-8
@@ -118,38 +112,66 @@ def training_loop(
 
     opt_state = optim_init(params)
     in_ax2 = jax.tree_map(lambda x: 0, opt_state)
-
-    @functools.partial(
-        jax.pmap,
-        axis_name='num_devices',
-        in_axes=(None, in_ax1, 0, 0 , 0, in_ax2),
-        out_axes=(in_ax1, in_ax2),
-        static_broadcasted_argnums=0)
-    def take_step(step, params, x_batch, y_batch, rng, opt_state):
-        """ Compute the gradient for a batch and update the parameters """        
-        grads = jax.jit(jax.grad(loss))(params, x_batch, y_batch, rng)
-        grads = jax.lax.pmean(grads, axis_name='num_devices')
-        opt_state = jax.jit(optim_update)(step, grads, opt_state)
-        return optim_params(opt_state), opt_state
-
+    
+    if optim == "adascore":
+        @functools.partial(
+            jax.pmap,
+            axis_name='num_devices',
+            in_axes=(None, in_ax1, 0, 0 , 0, in_ax2),
+            out_axes=(in_ax1, in_ax2),
+            )
+        def take_step(step, params, x_batch, y_batch, rng, opt_state):
+            """ Compute the gradient for a batch and update the parameters """
+            grads = jax.grad(loss)(params, x_batch, y_batch, rng)
+            grads = jax.lax.pmean(grads, axis_name='num_devices')
+            g0 = jax.grad(loss)(params, x_batch[:1,...], y_batch[:1], rng)
+            g0 = jax.lax.pmean(g0, axis_name='num_devices')
+            keys = random.split(rng[0,...], len(params_flat))
+            uniform = [random.uniform(key, x.shape) for key, x in zip(keys, params_flat)]
+            uniform = jax.tree_util.tree_unflatten(params_build, uniform)
+            opt_state = optim_update(step, grads, g0, uniform, opt_state)
+            return optim_params(opt_state), opt_state
+    else:
+        @functools.partial(
+            jax.pmap,
+            axis_name='num_devices',
+            in_axes=(None, in_ax1, 0, 0 , 0, in_ax2),
+            out_axes=(in_ax1, in_ax2),
+            )
+        def take_step(step, params, x_batch, y_batch, rng, opt_state):
+            """ Compute the gradient for a batch and update the parameters """        
+            grads = jax.grad(loss)(params, x_batch, y_batch, rng)
+            grads = jax.lax.pmean(grads, axis_name='num_devices')
+            opt_state = optim_update(step, grads, opt_state)
+            return optim_params(opt_state), opt_state
+    
     if devices == 1:
         take_step = jax.jit(take_step)
     history = []  # store training metrics
 
-    pbar1 = tqdm(total=epochs, leave=True)
+    pbar1 = tqdm(total=epochs, position=0, leave=False)
     step = 0
 
     if optim == "adascore":
         grad_dict = weights_on_fn(opt_state, step+1)
     else:
         grad_dict = {}
-
+    
     for epoch in range(epochs):
         rng, key = random.split(rng, 2)
-        mod = X.shape[0] % (batch_size*devices)
-        rows = random.permutation(key, X.shape[0] - mod)
-        batches = np.split(rows, 
-            X.shape[0] // (batch_size*devices))
+        if X.shape[0] > batch_size:
+            batch_dev = batch_size // devices
+            mod = X.shape[0] % (batch_size)
+            rows = random.permutation(key, X.shape[0] - mod)
+            batches = np.split(rows, 
+                X.shape[0] // (batch_size))
+        else:
+            mod = X.shape[0] % devices
+            batch_size = X.shape[0] - mod
+            batch_dev = batch_size // devices
+            rows = random.permutation(key, X.shape[0] - mod)
+            batches = np.split(rows, 
+                1)
         pbar2 = tqdm(total=len(batches), leave=False)
         
         # evaluate test set performance OR early stopping test
@@ -159,7 +181,7 @@ def training_loop(
             if step == 0:
                 params_store = params_.copy()
                 metric_store = None
-            if X_test == y_test == "proportion":
+            if type(X_test) == type(y_test) == str:
                 test_dict = {"loss":np.nan}
             else:
                 key_ = jnp.ones((X_test.shape[0], 2))
@@ -171,6 +193,8 @@ def training_loop(
             stop, params_store, metric_store = early_stopping(
                 step, params_, params_store, test_dict, metric_store)
             if stop:
+                tqdm.write("Final test loss: {}, epoch: {}".format(
+                    metric_store["loss"], metrics_ewa_["epoch"]))
                 return params_store, history, rng
 
 
@@ -179,11 +203,12 @@ def training_loop(
                 
             step += 1
             rng, key = random.split(rng, 2)
-            key = random.split(key, devices * batch_size).reshape((devices, batch_size, -1))
+            key = random.split(key, batch_size).reshape((devices, batch_dev, -1))
             batch_x = X[np.array(b),...]
             batch_y = y[np.array(b)]
-            batch_x = batch_x.reshape((devices, batch_size, -1))
-            batch_y = batch_y.reshape((devices, batch_size))
+            xbs = batch_x.shape
+            batch_x = batch_x.reshape( (devices, batch_dev) + xbs[1:] )
+            batch_y = batch_y.reshape((devices, batch_dev))
 
 
             # parallelized step function
@@ -196,13 +221,13 @@ def training_loop(
             # initialize some training metrics
             if step == 1:
                 params_ = jax.device_get(jax.tree_map(lambda x: x[0], params))
-                metrics_ewa = metrics(params_, batch_x.reshape((batch_size*devices,-1)), batch_y.reshape((batch_size*devices,-1)), None)
+                metrics_ewa = metrics(params_, batch_x.reshape((batch_size,)+xbs[1:]), batch_y.reshape((batch_size,-1)), None)
                 metrics_ewa["step"]=step
 
             pbar2.update(1)
             if step % frequency == 0:
                 params_ = jax.device_get(jax.tree_map(lambda x: x[0], params))
-                metrics_dict = metrics(params_, batch_x.reshape((batch_size*devices,-1)), batch_y.reshape((batch_size*devices,-1)), None)
+                metrics_dict = metrics(params_, batch_x.reshape((batch_size,)+xbs[1:]), batch_y.reshape((batch_size,-1)), None)
                 metrics_dict["step"]=step
                 metrics_ewa = jax.tree_map(lambda x, y : 0.1 * y + 0.9 * x, metrics_ewa, metrics_dict)
                 metrics_ewa["step"]=step
@@ -210,12 +235,15 @@ def training_loop(
                 metrics_ewa_ = metrics_ewa.copy()
                 # evaluate loss on test set for early stopping
                 if perform_test:
-                    metrics_ewa_["test_loss"] = test_dict["loss"]
+                    metrics_ewa_["lr"] = print_step(step)
+                    metrics_ewa_["test_loss"] = metric_store["loss"]
+                    metrics_ewa_["test_current"] = test_dict["loss"]
                     metrics_ewa_["test_counter"] = metric_store["counter"]
                     metrics_ewa_["epoch"] = epoch
                 if optim == "adascore":
-                    for key in grad_dict.keys():
-                        metrics_ewa_[key] = grad_dict[key]
+                    metrics_ewa_["avg_vn"] = grad_dict["avg_vn"]
+                    metrics_ewa_["avg_v"] = grad_dict["avg_v"]
+                    metrics_ewa_["avg_p"] = grad_dict["avg_p"]
 
                 # enforce dtype float for dict object while saving
                 for k in metrics_ewa_.keys():
@@ -224,7 +252,9 @@ def training_loop(
                 history.append(metrics_ewa_)
         pbar2.close()
         pbar1.update(1)
-
+    tqdm.write("Final test loss: {}, epoch: {}".format(
+        metrics_ewa_["test_loss"], metrics_ewa_["epoch"]))
     pbar1.close()
     params = jax.device_get(jax.tree_map(lambda x: x[0], params))
     return params, history, rng
+

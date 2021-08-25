@@ -169,7 +169,8 @@ class UAT:
         if self.posterior_params["name"] == "MAP":
             rng_placeholder = jnp.ones((X.shape[0],2))
             out = self.apply_fun(self.params, X, rng_placeholder, False)
-        
+            out = out[0]
+
         return jnp.squeeze(out)
     
     def distances(self, X, y):

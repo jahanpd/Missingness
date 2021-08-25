@@ -88,7 +88,7 @@ def spiral(
         split=0.33,
         rng_key=0,
         p=0.5,
-        cols=1
+        cols_miss=1
     ):
     rng = np.random.default_rng(rng_key)
     theta = np.sqrt(rng.uniform(0,1,N))*2*np.pi # np.linspace(0,2*pi,100)
@@ -139,32 +139,40 @@ def spiral(
         X = X_
 
     # create missingness mask
+    cols = X.shape[1]
     if missing == "MAR":
-        correction1 = X[:,:1] > np.quantile(X[:,:1], 0.6, keepdims=True) # dependency on x1 MAR
-        correction2 = X[:,1:2] > np.quantile(X[:,1:2], 0.4, keepdims=True) # dependency on x2 MAR
-        correction3 = X[:,2:3] < np.quantile(X[:,2:3], 0.6, keepdims=True) # dependency on x3 MAR
-        correction = np.concatenate([correction1, correction2, correction3])
-        correction = np.where(correction, 0.0, 1.0).reshape((-1,3))  # dependency on x4
-        rand_arr = rng.uniform(0,1,(X.shape[0], 3)) * correction
+        cols_miss = np.minimum(cols - 1, cols_miss) # clip cols missing 
+        q = rng.uniform(0.3,0.7,(cols-1,))
+        corrections = []
+        for col in range(cols-1):
+            correction = X[:,col] > np.quantile(X[:,col], q[col], keepdims=True) # dependency on each x
+            corrections.append(correction)
+        corrections = np.concatenate(corrections)
+        corrections = np.where(corrections, 0.0, 1.0).reshape((-1,cols - 1))
+        print(corrections.shape, X.shape)
+        rand_arr = rng.uniform(0,1,(X.shape[0], cols - 1)) * corrections
         nan_arr = np.where(rand_arr > (1-p), np.nan, 1.0)
-        X[:, 1:] *= nan_arr
+        X[:, -cols_miss:] *= nan_arr[:, -cols_miss:]  # dependency is shifted to the left, therefore MAR
 
     if missing == "MNAR":
-        correction1 = X[:,-1:] < np.quantile(X[:,-1:], 0.2, keepdims=True) # dependency on x4 MNAR
-        correction2 = X[:,:1] < np.quantile(X[:,:1], 0.1, keepdims=True) # dependency on x1 MAR
-        correction3 = X[:,1:2] < np.quantile(X[:,1:2], 0.3, keepdims=True) # dependency on x1 MAR
-        correction = (correction1 | correction2) | correction3
-        correction = np.where(correction, 0.0, 1.0).reshape((-1,1))  # dependency on x4
-        rand_arr = rng.uniform(0,1,(X.shape[0], 4)) * correction
-        # missingness is dependent on unobserved missing values
-        nan_arr = np.where(rand_arr > (1 - p), np.nan, 1.0)
-        X *= nan_arr
+        cols_miss = np.minimum(cols, cols_miss) # clip cols missing 
+        q = rng.uniform(0.3,0.7,(cols,))
+        corrections = []
+        for col in range(cols):
+            correction = X[:,col] > np.quantile(X[:,col], q[col], keepdims=True) # dependency on each x
+            corrections.append(correction)
+        corrections = np.concatenate(corrections)
+        corrections = np.where(corrections, 0.0, 1.0).reshape((-1,cols))
+        rand_arr = rng.uniform(0,1,(X.shape[0], cols)) * corrections
+        nan_arr = np.where(rand_arr > (1-p), np.nan, 1.0)
+        X[:, -cols_miss:] *= nan_arr[:, -cols_miss:]  # dependency is not shifted to the left, therefore MNAR
 
     if type(missing) == float or missing == "MCAR":
+        cols_miss = np.minimum(cols, cols_miss) # clip cols missing
         if type(missing) == float: p = missing
-        rand_arr = rng.uniform(0,1,(X.shape[0], cols))
+        rand_arr = rng.uniform(0,1,(X.shape[0], cols_miss))
         nan_arr = np.where(rand_arr < p, np.nan, 1.0)
-        X[:, -cols:] *= nan_arr
+        X[:, -cols_miss:] *= nan_arr
 
     if type(missing) == tuple and missing[1] == "MNAR":
         correction1 = X[:,-1:] < np.quantile(X[:,-1:], 0.2, keepdims=True) # dependency on x4 MNAR
@@ -195,14 +203,14 @@ def spiral(
         X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=0.33, random_state=key)
 
     # missingness diagnostics
-    diagnostics = {"X_train":{}, "X_valid":{}, "X_test":{}}
-    diagnostics["X_train"]["cols"] = np.isnan(X_train).sum(0) / X_train.shape[0]
-    diagnostics["X_train"]["rows"] = np.any(np.isnan(X_train), axis=1).sum() / X_train.shape[0]
-    diagnostics["X_valid"]["cols"] = np.isnan(X_valid).sum(0) / X_valid.shape[0]
-    diagnostics["X_valid"]["rows"] = np.any(np.isnan(X_valid), axis=1).sum() / X_valid.shape[0]
-    diagnostics["X_test"]["cols"] = np.isnan(X_test).sum(0) / X_test.shape[0]
-    diagnostics["X_test"]["rows"] = np.any(np.isnan(X_test), axis=1).sum() / X_test.shape[0]
-    print(diagnostics)
+    # diagnostics = {"X_train":{}, "X_valid":{}, "X_test":{}}
+    # diagnostics["X_train"]["cols"] = np.isnan(X_train).sum(0) / X_train.shape[0]
+    # diagnostics["X_train"]["rows"] = np.any(np.isnan(X_train), axis=1).sum() / X_train.shape[0]
+    # diagnostics["X_valid"]["cols"] = np.isnan(X_valid).sum(0) / X_valid.shape[0]
+    # diagnostics["X_valid"]["rows"] = np.any(np.isnan(X_valid), axis=1).sum() / X_valid.shape[0]
+    # diagnostics["X_test"]["cols"] = np.isnan(X_test).sum(0) / X_test.shape[0]
+    # diagnostics["X_test"]["rows"] = np.any(np.isnan(X_test), axis=1).sum() / X_test.shape[0]
+    # print(diagnostics)
 
     # perform desired imputation strategy
     if imputation == "simple" and missing is not None:
@@ -274,36 +282,57 @@ def thoracic(
 
     if train_complete and test_complete:
         X = X_
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=split, random_state=rng_key)
-        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=rng_key+1)
+        key = rng.integers(9999)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=split, random_state=key)
+        key = rng.integers(9999)
+        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=key)
 
     elif train_complete and not test_complete: # TRAIN COMPLETE IS TRUE AND TEST COMPLETE IS FALSE
-        X_train, X, y_train, y_test = train_test_split(X_, y, test_size=split, random_state=rng_key)
-        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=rng_key+1)
+        key = rng.integers(9999)
+        X_train, X, y_train, y_test = train_test_split(X_, y, test_size=split, random_state=key)
+        key = rng.integers(9999)
+        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=key)
     
     elif not train_complete and test_complete:
-        X, X_test, y_train, y_test = train_test_split(X_, y, test_size=split, random_state=rng_key)
+        key = rng.integers(9999)
+        X, X_test, y_train, y_test = train_test_split(X_, y, test_size=split, random_state=key)
     
     elif not train_complete and not test_complete:
         X = X_
 
+    cols = X.shape[1]
     if missing == "MCAR":
+        cols_miss = np.minimum(cols, cols_miss) # clip cols missing 
         rand_arr = rng.uniform(0, 1, (X.shape[0], cols_miss))
         nan_arr = np.where(rand_arr < p, np.nan, 1.0)
         X[:, -cols_miss:] *= nan_arr
 
     if missing == "MAR":
-        correction = np.where(X[:,1] > np.median(X[:,1]), 0.0, 1.0).reshape((-1,1))
-        rand_arr = rng.uniform(0, 1, (X.shape[0], cols_miss)) * correction
-        nan_arr = np.where(rand_arr > 1 - p, np.nan, 1.0)
-        X[:, -cols_miss:] *= nan_arr
+        cols_miss = np.minimum(cols - 1, cols_miss) # clip cols missing 
+        q = rng.uniform(0.3,0.7,(cols-1,))
+        corrections = []
+        for col in range(cols-1):
+            correction = X[:,col] > np.quantile(X[:,col], q[col], keepdims=True) # dependency on each x
+            corrections.append(correction)
+        corrections = np.concatenate(corrections)
+        corrections = np.where(corrections, 0.0, 1.0).reshape((-1,cols - 1))
+        print(corrections.shape, X.shape)
+        rand_arr = rng.uniform(0,1,(X.shape[0], cols - 1)) * corrections
+        nan_arr = np.where(rand_arr > (1-p), np.nan, 1.0)
+        X[:, -cols_miss:] *= nan_arr[:, -cols_miss:]  # dependency is shifted to the left, therefore MAR
 
     if missing == "MNAR":
-        correction = np.where(X[:,-cols_miss:] >=
-                    np.median(X[:,-cols_miss:], axis=0, keepdims=True), 0.0, 1.0).reshape((-1,cols_miss))
-        rand_arr = rng.uniform(0, 1, (X.shape[0], cols_miss)) * correction
-        nan_arr = np.where(rand_arr > 1 - p, np.nan, 1.0)
-        X[:, -cols_miss:] *= nan_arr
+        cols_miss = np.minimum(cols, cols_miss) # clip cols missing 
+        q = rng.uniform(0.3,0.7,(cols,))
+        corrections = []
+        for col in range(cols):
+            correction = X[:,col] > np.quantile(X[:,col], q[col], keepdims=True) # dependency on each x
+            corrections.append(correction)
+        corrections = np.concatenate(corrections)
+        corrections = np.where(corrections, 0.0, 1.0).reshape((-1,cols))
+        rand_arr = rng.uniform(0,1,(X.shape[0], cols)) * corrections
+        nan_arr = np.where(rand_arr > (1-p), np.nan, 1.0)
+        X[:, -cols_miss:] *= nan_arr[:, -cols_miss:]  # dependency is not shifted to the left, therefore MNAR
 
     # generate train, validate, test datasets and impute training 
     if train_complete and test_complete:
@@ -314,35 +343,58 @@ def thoracic(
     
     elif not train_complete and test_complete:
         X_train = X
-        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=rng_key)
+        key = rng.integers(9999)
+        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=key)
     
     elif not train_complete and not test_complete:
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=split, random_state=rng_key)
-        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=rng_key+1)
+        key = rng.integers(9999)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=split, random_state=key)
+        key = rng.integers(9999)
+        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=key)
+
+    # missingness diagnostics
+    # diagnostics = {"X_train":{}, "X_valid":{}, "X_test":{}}
+    # diagnostics["X_train"]["cols"] = np.isnan(X_train).sum(0) / X_train.shape[0]
+    # diagnostics["X_train"]["rows"] = np.any(np.isnan(X_train), axis=1).sum() / X_train.shape[0]
+    # diagnostics["X_valid"]["cols"] = np.isnan(X_valid).sum(0) / X_valid.shape[0]
+    # diagnostics["X_valid"]["rows"] = np.any(np.isnan(X_valid), axis=1).sum() / X_valid.shape[0]
+    # diagnostics["X_test"]["cols"] = np.isnan(X_test).sum(0) / X_test.shape[0]
+    # diagnostics["X_test"]["rows"] = np.any(np.isnan(X_test), axis=1).sum() / X_test.shape[0]
+    # print(diagnostics)
 
     # perform desired imputation strategy
-    if imputation == "simple":
+    if imputation == "simple" and missing is not None:
         X_train, X_valid, X_test = simple(
             X_train,
-            dtypes=cols,
+            dtypes=None,
             valid=X_valid,
             test=X_test)
     
-    if imputation == "iterative":
+    key = rng.integers(9999)
+    if imputation == "iterative" and missing is not None:
         X_train, X_valid, X_test = iterative(
             X_train,
-            rng_key,
-            dtypes=cols,
+            key,
+            dtypes=None,
             valid=X_valid,
             test=X_test)
     
-    if imputation == "miceforest":
-        X_train, X_valid, X_test = iterative(
+    key = rng.integers(9999)
+    if imputation == "miceforest" and missing is not None:
+        if test_complete:
+            test_input = None
+        else:
+            test_input = X_test
+        X_train, X_valid, test_input = miceforest(
             X_train,
-            rng_key,
-            dtypes=cols,
+            int(key),
+            dtypes=None,
             valid=X_valid,
-            test=X_test)
+            test=test_input)
+        if test_complete:
+            X_test = X_test
+        else:
+            X_test = test_input
 
     return X_train, X_valid, X_test, y_train, y_valid, y_test, 2
 
@@ -372,36 +424,57 @@ def abalone(
 
     if train_complete and test_complete:
         X = X_
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=split, random_state=rng_key)
-        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=rng_key+1)
+        key = rng.integers(9999)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=split, random_state=key)
+        key = rng.integers(9999)
+        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=key)
 
     elif train_complete and not test_complete: # TRAIN COMPLETE IS TRUE AND TEST COMPLETE IS FALSE
-        X_train, X, y_train, y_test = train_test_split(X_, y, test_size=split, random_state=rng_key)
-        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=rng_key+1)
+        key = rng.integers(9999)
+        X_train, X, y_train, y_test = train_test_split(X_, y, test_size=split, random_state=key)
+        key = rng.integers(9999)
+        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=key)
     
     elif not train_complete and test_complete:
-        X, X_test, y_train, y_test = train_test_split(X_, y, test_size=split, random_state=rng_key)
+        key = rng.integers(9999)
+        X, X_test, y_train, y_test = train_test_split(X_, y, test_size=split, random_state=key)
     
     elif not train_complete and not test_complete:
         X = X_
 
+    cols = X.shape[1]
     if missing == "MCAR":
+        cols_miss = np.minimum(cols, cols_miss) # clip cols missing 
         rand_arr = rng.uniform(0, 1, (X.shape[0], cols_miss))
         nan_arr = np.where(rand_arr < p, np.nan, 1.0)
         X[:, -cols_miss:] *= nan_arr
 
     if missing == "MAR":
-        correction = np.where(X[:,1] > np.median(X[:,1]), 0.0, 1.0).reshape((-1,1))
-        rand_arr = rng.uniform(0, 1, (X.shape[0], cols_miss)) * correction
-        nan_arr = np.where(rand_arr > 1 - p, np.nan, 1.0)
-        X[:, -cols_miss:] *= nan_arr
+        cols_miss = np.minimum(cols - 1, cols_miss) # clip cols missing 
+        q = rng.uniform(0.3,0.7,(cols-1,))
+        corrections = []
+        for col in range(cols-1):
+            correction = X[:,col] > np.quantile(X[:,col], q[col], keepdims=True) # dependency on each x
+            corrections.append(correction)
+        corrections = np.concatenate(corrections)
+        corrections = np.where(corrections, 0.0, 1.0).reshape((-1,cols - 1))
+        print(corrections.shape, X.shape)
+        rand_arr = rng.uniform(0,1,(X.shape[0], cols - 1)) * corrections
+        nan_arr = np.where(rand_arr > (1-p), np.nan, 1.0)
+        X[:, -cols_miss:] *= nan_arr[:, -cols_miss:]  # dependency is shifted to the left, therefore MAR
 
     if missing == "MNAR":
-        correction = np.where(X[:,-cols_miss:] >=
-                    np.median(X[:,-cols_miss:], axis=0, keepdims=True), 0.0, 1.0).reshape((-1,cols_miss))
-        rand_arr = rng.uniform(0, 1, (X.shape[0], cols_miss)) * correction
-        nan_arr = np.where(rand_arr > 1 - p, np.nan, 1.0)
-        X[:, -cols_miss:] *= nan_arr
+        cols_miss = np.minimum(cols, cols_miss) # clip cols missing 
+        q = rng.uniform(0.3,0.7,(cols,))
+        corrections = []
+        for col in range(cols):
+            correction = X[:,col] > np.quantile(X[:,col], q[col], keepdims=True) # dependency on each x
+            corrections.append(correction)
+        corrections = np.concatenate(corrections)
+        corrections = np.where(corrections, 0.0, 1.0).reshape((-1,cols))
+        rand_arr = rng.uniform(0,1,(X.shape[0], cols)) * corrections
+        nan_arr = np.where(rand_arr > (1-p), np.nan, 1.0)
+        X[:, -cols_miss:] *= nan_arr[:, -cols_miss:]  # dependency is not shifted to the left, therefore MNAR
 
     # generate train, validate, test datasets and impute training 
     if train_complete and test_complete:
@@ -412,39 +485,63 @@ def abalone(
     
     elif not train_complete and test_complete:
         X_train = X
-        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=rng_key)
+        key = rng.integers(9999)
+        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=key)
     
     elif not train_complete and not test_complete:
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=split, random_state=rng_key)
-        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=rng_key+1)
+        key = rng.integers(9999)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=split, random_state=key)
+        key = rng.integers(9999)
+        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=key)
+
+    # missingness diagnostics
+    # diagnostics = {"X_train":{}, "X_valid":{}, "X_test":{}}
+    # diagnostics["X_train"]["cols"] = np.isnan(X_train).sum(0) / X_train.shape[0]
+    # diagnostics["X_train"]["rows"] = np.any(np.isnan(X_train), axis=1).sum() / X_train.shape[0]
+    # diagnostics["X_valid"]["cols"] = np.isnan(X_valid).sum(0) / X_valid.shape[0]
+    # diagnostics["X_valid"]["rows"] = np.any(np.isnan(X_valid), axis=1).sum() / X_valid.shape[0]
+    # diagnostics["X_test"]["cols"] = np.isnan(X_test).sum(0) / X_test.shape[0]
+    # diagnostics["X_test"]["rows"] = np.any(np.isnan(X_test), axis=1).sum() / X_test.shape[0]
+    # print(diagnostics)
 
     # perform desired imputation strategy
-    if imputation == "simple":
+    if imputation == "simple" and missing is not None:
         X_train, X_valid, X_test = simple(
             X_train,
-            dtypes=coltypes,
+            dtypes=None,
             valid=X_valid,
             test=X_test)
     
-    if imputation == "iterative":
+    key = rng.integers(9999)
+    if imputation == "iterative" and missing is not None:
         X_train, X_valid, X_test = iterative(
             X_train,
-            rng_key,
-            dtypes=coltypes,
+            key,
+            dtypes=None,
             valid=X_valid,
             test=X_test)
     
-    if imputation == "miceforest":
-        X_train, X_valid, X_test = iterative(
+    key = rng.integers(9999)
+    if imputation == "miceforest" and missing is not None:
+        if test_complete:
+            test_input = None
+        else:
+            test_input = X_test
+        X_train, X_valid, test_input = miceforest(
             X_train,
-            rng_key,
-            dtypes=coltypes,
+            int(key),
+            dtypes=None,
             valid=X_valid,
-            test=X_test)
+            test=test_input)
+        if test_complete:
+            X_test = X_test
+        else:
+            X_test = test_input
 
     return X_train, X_valid, X_test, y_train, y_valid, y_test, 1
 
 def banking(imputation=None, split=0.33, rng_key=0):
+    rng = np.random.default_rng(rng_key)
     data = pd.read_csv(bank_path, sep=";")
     cont = ['age', 'duration', 'campaign', 'pdays', 'previous', 'emp.var.rate', 'cons.price.idx', 'cons.conf.idx', 'euribor3m', 'nr.employed']
     cat = ['job', 'marital', 'education', 'default', 'housing', 'loan', 'contact', 'month', 'day_of_week', 'poutcome', 'y']
@@ -461,29 +558,45 @@ def banking(imputation=None, split=0.33, rng_key=0):
     X = data.values[:, :-1]
     y = data.values[:, -1]
     # split data
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=split, random_state=rng_key)
-    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=split, random_state=rng_key+1)
+    
+    key = rng.integers(9999)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=split, random_state=key)
+    key = rng.integers(9999)
+    X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=key)
+
+    # diagnostics = {"X_train":{}, "X_valid":{}, "X_test":{}}
+    # diagnostics["X_train"]["cols"] = np.isnan(X_train).sum(0) / X_train.shape[0]
+    # diagnostics["X_train"]["rows"] = np.any(np.isnan(X_train), axis=1).sum() / X_train.shape[0]
+    # diagnostics["X_valid"]["cols"] = np.isnan(X_valid).sum(0) / X_valid.shape[0]
+    # diagnostics["X_valid"]["rows"] = np.any(np.isnan(X_valid), axis=1).sum() / X_valid.shape[0]
+    # diagnostics["X_test"]["cols"] = np.isnan(X_test).sum(0) / X_test.shape[0]
+    # diagnostics["X_test"]["rows"] = np.any(np.isnan(X_test), axis=1).sum() / X_test.shape[0]
+    # print(diagnostics)
+
 
     # perform desired imputation strategy
+    rng = np.random.default_rng(rng_key)
     if imputation == "simple":
-        X_train, X_valid, X_test = simple(
+        X_train, _, X_test = simple(
             X_train,
             dtypes=coltype,
-            valid=X_valid,
+            valid=None,
             test=X_test)
     
+    key = rng.integers(9999)
     if imputation == "iterative":
-        X_train, X_valid, X_test = iterative(
+        X_train, _, X_test = iterative(
             X_train,
-            rng_key,
-            valid=X_valid,
+            int(key),
+            valid=None,
             test=X_test)
     
+    key = rng.integers(9999)
     if imputation == "miceforest":
-        X_train, X_valid, X_test = iterative(
+        X_train, _, X_test = miceforest(
             X_train,
-            rng_key,
-            valid=X_valid,
+            int(key),
+            valid=None,
             test=X_test)
 
     return X_train, X_valid, X_test, y_train, y_valid, y_test, 2
@@ -557,17 +670,17 @@ def anneal(imputation=None, split=0.33, rng_key=0):
     return X_train, X_valid, X_test, y_train, y_valid, y_test, 6
 
 def mnist(
-    missing="MAR", 
+    missing="MCAR", 
     imputation=None,  # one of none, simple, iterative, miceforest
     train_complete=False,
     test_complete=True,
     split=0.33,
     rng_key=0,
     p=0.5,
-    cols_miss=1
     ):
     rng = np.random.default_rng(rng_key)
-    X_, y = fetch_openml('mnist_784', version=1, return_X_y=True, as_frame=False)
+    # X_, y = fetch_openml('mnist_784', version=1, return_X_y=True, as_frame=False)
+    X_, y = skdata.load_digits(return_X_y=True)
 
     if missing is None:
         train_complete = True
@@ -575,15 +688,20 @@ def mnist(
 
     if train_complete and test_complete:
         X = X_
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=split, random_state=rng_key)
-        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=rng_key+1)
+        key = rng.integers(9999)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=split, random_state=key)
+        key = rng.integers(9999)
+        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=key)
 
     elif train_complete and not test_complete: # TRAIN COMPLETE IS TRUE AND TEST COMPLETE IS FALSE
-        X_train, X, y_train, y_test = train_test_split(X_, y, test_size=split, random_state=rng_key)
-        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=rng_key+1)
+        key = rng.integers(9999)
+        X_train, X, y_train, y_test = train_test_split(X_, y, test_size=split, random_state=key)
+        key = rng.integers(9999)
+        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=key)
     
     elif not train_complete and test_complete:
-        X, X_test, y_train, y_test = train_test_split(X_, y, test_size=split, random_state=rng_key)
+        key = rng.integers(9999)
+        X, X_test, y_train, y_test = train_test_split(X_, y, test_size=split, random_state=key)
     
     elif not train_complete and not test_complete:
         X = X_
@@ -592,8 +710,17 @@ def mnist(
         rand_arr = rng.uniform(0, 1, X.shape)
         nan_arr = np.where(rand_arr < p, np.nan, 1.0)
         X *= nan_arr
+    elif missing == "MAR":
+        # delete a square based on location. Not 'technically' MAR but less 'random' than MCAR implementation
+        square = np.ones((1, 8, 8))
+        for xi in range(8):
+            for yi in range(8):
+                if (0 < xi <= 4) and (0 < yi <= 4):
+                    square[:, xi, yi] = np.nan
+        X *= square.reshape((1, 64))
     elif missing is not None:
         print("not implemented")
+
 
     # generate train, validate, test datasets and impute training 
     if train_complete and test_complete:
@@ -604,19 +731,58 @@ def mnist(
     
     elif not train_complete and test_complete:
         X_train = X
-        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=rng_key)
+        key = rng.integers(9999)
+        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=key)
     
     elif not train_complete and not test_complete:
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=split, random_state=rng_key)
-        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=rng_key+1)
+        key = rng.integers(9999)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=split, random_state=key)
+        key = rng.integers(9999)
+        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=key)
+
+    # missingness diagnostics
+    # diagnostics = {"X_train":{}, "X_valid":{}, "X_test":{}}
+    # diagnostics["X_train"]["cols"] = np.isnan(X_train).sum(0) / X_train.shape[0]
+    # diagnostics["X_train"]["rows"] = np.any(np.isnan(X_train), axis=1).sum() / X_train.shape[0]
+    # diagnostics["X_valid"]["cols"] = np.isnan(X_valid).sum(0) / X_valid.shape[0]
+    # diagnostics["X_valid"]["rows"] = np.any(np.isnan(X_valid), axis=1).sum() / X_valid.shape[0]
+    # diagnostics["X_test"]["cols"] = np.isnan(X_test).sum(0) / X_test.shape[0]
+    # diagnostics["X_test"]["rows"] = np.any(np.isnan(X_test), axis=1).sum() / X_test.shape[0]
+    # print(diagnostics)
 
     # perform desired imputation strategy
-    if imputation == "simple":
+    if imputation == "simple" and missing is not None:
         X_train, X_valid, X_test = simple(
             X_train,
             dtypes=None,
             valid=X_valid,
             test=X_test)
+    
+    key = rng.integers(9999)
+    if imputation == "iterative" and missing is not None:
+        X_train, X_valid, X_test = iterative(
+            X_train,
+            key,
+            dtypes=None,
+            valid=X_valid,
+            test=X_test)
+    
+    key = rng.integers(9999)
+    if imputation == "miceforest" and missing is not None:
+        if test_complete:
+            test_input = None
+        else:
+            test_input = X_test
+        X_train, X_valid, test_input = miceforest(
+            X_train,
+            int(key),
+            dtypes=None,
+            valid=X_valid,
+            test=test_input)
+        if test_complete:
+            X_test = X_test
+        else:
+            X_test = test_input
 
-    return X_train, X_valid, X_test, y_train, y_valid, y_test, 10
+    return X_train, X_valid, X_test, y_train.astype(int), y_valid.astype(int), y_test.astype(int), 10
 

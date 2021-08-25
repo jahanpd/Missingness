@@ -5,6 +5,7 @@ import pandas as pd
 from scipy.stats import t
 import jax
 import jax.numpy as jnp
+from jax.experimental.optimizers import exponential_decay
 from sklearn.experimental import enable_iterative_imputer
 from sklearn.impute import SimpleImputer, IterativeImputer
 from sklearn.model_selection import train_test_split
@@ -15,6 +16,8 @@ from UAT import UAT, create_early_stopping
 from UAT import binary_cross_entropy, cross_entropy, mse
 import xgboost as xgb
 from tqdm import tqdm
+
+devices = jax.local_device_count()
 
 def run(repeats=5, dataset="thoracic", missing=None, imputation=None, train_complete=True, test_complete=True, epochs=10, p=0.15):
     """ 
@@ -37,9 +40,9 @@ def run(repeats=5, dataset="thoracic", missing=None, imputation=None, train_comp
         ("rmse", "xgboost"):[],
     }
     rng = np.random.default_rng(12345)
-    for _ in range(repeats):
+    for repeat in range(repeats):
         key = rng.integers(9999)
-        print(key, repeats)
+        print("key: {}, repeat: {}/{}, dataset: {}, missing: {}, impute: {}".format(key, repeat, repeats, dataset, missing, imputation))
         # import dataset
         if dataset == "spiral":
             # define task
@@ -52,42 +55,43 @@ def run(repeats=5, dataset="thoracic", missing=None, imputation=None, train_comp
                 imputation=imputation,  # one of none, simple, iterative, miceforest
                 train_complete=train_complete,
                 test_complete=test_complete,
-                split=0.33,
+                split=0.2,
                 rng_key=key,
                 p=p,
-                cols=4)
+                cols_miss=4)
 
             # define model
             model_kwargs_uat = dict(
                 features=X_train.shape[1],
-                d_model=64,
-                embed_hidden_size=64,
-                embed_hidden_layers=2,
-                embed_activation=jax.nn.relu,
+                d_model=16,
+                embed_hidden_size=16,
+                embed_hidden_layers=3,
+                embed_activation=jax.nn.leaky_relu,
                 encoder_layers=3,
-                encoder_heads=5,
-                enc_activation=jax.nn.relu,
-                decoder_layers=3,
-                decoder_heads=5,
-                dec_activation=jax.nn.relu,
-                net_hidden_size=64,
-                net_hidden_layers=2,
-                net_activation=jax.nn.relu,
-                last_layer_size=32,
+                encoder_heads=10,
+                enc_activation=jax.nn.leaky_relu,
+                decoder_layers=6,
+                decoder_heads=20,
+                dec_activation=jax.nn.leaky_relu,
+                net_hidden_size=16,
+                net_hidden_layers=3,
+                net_activation=jax.nn.leaky_relu,
+                last_layer_size=16,
                 out_size=classes,
                 W_init = jax.nn.initializers.glorot_uniform(),
-                b_init = jax.nn.initializers.normal(0.01),
+                b_init = jax.nn.initializers.normal(0.0001),
                 )
             
             # define training parameters
-            batch_size = 32
-            stop_epochs = 50
+            batch_size = 1024
+            stop_epochs = 100
+            wait_epochs = 500
             
             training_kwargs_uat = dict(
                 batch_size=batch_size,
                 epochs=epochs,
-                lr=5e-5,
-                optim="adabelief",
+                lr=5e-4,
+                optim="adam",
             )
             loss_fun = cross_entropy(2, l2_reg=1e-4, dropout_reg=1e-5)
             relevant_metrics = ["auc", "accuracy", "nll"]
@@ -112,33 +116,36 @@ def run(repeats=5, dataset="thoracic", missing=None, imputation=None, train_comp
             classes = len(np.concatenate([y_train, y_test]))
             model_kwargs_uat = dict(
                 features=X_train.shape[1],
-                d_model=128,
-                embed_hidden_size=64,
-                embed_hidden_layers=2,
-                embed_activation=jax.nn.relu,
+                d_model=16,
+                embed_hidden_size=16,
+                embed_hidden_layers=3,
+                embed_activation=jax.nn.leaky_relu,
                 encoder_layers=3,
-                encoder_heads=5,
-                enc_activation=jax.nn.relu,
-                decoder_layers=3,
-                decoder_heads=5,
-                dec_activation=jax.nn.relu,
-                net_hidden_size=64,
-                net_hidden_layers=2,
-                net_activation=jax.nn.relu,
-                last_layer_size=32,
+                encoder_heads=10,
+                enc_activation=jax.nn.leaky_relu,
+                decoder_layers=6,
+                decoder_heads=20,
+                dec_activation=jax.nn.leaky_relu,
+                net_hidden_size=16,
+                net_hidden_layers=3,
+                net_activation=jax.nn.leaky_relu,
+                last_layer_size=16,
                 out_size=classes,
                 W_init = jax.nn.initializers.glorot_uniform(),
-                b_init = jax.nn.initializers.normal(0.01),
+                b_init = jax.nn.initializers.normal(0.0001),
                 )
             
             # define training parameters
-            batch_size = 32
-            stop_epochs = 25
+            batch_size = 1024
+            stop_epochs = 2500
+            wait_epochs = 500
+            # lr = exponential_decay(1e-4, X_train.shape[0] // batch_size, 0.999)
+            lr = 5e-4
             training_kwargs_uat = dict(
-                batch_size=32,
+                batch_size=batch_size,
                 epochs=epochs,
-                lr=5e-4,
-                optim="adabelief"
+                lr=lr,
+                optim="adam"
             )
             loss_fun = cross_entropy(classes=classes, l2_reg=1e-4, dropout_reg=1e-5)
             relevant_metrics = ["auc", "accuracy", "nll"]
@@ -156,46 +163,54 @@ def run(repeats=5, dataset="thoracic", missing=None, imputation=None, train_comp
                 imputation=imputation,  # one of none, simple, iterative, miceforest
                 train_complete=train_complete,
                 test_complete=test_complete,
-                split=0.05,
+                split=0.2,
                 rng_key=key,
-                p=p
+                p=p,
+                cols_miss=100
             )
             print(X_train.shape, X_valid.shape, X_test.shape)
 
             # define model
             model_kwargs_uat = dict(
                 features=X_train.shape[1],
-                d_model=64,
-                embed_hidden_size=64,
-                embed_hidden_layers=2,
-                embed_activation=jax.nn.relu,
+                d_model=16,
+                embed_hidden_size=16,
+                embed_hidden_layers=3,
+                embed_activation=jax.nn.leaky_relu,
                 encoder_layers=3,
-                encoder_heads=5,
-                enc_activation=jax.nn.relu,
-                decoder_layers=3,
-                decoder_heads=5,
-                dec_activation=jax.nn.relu,
-                net_hidden_size=64,
-                net_hidden_layers=2,
-                net_activation=jax.nn.relu,
-                last_layer_size=32,
+                encoder_heads=10,
+                enc_activation=jax.nn.leaky_relu,
+                decoder_layers=6,
+                decoder_heads=20,
+                dec_activation=jax.nn.leaky_relu,
+                net_hidden_size=16,
+                net_hidden_layers=3,
+                net_activation=jax.nn.leaky_relu,
+                last_layer_size=16,
                 out_size=classes,
                 W_init = jax.nn.initializers.glorot_uniform(),
-                b_init = jax.nn.initializers.normal(0.01),
+                b_init = jax.nn.initializers.normal(0.0001),
                 )
             
             # define training parameters
-            batch_size = 32
-            stop_epochs = 80
+            batch_size = 2
+            # get maximum batch size possible
+            while batch_size < X_train.shape[0] - batch_size:
+                batch_size *= 2
+            stop_epochs = 1000
+            wait_epochs = 500
+
             training_kwargs_uat = dict(
-                batch_size=32,
+                batch_size=batch_size,
                 epochs=epochs,
-                lr=1e-4,
-                optim="adabelief"
+                lr=1e-3,
+                optim="adam"
             )
             loss_fun = cross_entropy(classes=classes, l2_reg=1e-4, dropout_reg=1e-5)
             relevant_metrics = ["auc", "accuracy", "nll"]
             param = {'objective':'multi:softprob', 'num_class':classes}
+            param['max_depth'] = 8
+            param['min_child_weight'] = 5
   
         if dataset == "abalone":
             task = "regression"
@@ -206,45 +221,53 @@ def run(repeats=5, dataset="thoracic", missing=None, imputation=None, train_comp
                 imputation=imputation,  # one of none, simple, iterative, miceforest
                 train_complete=train_complete,
                 test_complete=test_complete,
-                split=0.33,
+                split=0.2,
                 rng_key=key,
-                p=p
+                p=p,
+                cols_miss=100
             )
+            print(X_train.shape, X_valid.shape, X_test.shape)
 
             # define model
             model_kwargs_uat = dict(
                 features=X_train.shape[1],
-                d_model=64,
-                embed_hidden_size=64,
-                embed_hidden_layers=2,
-                embed_activation=jax.nn.relu,
+                d_model=16,
+                embed_hidden_size=16,
+                embed_hidden_layers=3,
+                embed_activation=jax.nn.leaky_relu,
                 encoder_layers=3,
-                encoder_heads=5,
-                enc_activation=jax.nn.relu,
-                decoder_layers=3,
-                decoder_heads=5,
-                dec_activation=jax.nn.relu,
-                net_hidden_size=64,
-                net_hidden_layers=2,
-                net_activation=jax.nn.relu,
-                last_layer_size=32,
+                encoder_heads=10,
+                enc_activation=jax.nn.leaky_relu,
+                decoder_layers=6,
+                decoder_heads=20,
+                dec_activation=jax.nn.leaky_relu,
+                net_hidden_size=16,
+                net_hidden_layers=3,
+                net_activation=jax.nn.leaky_relu,
+                last_layer_size=16,
                 out_size=classes,
                 W_init = jax.nn.initializers.glorot_uniform(),
-                b_init = jax.nn.initializers.normal(0.01),
+                b_init = jax.nn.initializers.normal(0.0001),
                 )
             
             # define training parameters
-            batch_size = 32
-            stop_epochs = 90
+            batch_size = 2
+            # get maximum batch size possible
+            while batch_size < X_train.shape[0] - batch_size:
+                batch_size *= 2
+            stop_epochs = 1000
+            wait_epochs = 500
             training_kwargs_uat = dict(
-                batch_size=32,
+                batch_size=batch_size,
                 epochs=epochs,
-                lr=1e-4,
-                optim="adabelief"
+                lr=1e-3,
+                optim="adam"
             )
             loss_fun = mse(l2_reg=1e-4, dropout_reg=1e-5)
             relevant_metrics = ["rmse"]
             param = {'objective':'reg:squarederror'}
+            param['max_depth'] = 8
+            param['min_child_weight'] = 5
 
         if dataset == "banking":
             # define task
@@ -256,44 +279,103 @@ def run(repeats=5, dataset="thoracic", missing=None, imputation=None, train_comp
                 rng_key=key,
                 split=0.15
             )
-            print(X_train.shape, X_valid.shape, X_test.shape)
+            print(X_train.shape, X_valid.shape, X_test.shape, y_train.shape, y_valid.shape, y_test.shape)
 
             # define model
             model_kwargs_uat = dict(
                 features=X_train.shape[1],
-                d_model=64,
-                embed_hidden_size=64,
-                embed_hidden_layers=2,
-                embed_activation=jax.nn.relu,
+                d_model=16,
+                embed_hidden_size=16,
+                embed_hidden_layers=3,
+                embed_activation=jax.nn.leaky_relu,
                 encoder_layers=3,
-                encoder_heads=5,
-                enc_activation=jax.nn.relu,
-                decoder_layers=3,
-                decoder_heads=5,
-                dec_activation=jax.nn.relu,
-                net_hidden_size=64,
-                net_hidden_layers=2,
-                net_activation=jax.nn.relu,
-                last_layer_size=32,
+                encoder_heads=10,
+                enc_activation=jax.nn.leaky_relu,
+                decoder_layers=6,
+                decoder_heads=20,
+                dec_activation=jax.nn.leaky_relu,
+                net_hidden_size=16,
+                net_hidden_layers=3,
+                net_activation=jax.nn.leaky_relu,
+                last_layer_size=16,
                 out_size=classes,
                 W_init = jax.nn.initializers.glorot_uniform(),
-                b_init = jax.nn.initializers.normal(0.01),
+                b_init = jax.nn.initializers.normal(0.0001),
                 )
             
             # define training parameters
-            batch_size = 32
-            stop_epochs = 90
+            batch_size = 2
+            # get maximum batch size possible
+            while batch_size < X_train.shape[0] - batch_size:
+                batch_size *= 2
+            
+            stop_epochs = 100
+            wait_epochs = 500
+
             training_kwargs_uat = dict(
-                batch_size=32,
+                batch_size=batch_size,
                 epochs=epochs,
-                lr=1e-4,
-                optim="adabelief"
+                lr=5e-4,
+                optim="adam"
             )
             loss_fun = cross_entropy(classes=classes, l2_reg=1e-4, dropout_reg=1e-5)
             relevant_metrics = ["auc", "accuracy", "nll"]
             param = {'objective':'multi:softprob', 'num_class':classes}
+            param['max_depth'] = 8
+            param['min_child_weight'] = 5
         
-        # equalise training set if categorical
+        if dataset == "mnist":
+            # define task
+            task = "classification"
+
+            # get data
+            X_train, X_valid, X_test, y_train, y_valid, y_test, classes = data.mnist(
+                imputation=imputation,
+                rng_key=key,
+                split=0.15
+            )
+            print(X_train.shape, X_valid.shape, X_test.shape, y_train.shape, y_valid.shape, y_test.shape)
+            
+             # define model
+            model_kwargs_uat = dict(
+                features=X_train.shape[1],
+                d_model=32,
+                embed_hidden_size=16,
+                embed_hidden_layers=3,
+                embed_activation=jax.nn.leaky_relu,
+                encoder_layers=5,
+                encoder_heads=10,
+                enc_activation=jax.nn.leaky_relu,
+                decoder_layers=10,
+                decoder_heads=20,
+                dec_activation=jax.nn.leaky_relu,
+                net_hidden_size=16,
+                net_hidden_layers=3,
+                net_activation=jax.nn.leaky_relu,
+                last_layer_size=16,
+                out_size=classes,
+                W_init = jax.nn.initializers.glorot_uniform(),
+                b_init = jax.nn.initializers.normal(0.0001),
+                )
+            
+            # define training parameters
+            batch_size = 256
+            stop_epochs = 800
+            wait_epochs = 500
+
+            training_kwargs_uat = dict(
+                batch_size=batch_size,
+                epochs=epochs,
+                lr=1e-3,
+                optim="adam"
+            )
+            loss_fun = cross_entropy(classes=classes, l2_reg=1e-6, dropout_reg=1e-5)
+            relevant_metrics = ["auc", "accuracy", "nll"]
+            param = {'objective':'multi:softprob', 'num_class':classes}
+            param['max_depth'] = 8
+            param['min_child_weight'] = 5
+
+        # equalise training classes if categorical
         if task == "classification":
             key = rng.integers(9999)
             ros = RandomOverSampler(random_state=key)
@@ -308,7 +390,7 @@ def run(repeats=5, dataset="thoracic", missing=None, imputation=None, train_comp
         training_kwargs_uat["y_test"] = y_valid
         steps_per_epoch = X_train.shape[0] // batch_size
         stop_steps_ = steps_per_epoch * stop_epochs
-        early_stopping = create_early_stopping(stop_steps_, 20, metric_name="loss", tol=1e-8)
+        early_stopping = create_early_stopping(stop_steps_, wait_epochs, metric_name="loss", tol=1e-8)
         training_kwargs_uat["early_stopping"] = early_stopping
         # create dropped dataset baseline and implement missingness strategy
         def drop_nans(xarray, yarray):
@@ -319,11 +401,14 @@ def run(repeats=5, dataset="thoracic", missing=None, imputation=None, train_comp
         
         X_train_drop, y_train_drop = drop_nans(X_train, y_train)
         X_test_drop, y_test_drop = drop_nans(X_test, y_test)
+        X_valid_drop, y_valid_drop = drop_nans(X_valid, y_valid)
         
-        if (len(y_train_drop) == 0) or (len(y_test_drop) == 0):
+        if (len(y_train_drop) < devices) or (len(y_test_drop) < devices) or (len(y_valid_drop) < devices):
             print("no rows left in dropped dataset...")
             empty=True
         else:
+            print("dropped dataset sizes")
+            print(X_train_drop.shape, X_valid_drop.shape, X_test_drop.shape)
             empty=False
         
         # initialize drop model and strategy model and train
@@ -337,6 +422,8 @@ def run(repeats=5, dataset="thoracic", missing=None, imputation=None, train_comp
         model.fit(X_train, y_train)
         model_drop = model
         if (not train_complete) and (not empty) and (imputation is None) and (missing is not None):
+            training_kwargs_uat["X_test"] = X_valid_drop
+            training_kwargs_uat["y_test"] = y_valid_drop
             model_drop = UAT(
                 model_kwargs=model_kwargs_uat,
                 training_kwargs=training_kwargs_uat,
@@ -353,8 +440,9 @@ def run(repeats=5, dataset="thoracic", missing=None, imputation=None, train_comp
         dvalid = xgb.DMatrix(X_valid, label=y_valid)
         dtest = xgb.DMatrix(X_test)
         evallist = [(dvalid, 'eval'), (dtrain, 'train')]
-        num_round = epochs
-        bst = xgb.train(param, dtrain, num_round, evallist, early_stopping_rounds=10)
+        num_round = 500
+        print("training xgboost for {} epochs".format(num_round))
+        bst = xgb.train(param, dtrain, num_round, evallist, early_stopping_rounds=10, verbose_eval=100)
         output_xgb = bst.predict(dtest)
 
         
@@ -372,17 +460,17 @@ def run(repeats=5, dataset="thoracic", missing=None, imputation=None, train_comp
         # calculate performance metrics
         for rm in relevant_metrics:
             if rm == "accuracy":
-                class_ = np.argmax(output, axis=1)
-                correct = class_ == y_test
-                acc = np.sum(correct) / y_test.shape[0]
+                class_o = np.argmax(output, axis=1)
+                correct_o = class_o == y_test
+                acc = np.sum(correct_o) / y_test.shape[0]
                 
-                class_ = np.argmax(output_xgb, axis=1)
-                correct = class_ == y_test
-                acc_xgb = np.sum(correct) / y_test.shape[0]
+                class_x = np.argmax(output_xgb, axis=1)
+                correct_x = class_x == y_test
+                acc_xgb = np.sum(correct_x) / y_test.shape[0]
                 if not train_complete and not empty:
-                    class_ = np.argmax(output, axis=1)
-                    correct = class_ == y_test
-                    acc_drop = np.sum(correct) / y_test_drop.shape[0]
+                    class_d = np.argmax(output_drop, axis=1)
+                    correct_d = class_d == y_test_drop
+                    acc_drop = np.sum(correct_d) / y_test_drop.shape[0]
                 else:
                     acc_drop = np.nan
                 metrics[("accuracy","full")].append(acc)
@@ -390,10 +478,10 @@ def run(repeats=5, dataset="thoracic", missing=None, imputation=None, train_comp
                 metrics[("accuracy","xgboost")].append(acc_xgb)
                 tqdm.write("strategy:{}, acc full:{}, acc drop:{}, acc xgb: {}".format(imputation, acc, acc_drop, acc_xgb))
             if rm == "nll":
-                nll = (- jnp.log(output) * jax.nn.one_hot(y_test, classes)).sum(axis=-1).mean()
-                nll_xgb = (- jnp.log(output_xgb) * jax.nn.one_hot(y_test, classes)).sum(axis=-1).mean()
+                nll = (- jnp.log(output + 1e-8) * jax.nn.one_hot(y_test, classes)).sum(axis=-1).mean()
+                nll_xgb = (- jnp.log(output_xgb + 1e-8) * jax.nn.one_hot(y_test, classes)).sum(axis=-1).mean()
                 if not train_complete and not empty:
-                    nll_drop = (output_drop * jax.nn.one_hot(y_test_drop, classes)).sum(axis=-1).mean()
+                    nll_drop = (- jnp.log(output_drop + 1e-8) * jax.nn.one_hot(y_test_drop, classes)).sum(axis=-1).mean()
                 else:
                     nll_drop = np.nan
                 metrics[("nll","full")].append(nll)
@@ -434,13 +522,14 @@ def run(repeats=5, dataset="thoracic", missing=None, imputation=None, train_comp
 if __name__ ==  "__main__":
     parser = argparse.ArgumentParser("train model")
     parser.add_argument("--repeats", default=5, type=int)
-    parser.add_argument("--dataset", choices=["spiral","thoracic", "abalone", "banking", "anneal"], default="spiral", nargs='+')
+    parser.add_argument("--dataset", choices=[
+        "spiral","thoracic", "abalone", "banking", "anneal", "mnist"], default="spiral", nargs='+')
     parser.add_argument("--missing", choices=["None", "MCAR", "MAR", "MNAR"], default="None", nargs='+')
     parser.add_argument("--imputation", choices=["None", "simple", "iterative", "miceforest"], nargs='+')
-    parser.add_argument("--epochs", default=100, type=int)
+    parser.add_argument("--epochs", default=10000, type=int)
     parser.add_argument("--p", default=0.3, type=float)
-    parser.add_argument("--train_complete", action='store_true')
-    parser.add_argument("--test_complete", action='store_false')
+    parser.add_argument("--train_complete", action='store_true') # default is false
+    parser.add_argument("--test_complete", action='store_false') # default is true
     parser.add_argument("--save", action='store_true')
     args = parser.parse_args()
     
@@ -464,5 +553,5 @@ if __name__ ==  "__main__":
                 print(dataset, missing, imputation)
                 print(m1.mean())
                 if args.save:
-                    m1.to_pickle("results/imputation/UAT_{}_{}_{}_{}_{}_{}.pickle".format(
-                    args.repeats, dataset, str(missing), imputation, args.train_complete, args.test_complete))
+                    m1.to_pickle("results/imputation/{}_{}_{}_{}_{}_{}.pickle".format(
+                    dataset, args.repeats, str(missing), imputation, args.train_complete, args.test_complete))
