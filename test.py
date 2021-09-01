@@ -20,7 +20,7 @@ for missing in [None, "MCAR", "MAR", "MNAR"]:
             test_complete=False,
             split=0.33,
             rng_key=0,
-            p=0.1,
+            p=0.3,
             cols_miss=100
         )
         print("spiral", missing, imputation, X_train.shape, X_valid.shape, X_test.shape)
