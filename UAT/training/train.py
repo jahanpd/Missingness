@@ -234,12 +234,12 @@ def training_loop(
 
                 metrics_ewa_ = metrics_ewa.copy()
                 # evaluate loss on test set for early stopping
+                metrics_ewa_["epoch"] = epoch
                 if perform_test:
                     metrics_ewa_["lr"] = print_step(step)
                     metrics_ewa_["test_loss"] = metric_store["loss"]
                     metrics_ewa_["test_current"] = test_dict["loss"]
                     metrics_ewa_["test_counter"] = metric_store["counter"]
-                    metrics_ewa_["epoch"] = epoch
                 if optim == "adascore":
                     metrics_ewa_["avg_vn"] = grad_dict["avg_vn"]
                     metrics_ewa_["avg_v"] = grad_dict["avg_v"]
@@ -252,8 +252,12 @@ def training_loop(
                 history.append(metrics_ewa_)
         pbar2.close()
         pbar1.update(1)
-    tqdm.write("Final test loss: {}, epoch: {}".format(
-        metrics_ewa_["test_loss"], metrics_ewa_["epoch"]))
+    try:
+        tqdm.write("Final test loss: {}, epoch: {}".format(
+            metrics_ewa_["test_loss"], metrics_ewa_["epoch"]))
+    except:
+        tqdm.write("Final loss: {}, epoch: {}".format(
+            metrics_ewa_["loss"], metrics_ewa_["epoch"]))
     pbar1.close()
     params = jax.device_get(jax.tree_map(lambda x: x[0], params))
     return params, history, rng

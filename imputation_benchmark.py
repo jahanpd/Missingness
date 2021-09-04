@@ -392,6 +392,7 @@ def run(repeats=5, dataset="thoracic", missing=None, imputation=None, train_comp
         stop_steps_ = steps_per_epoch * stop_epochs
         early_stopping = create_early_stopping(stop_steps_, wait_epochs, metric_name="loss", tol=1e-8)
         training_kwargs_uat["early_stopping"] = early_stopping
+        
         # create dropped dataset baseline and implement missingness strategy
         def drop_nans(xarray, yarray):
             row_mask = ~np.any(np.isnan(xarray), axis=1)
@@ -420,20 +421,6 @@ def run(repeats=5, dataset="thoracic", missing=None, imputation=None, train_comp
             rng_key=key,
         )
         model.fit(X_train, y_train)
-        model_drop = model
-        if (not train_complete) and (not empty) and (imputation is None) and (missing is not None):
-            training_kwargs_uat["X_test"] = X_valid_drop
-            training_kwargs_uat["y_test"] = y_valid_drop
-            model_drop = UAT(
-                model_kwargs=model_kwargs_uat,
-                training_kwargs=training_kwargs_uat,
-                loss_fun=loss_fun,
-                rng_key=key,
-            )
-            model_drop.fit(X_train_drop, y_train_drop)
-        else:
-            empty = True # in order to set dropped metrics to NA
-
         # XGBoost comparison
         # build XGBoost model
         dtrain = xgb.DMatrix(X_train, label=y_train)
@@ -444,6 +431,29 @@ def run(repeats=5, dataset="thoracic", missing=None, imputation=None, train_comp
         print("training xgboost for {} epochs".format(num_round))
         bst = xgb.train(param, dtrain, num_round, evallist, early_stopping_rounds=10, verbose_eval=100)
         output_xgb = bst.predict(dtest)
+
+        if (not train_complete) and (not empty) and (imputation is None) and (missing is not None):
+            training_kwargs_uat["X_test"] = X_valid_drop
+            training_kwargs_uat["y_test"] = y_valid_drop
+            model_drop = UAT(
+                model_kwargs=model_kwargs_uat,
+                training_kwargs=training_kwargs_uat,
+                loss_fun=loss_fun,
+                rng_key=key,
+            )
+            model_drop.fit(X_train_drop, y_train_drop)
+            # XGBoost comparison
+            # build XGBoost model
+            dtrain_drop = xgb.DMatrix(X_train_drop, label=y_train_drop)
+            dvalid_drop = xgb.DMatrix(X_valid_drop, label=y_valid_drop)
+            dtest_drop = xgb.DMatrix(X_test_drop)
+            evallist = [(dvalid, 'eval'), (dtrain, 'train')]
+            num_round = 500
+            print("training xgboost for {} epochs".format(num_round))
+            bst_drop = xgb.train(param, dtrain, num_round, evallist, early_stopping_rounds=10, verbose_eval=100)
+            output_xgb_drop = bst_drop.predict(dtest_drop)
+        else:
+            empty = True # in order to set dropped metrics to NA
 
         
         # assess performance of models on test set and store metrics
@@ -471,33 +481,42 @@ def run(repeats=5, dataset="thoracic", missing=None, imputation=None, train_comp
                     class_d = np.argmax(output_drop, axis=1)
                     correct_d = class_d == y_test_drop
                     acc_drop = np.sum(correct_d) / y_test_drop.shape[0]
+                    
+                    class_d = np.argmax(output_xgb_drop, axis=1)
+                    correct_d = class_d == y_test_drop
+                    acc_drop_xgb = np.sum(correct_d) / y_test_drop.shape[0]
                 else:
                     acc_drop = np.nan
                 metrics[("accuracy","full")].append(acc)
                 metrics[("accuracy","drop")].append(acc_drop)
                 metrics[("accuracy","xgboost")].append(acc_xgb)
+                metrics[("accuracy","xgboost_drop")].append(acc_drop_xgb)
                 tqdm.write("strategy:{}, acc full:{}, acc drop:{}, acc xgb: {}".format(imputation, acc, acc_drop, acc_xgb))
             if rm == "nll":
                 nll = (- jnp.log(output + 1e-8) * jax.nn.one_hot(y_test, classes)).sum(axis=-1).mean()
                 nll_xgb = (- jnp.log(output_xgb + 1e-8) * jax.nn.one_hot(y_test, classes)).sum(axis=-1).mean()
                 if not train_complete and not empty:
                     nll_drop = (- jnp.log(output_drop + 1e-8) * jax.nn.one_hot(y_test_drop, classes)).sum(axis=-1).mean()
+                    nll_drop_xgb = (- jnp.log(output_xgb_drop + 1e-8) * jax.nn.one_hot(y_test_drop, classes)).sum(axis=-1).mean()
                 else:
                     nll_drop = np.nan
                 metrics[("nll","full")].append(nll)
                 metrics[("nll","drop")].append(nll_drop)
                 metrics[("nll","xgboost")].append(nll_xgb)
+                metrics[("nll","xgboost_drop")].append(nll_drop_xgb)
                 tqdm.write("strategy:{}, nll full:{}, nll drop:{}, nll xbg:{}".format(imputation, nll, nll_drop, nll_xgb))
             if rm == "rmse":
                 rmse = np.sqrt(np.square(output - y_test).mean())
                 rmse_xgb = np.sqrt(np.square(output_xgb - y_test).mean())
                 if not train_complete and not empty:
                     rmse_drop = np.sqrt(np.square(output_drop - y_test_drop).mean())
+                    rmse_xgb_drop = np.sqrt(np.square(output_xgb_drop - y_test_drop).mean())
                 else:
                     rmse_drop = np.nan
                 metrics[("rmse","full")].append(rmse)
                 metrics[("rmse","drop")].append(rmse_drop)
                 metrics[("rmse","xgboost")].append(rmse_xgb)
+                metrics[("rmse","xgboost_drop")].append(rmse_xgb_drop)
     
     # convert metrics dict to dataframe and determine % change
     # get rid of unused metrics
@@ -525,7 +544,7 @@ if __name__ ==  "__main__":
     parser.add_argument("--dataset", choices=[
         "spiral","thoracic", "abalone", "banking", "anneal", "mnist"], default="spiral", nargs='+')
     parser.add_argument("--missing", choices=["None", "MCAR", "MAR", "MNAR"], default="None", nargs='+')
-    parser.add_argument("--imputation", choices=["None", "simple", "iterative", "miceforest"], nargs='+')
+    parser.add_argument("--imputation", choices=["None", "Drop", "simple", "iterative", "miceforest"], nargs='+')
     parser.add_argument("--epochs", default=10000, type=int)
     parser.add_argument("--p", default=0.3, type=float)
     parser.add_argument("--train_complete", action='store_true') # default is false

@@ -41,40 +41,40 @@ def run(iterations, missing="None", epochs=10):
 
     early_stopping = create_early_stopping(1000, 5, metric_name="loss", tol=1e-4)
     training_kwargs_uat = dict(
-        batch_size=32,
-        epochs=200,
+        batch_size=512,
+        epochs=1000,
         lr=1e-3,
-        optim="adascore",
-        p=0.2,
-        anneal="None",
+        optim="adam",
     )
 
-    loss_fun = binary_cross_entropy(l2_reg=1e-3, dropout_reg=1e-5)
+    loss_fun = binary_cross_entropy(l2_reg=1e-3, dropout_reg=1e-8)
     
     # create data, initialize models, train and record distances bootstraps
     d1_uat, d2_uat = [], []
     drop_probs = []
+    rng = np.random.default_rng(42)
     for i in range(iterations):
-        X, _, _, y, _, _, _, _  = data.spiral(2048, missing=missing, rng_key=i)
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=i)
-        steps_per_epoch = X_train.shape[0] // training_kwargs_uat["batch_size"]
-        stop_steps = steps_per_epoch * 10
-        early_stopping = create_early_stopping(stop_steps, 2, metric_name="loss", tol=1e-4)
+        key = rng.integers(9999)
+        X, X_test, _, y, y_test, _, _, _  = data.spiral(2048, missing=missing, rng_key=key)
+        # steps_per_epoch = X_train.shape[0] // training_kwargs_uat["batch_size"]
+        stop_steps = 500*3
+        early_stopping = create_early_stopping(stop_steps, 50, metric_name="loss", tol=1e-8)
         training_kwargs_uat["X_test"] = X_test
         training_kwargs_uat["y_test"] = y_test
         training_kwargs_uat["early_stopping"] = early_stopping
+        key = rng.integers(9999)
         model1 = UAT(
             model_kwargs=model_kwargs_uat,
             training_kwargs=training_kwargs_uat,
             loss_fun=loss_fun,
-            rng_key=i,
+            rng_key=key,
         )
-        model1.fit(X_train, y_train)
+        model1.fit(X, y)
         # print dropout p
         p_drop = jax.nn.sigmoid(model1.params["logits"])
         print(p_drop)
         drop_probs.append(p_drop)
-        d1, d2 = model1.distances(X_train, y_train)
+        d1, d2 = model1.distances(X, y)
         d1_uat.append(d1)
         d2_uat.append(d2)
     

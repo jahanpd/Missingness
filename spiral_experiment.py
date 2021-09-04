@@ -38,16 +38,12 @@ def run(iterations, missing="None", epochs=10):
                 b_init = jax.nn.initializers.normal(0.01),
                 )
 
-    early_stopping = create_early_stopping(1000, 5, metric_name="loss", tol=1e-4)
+    early_stopping = create_early_stopping(100, 50, metric_name="loss", tol=1e-8)
     training_kwargs_uat = dict(
-        batch_size=32,
-        epochs=100,
+        batch_size=512,
+        epochs=1000,
         lr=1e-3,
-        optim="adascore",
-        X_test="proportion",
-        y_test="proportion",
-        p=0.2,
-        anneal=0.998,
+        optim="adam",
         early_stopping=early_stopping,
     )
 
@@ -58,14 +54,10 @@ def run(iterations, missing="None", epochs=10):
         net_hidden_layers=2
     )
     training_kwargs_ens = dict(
-        batch_size=32,
-        epochs=100,
-        lr=1e-3,
-        optim="adascore",
-        X_test="proportion",
-        y_test="proportion",
-        p=0.2,
-        anneal=0.998,
+        batch_size=512,
+        epochs=1000,
+        lr=1e-2,
+        optim="adam",
         early_stopping=early_stopping,
     )
     # loss function for ensemble model
@@ -88,7 +80,7 @@ def run(iterations, missing="None", epochs=10):
                 loss = bce + l2_reg*l2
 
                 loss_dict = {
-                    "bce":bce,
+                    "loss":bce,
                     "l2":l2,
                     }
 
@@ -101,7 +93,9 @@ def run(iterations, missing="None", epochs=10):
     d1_uat, d2_uat = [], []
     d1_ens, d2_ens = [], []
     for i in range(iterations):
-        X, _, _, y, _, _, _, _  = data.spiral(2048, missing=missing, rng_key=i)
+        X, X_test, _, y, y_test, _, _, _  = data.spiral(2048, missing=missing, rng_key=i)
+        training_kwargs_uat["X_test"] = X_test
+        training_kwargs_uat["y_test"] = y_test
         model1 = UAT(
             model_kwargs=model_kwargs_uat,
             training_kwargs=training_kwargs_uat,
@@ -113,6 +107,8 @@ def run(iterations, missing="None", epochs=10):
         d1_uat.append(d1)
         d2_uat.append(d2)
 
+        training_kwargs_ens["X_test"] = X_test
+        training_kwargs_ens["y_test"] = y_test
         model2 = Ensemble(
             model_kwargs=model_kwargs_ens,
             training_kwargs=training_kwargs_ens,

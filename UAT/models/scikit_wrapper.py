@@ -173,6 +173,12 @@ class UAT:
 
         return jnp.squeeze(out)
     
+    def attention(self, X):
+        rng_placeholder = jnp.ones((X.shape[0],2))
+        out = self.apply_fun(self.params, X, rng_placeholder, False)
+        attn = out[1]
+        return attn
+    
     def distances(self, X, y):
         cols = []
         for f in range(1,len(self.feat_names) + 1):

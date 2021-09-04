@@ -93,10 +93,15 @@ def EnsembleModel(
 # convenience function for processing attention
 def process_attn(sattn, attn):
     # process attention
-    sattn = sattn.mean(0).mean(0)  # (layers, heads, feat, feat)
-    attn = attn.mean(0).mean(0)  # (layers, heads, out, feat)
-    # attn_out = attn @ sattn  # (out, feat)
-    return  attn
+    # the average salf attention over layers and heads
+    sattn = sattn.mean(0).mean(0)  # (layers, heads, feat, feat) -> (feat, feat)
+    # renormalize
+    sattn = sattn / sattn.sum(axis=1, keepdims=True)
+    attn = attn.mean(0).mean(0)  # (layers, heads, out, feat) -> (out, feat)
+    # renormalize
+    attn = attn / attn.sum(axis=1, keepdims=True)
+    attn_out = attn @ sattn  # (out, feat)
+    return  attn_out
 
 def AttentionModel_MAP(
         features,
