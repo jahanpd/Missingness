@@ -2,7 +2,7 @@
 
 source venv/bin/activate
 
-repeats=2
+repeats=30
 
 # run distance experiments
 # python spiral_experiment.py $repeats
@@ -31,4 +31,4 @@ repeats=2
 # python imputation_benchmark.py --repeats $repeats --dataset banking --missing None --imputation None simple iterative miceforest --save
 
 # python benchmark_openml.py --repeats $repeats --missing None MCAR MAR MNAR --imputation None simple iterative miceforest --corrupt --save
-python benchmark_openml.py --repeats $repeats --folds 2 --missing None MCAR MAR MNAR --imputation None simple iterative miceforest --save
+python benchmark_openml.py --repeats $repeats --folds 5 --missing None MCAR MAR MNAR --imputation None simple iterative miceforest --save

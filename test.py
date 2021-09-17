@@ -26,15 +26,17 @@ import xgboost as xgb
 #         print("spiral", missing, imputation, X_train.shape, X_valid.shape, X_test.shape)
 
 
-# task_list = data.get_tasklist(0.5, 5, key=42, test=lambda x, m: x > m)
-task_list = data.get_list(0, 3, key=24, test=lambda x, m: x == m)
+task_list = data.get_list(0.2, 4, key=42, test=lambda x, m: x > m)
 task_list["task_type"] = ["Supervised Classification" if x > 0 else "Supervised Regression" for x in task_list.NumberOfClasses]
-print(task_list[['did', 'task_type', 'name']])
+# task_list = data.get_tasklist(0.5, 5, key=42, test=lambda x, m: x > m)
+# task_list = data.get_list(0, 3, key=24, test=lambda x, m: x == m)
+# task_list["task_type"] = ["Supervised Classification" if x > 0 else "Supervised Regression" for x in task_list.NumberOfClasses]
+print(task_list)
 
-for row in task_list[['did', 'task_type', 'name']].values:
-    # for missing in [None]:
+for row in task_list[['did', 'task_type', 'name']].values[4:, :]:
+    for missing in [None]:
     # for missing in [None, "MCAR", "MAR", "MNAR"]:
-    for missing in ["MCAR", "MAR", "MNAR"]:
+    # for missing in ["MCAR", "MAR", "MNAR"]:
         for imputation in ["simple"]: #, "iterative", "miceforest"]:
             X_train, X_valid, X_test, y_train, y_valid, y_test, diagnostics, classes = data.openml_ds(
                 row[0],

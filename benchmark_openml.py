@@ -39,7 +39,8 @@ def run(
     prop=0.35,
     rng_init=12345,
     trans_params = None,
-    xgb_params =  None
+    xgb_params =  None,
+    l2 = 1e-5
     ):
     """ 
     repeats: int, number of times to repeat for bootstrapping
@@ -86,10 +87,10 @@ def run(
 
         # set params for models
         if task == "Supervised Classification":
-            loss_fun = cross_entropy(classes, l2_reg=1e-4, dropout_reg=1e-5)
+            loss_fun = cross_entropy(classes, l2_reg=l2, dropout_reg=1e-5)
             objective = 'multi:softprob'
         else:
-            loss_fun = mse(l2_reg=1e-4, dropout_reg=1e-5)
+            loss_fun = mse(l2_reg=l2, dropout_reg=1e-5)
             objective = 'reg:squarederror'
         if trans_params is None:
             model_kwargs_uat = dict(
@@ -194,7 +195,12 @@ def run(
         bst = xgb.train(param, dtrain, num_round, evallist, early_stopping_rounds=10, verbose_eval=100)
         output_xgb = bst.predict(dtest)
 
-        if (not train_complete) and (not empty) and (imputation is None) and (missing is not None):
+        # 1. there is no point dropping if the training set is complete
+        # 2. there is no point dropping if when dropped the dataset is empty
+        # 3. there is no point dropping if we have imputed the training set
+        # 4a. if we are corrupting we want to drop when missing is not none OR
+        # 4b. if we are not corrupting we want to drop when missing is none
+        if (not train_complete) and (not empty) and (imputation is None) and ((missing is not None and corrupt) or (missing is None and not corrupt)):
             training_kwargs_uat["X_test"] = X_valid_drop
             training_kwargs_uat["y_test"] = y_valid_drop
             model_drop = UAT(
@@ -314,6 +320,7 @@ if __name__ ==  "__main__":
     parser.add_argument("--corrupt", action='store_true')
     parser.add_argument("--train_complete", action='store_true') # default is false
     parser.add_argument("--test_complete", action='store_false') # default is true
+    parser.add_argument("--load_params", action='store_false') # default is true
     parser.add_argument("--save", action='store_true')
     args = parser.parse_args()
     
@@ -341,14 +348,11 @@ if __name__ ==  "__main__":
         # split to get early stopping validations set
         X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.2, random_state=key)
         if row[1] == "Supervised Classification":
-            loss_fun = cross_entropy(classes, l2_reg=1e-4, dropout_reg=1e-5)
             objective = 'multi:softprob'
             resample=True
         else:
-            loss_fun = mse(l2_reg=1e-4, dropout_reg=1e-5)
             objective = 'reg:squarederror'
             resample=False
-        
         ## set up transformer model grid search
         key = rng.integers(9999)
         kfolds = oversampled_Kfold(folds, key=int(key), resample=resample)
@@ -359,74 +363,90 @@ if __name__ ==  "__main__":
         path = "results/openml/hyperparams"
         filenames = [join(path, f) for f in listdir(path) if isfile(join(path, f))]
         subset = [f for f in filenames if row[2] in f]
-        if len(subset) > 0 and False:
-            # with (open(subset[0], "rb")) as handle:
-            #     best_trans_params = pickle.load(handle)
-            # for key in best_trans_params.keys():
-            pass
+        # get batch size array
+        model_kwargs_uat = dict(
+            features=X_train.shape[1],
+            d_model=None,
+            embed_hidden_size=64,
+            embed_hidden_layers=2,
+            embed_activation=jax.nn.leaky_relu,
+            encoder_layers=2,
+            encoder_heads=2,
+            enc_activation=jax.nn.leaky_relu,
+            decoder_layers=4,
+            decoder_heads=8,
+            dec_activation=jax.nn.leaky_relu,
+            net_hidden_size=64,
+            net_hidden_layers=2,
+            net_activation=jax.nn.leaky_relu,
+            last_layer_size=32,
+            out_size=classes,
+            W_init = jax.nn.initializers.glorot_uniform(),
+            b_init = jax.nn.initializers.normal(1e-5),
+            )
+        training_kwargs_uat = dict(
+                optim="adam"
+            )
+        if len(subset) > 1 and args.load_params:
+            trans_subset = [f for f in subset if 'trans' in f]
+            xgb_subset = [f for f in subset if 'xgb' in f]
+            with (open(trans_subset[0], "rb")) as handle:
+                temp_best_trans_params = pickle.load(handle)
+            with (open(xgb_subset[0], "rb")) as handle:
+                best_xgb_params = pickle.load(handle)
+            # load up params
+            model_kwargs_uat["d_model"] = temp_best_trans_params["d_model"]
+            training_kwargs_uat["lr"] = temp_best_trans_params["lr"]
+            training_kwargs_uat["batch_size"] = temp_best_trans_params["batch_size"]
+            best_trans_params = (model_kwargs_uat, training_kwargs_uat, temp_best_trans_params["l2"])
         else:
-            for hps in itertools.product([32], [64, 256, 512, 1024], [1e-4]):
-                hps_list.append(hps)
+            for hps in itertools.product([32], [64, 256, 512, 1024], [5e-4], [1e-4, 1e-8]):
                 print("hp search")
-                try:
-                    for train, test in splits:
-                        losses = []
-                        model_kwargs_uat = dict(
-                                features=X_train.shape[1],
-                                d_model=hps[0],
-                                embed_hidden_size=32,
-                                embed_hidden_layers=3,
-                                embed_activation=jax.nn.leaky_relu,
-                                encoder_layers=5,
-                                encoder_heads=10,
-                                enc_activation=jax.nn.leaky_relu,
-                                decoder_layers=10,
-                                decoder_heads=20,
-                                dec_activation=jax.nn.leaky_relu,
-                                net_hidden_size=32,
-                                net_hidden_layers=3,
-                                net_activation=jax.nn.leaky_relu,
-                                last_layer_size=16,
-                                out_size=classes,
-                                W_init = jax.nn.initializers.glorot_uniform(),
-                                b_init = jax.nn.initializers.normal(1e-5),
-                                )
-                        # generic training parameters
-                        stop_epochs = 25
-                        wait_epochs = 250
-                        training_kwargs_uat = dict(
-                            optim="adam"
-                        )
-                        steps_per_epoch = X_train.shape[0] // hps[1]
-                        max_steps = 1e5
-                        epochs = int(max_steps // steps_per_epoch)
-                        stop_steps_ = steps_per_epoch * stop_epochs
-                        early_stopping = create_early_stopping(stop_steps_, wait_epochs, metric_name="loss", tol=1e-8)
-                        training_kwargs_uat["early_stopping"] = early_stopping
-                        training_kwargs_uat['batch_size'] = hps[1]
-                        training_kwargs_uat['lr'] = hps[2]
-                        training_kwargs_uat["X_test"] = X_valid
-                        training_kwargs_uat["y_test"] = y_valid
-                        training_kwargs_uat["epochs"] = epochs
-                        trans_param_list.append((model_kwargs_uat, training_kwargs_uat))
-                        key = rng.integers(9999)
-                        model = UAT(
-                            model_kwargs=model_kwargs_uat,
-                            training_kwargs=training_kwargs_uat,
-                            loss_fun=loss_fun,
-                            rng_key=key,
-                        )
-                        model.fit(X_train[train,:], y_train[train])
-                        rng_placeholder = jnp.ones((len(test),2))
-                        out = model.apply_fun(model.params, X_train[test,:], rng_placeholder, False)
-                        loss, _ = loss_fun(model.params, out, y_train[test])
-                        losses.append(loss)
-                    loss_list.append(np.mean(losses))
-                except:
-                    for i, dev in enumerate(cuda.gpus):
-                        cuda.select_device(dev)
-                        cuda.close()
-                    loss_list.append(np.inf)
+                if hps[1] < X_train.shape[0] // devices:
+                    hps_list.append(hps)
+                    try:
+                        for train, test in splits:
+                            losses = []
+                            model_kwargs_uat["d_model"] = hps[0]
+                            # generic training parameters
+                            stop_epochs = 25
+                            wait_epochs = 250
+                            steps_per_epoch = X_train.shape[0] // hps[1]
+                            max_steps = 1e5
+                            epochs = int(max_steps // steps_per_epoch)
+                            stop_steps_ = steps_per_epoch * stop_epochs
+                            early_stopping = create_early_stopping(stop_steps_, wait_epochs, metric_name="loss", tol=1e-8)
+                            training_kwargs_uat["early_stopping"] = early_stopping
+                            training_kwargs_uat['batch_size'] = hps[1]
+                            training_kwargs_uat['lr'] = hps[2]
+                            training_kwargs_uat["X_test"] = X_valid
+                            training_kwargs_uat["y_test"] = y_valid
+                            training_kwargs_uat["epochs"] = epochs
+                            if row[1] == "Supervised Classification":
+                                print("Supervised Classification", hps[3])
+                                loss_fun = cross_entropy(classes, l2_reg=hps[3], dropout_reg=1e-5)
+                            else:
+                                print("Supervised Regression", hps[3])
+                                loss_fun = mse(l2_reg=hps[3], dropout_reg=1e-5)
+                            trans_param_list.append((model_kwargs_uat, training_kwargs_uat, hps[3]))
+                            key = rng.integers(9999)
+                            model = UAT(
+                                model_kwargs=model_kwargs_uat,
+                                training_kwargs=training_kwargs_uat,
+                                loss_fun=loss_fun,
+                                rng_key=key,
+                            )
+                            model.fit(X_train[train,:], y_train[train])
+                            rng_placeholder = jnp.ones((len(test),2))
+                            out = model.apply_fun(model.params, X_train[test,:], rng_placeholder, False)
+                            loss, _ = loss_fun(model.params, out, y_train[test])
+                            losses.append(loss)
+                        loss_list.append(np.mean(losses))
+                    except:
+                        for i, dev in enumerate(cuda.gpus):
+                            cuda.select_device(dev)
+                            cuda.close()
+                        loss_list.append(np.inf)
 
             print(list(zip(hps_list, loss_list)))
             best_trans_params = trans_param_list[np.array(loss_list).argmin()]
@@ -460,7 +480,8 @@ if __name__ ==  "__main__":
                 pickle.dump({
                     "d_model":best_trans_params[0]["d_model"],
                     "batch_size":best_trans_params[1]["batch_size"],
-                    "lr":best_trans_params[1]["lr"]
+                    "lr":best_trans_params[1]["lr"],
+                    "l2":best_trans_params[2],
                     }, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
             with open('results/openml/hyperparams/{},xgb_hyperparams.pickle'.format(row[2]), 'wb') as handle:
@@ -470,7 +491,8 @@ if __name__ ==  "__main__":
             if missing == "None":
                 missing = None
             for imputation in args.imputation:
-                if imputation != "None" and missing is None:
+                # we do not want to impute data if there is None missing and data is not corrupted
+                if imputation != "None" and missing is None and args.corrupt:
                     continue
 
                 if imputation == "None":
@@ -488,7 +510,8 @@ if __name__ ==  "__main__":
                     epochs=args.epochs,
                     prop=args.p,
                     trans_params = best_trans_params,
-                    xgb_params =  best_xgb_params
+                    xgb_params =  best_xgb_params,
+                    l2 = best_trans_params[2]
                     )
                 print(row[2], missing, imputation)
                 print(m1.mean())

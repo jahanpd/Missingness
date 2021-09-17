@@ -24,9 +24,9 @@ def get_list(missing, sample, key=42, test=lambda x, m: x > m):
     reg_subset = reg_tasks[test(reg_tasks.NumberOfInstancesWithMissingValues / reg_tasks.NumberOfInstances, missing)]
     # limit number of features to less than 500 for tractability
     class_subset = class_subset[
-        (class_subset.NumberOfFeatures < 60) & (class_subset.NumberOfInstances < 100000) & (class_subset.NumberOfInstances > 2000)].drop_duplicates(subset=["name"])
+        (class_subset.NumberOfFeatures < 120) & (class_subset.NumberOfInstances < 100000) & (class_subset.NumberOfInstances > 500)].drop_duplicates(subset=["name"])
     reg_subset = reg_subset[
-        (reg_subset.NumberOfFeatures < 60) & (reg_subset.NumberOfInstances < 100000) & (reg_subset.NumberOfInstances > 2000)].drop_duplicates(subset=["name"])
+        (reg_subset.NumberOfFeatures < 120) & (reg_subset.NumberOfInstances < 100000) & (reg_subset.NumberOfInstances > 500)].drop_duplicates(subset=["name"])
     
     # test if datasets are gettable and add to list
     did_list_class = []
@@ -310,7 +310,9 @@ def prepOpenML(did, task):
             vals = list(vals)
             int_enc = [np.nan if j == 'nan' else vals.index(j) for j in d]
             X[name] = int_enc
-
+    
+    # get rid of features that are objects but not categorical - these are usually unhelpful columns like names etc
+    X = X.select_dtypes(exclude=['object'])
     # ensure integer encoding of categorical outcome
     if task == "Supervised Classification":
         d = y.values.astype(str)

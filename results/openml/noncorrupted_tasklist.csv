@@ -1,9 +1,9 @@
 ,did,name,version,uploader,status,format,MajorityClassSize,MaxNominalAttDistinctValues,MinorityClassSize,NumberOfClasses,NumberOfFeatures,NumberOfInstances,NumberOfInstancesWithMissingValues,NumberOfMissingValues,NumberOfNumericFeatures,NumberOfSymbolicFeatures,task_type
+470,470,profb,1,2,active,ARFF,448.0,28.0,224.0,2.0,10.0,672.0,666.0,1200.0,5.0,5.0,Supervised Classification
 473,473,cjs,1,2,active,ARFF,680.0,57.0,274.0,6.0,35.0,2796.0,2795.0,68100.0,32.0,3.0,Supervised Classification
-1002,1002,ipums_la_98-small,2,2,active,ARFF,6694.0,15.0,791.0,2.0,56.0,7485.0,7369.0,32427.0,16.0,40.0,Supervised Classification
-1018,1018,ipums_la_99-small,2,2,active,ARFF,8276.0,17.0,568.0,2.0,57.0,8844.0,8844.0,34843.0,15.0,42.0,Supervised Classification
-41162,41162,kick,1,1478,active,ARFF,64007.0,,8976.0,2.0,33.0,72983.0,69709.0,149271.0,14.0,19.0,Supervised Classification
-41506,41506,NewFuelCar,1,8129,active,ARFF,,,,0.0,18.0,36203.0,8971.0,8971.0,18.0,0.0,Supervised Regression
-42125,42125,employee_salaries,14,5332,active,arff,,37.0,,0.0,13.0,9228.0,8380.0,11169.0,4.0,4.0,Supervised Regression
+757,757,meta,2,2,active,ARFF,474.0,24.0,54.0,2.0,22.0,528.0,264.0,504.0,19.0,3.0,Supervised Classification
+40966,40966,MiceProtein,4,2,active,ARFF,150.0,8.0,105.0,8.0,82.0,1080.0,528.0,1396.0,77.0,5.0,Supervised Classification
+566,566,meta,1,2,active,ARFF,,24.0,,0.0,22.0,528.0,264.0,504.0,20.0,2.0,Supervised Regression
 42159,42159,colleges,11,3422,active,arff,,6039.0,,0.0,50.0,7063.0,7063.0,125494.0,33.0,6.0,Supervised Regression
 42164,42164,dating_profile,1,3422,active,arff,,,,0.0,31.0,59946.0,55542.0,273249.0,3.0,0.0,Supervised Regression
+42931,42931,audit-data,1,25579,active,arff,,,,0.0,37.0,1552.0,1552.0,19402.0,36.0,0.0,Supervised Regression
