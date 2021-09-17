@@ -19,7 +19,7 @@ from tqdm import tqdm
 
 devices = jax.local_device_count()
 
-def run(repeats=5, dataset="thoracic", missing=None, imputation=None, train_complete=True, test_complete=True, epochs=10, p=0.15):
+def run(repeats=5, dataset="spiral", missing=None, imputation=None, train_complete=True, test_complete=True, epochs=10, p=0.15):
     """ 
     repeats: int, number of times to repeat for bootstrapping
     dataset: string, one of "thoracic", "abalone", "banking" etc ...

@@ -8,12 +8,12 @@ from jax.nn import (relu, log_softmax, softmax, softplus, sigmoid, elu,
                     leaky_relu, selu, gelu, normalize)
 from jax.nn.initializers import glorot_normal, normal, ones, zeros
 from jax.experimental.optimizers import l2_norm
-from UAT.models.models import (AttentionModel_MAP, AttentionModel_Dropout,
-                               AttentionModel_Variational, AttentionModel_LastLayer,
-                               EnsembleModel)
+from UAT.models.models import (AttentionModel_MAP, EnsembleModel)
 from UAT.training.train import training_loop
-from UAT.uncertainty.laplace import laplace_approximation
 from UAT.models.layers import NeuralNet as nn
+from UAT.aux import oversampled_Kfold
+from imblearn.over_sampling import RandomOverSampler
+
 
 """ 
 Scikit wrappers for models where they are initialized with dicts of kwargs for defining:
@@ -70,41 +70,29 @@ class UAT:
         key, init_key = random.split(key)
         
         print(posterior_params["name"])
-        if posterior_params["name"] == "MAP":
+        if type(model_kwargs) == list:
+            print("List detected. Do you need to run Grid Search?")
+            self.model_kwargs = model_kwargs
+            self.optimal_model_kwargs = None
+            params=None
+            apply_fun=None
+        else:
             init_fun, apply_fun = AttentionModel_MAP(
                 **model_kwargs
                 )
             params = init_fun(init_key)
-        
-        if posterior_params["name"] == "Ensemble":
-            init_fun, apply_fun = AttentionModel_MAP(
-                **model_kwargs
-                )
-            ensemble_keys = random.split(init_key, posterior_params["m"])
-            params = [init_fun(k) for k in ensemble_keys]
-        
-        if posterior_params["name"] == "Dropout":
-            init_fun, apply_fun = AttentionModel_Dropout(
-                **model_kwargs
-                )
-            params = init_fun(init_key)
-        
-        if posterior_params["name"] == "Variational":
-            init_fun, apply_fun = AttentionModel_Variational(
-                **model_kwargs
-                )
-            params = init_fun(init_key)
+            self.model_kwargs = model_kwargs
+            self.optimal_model_kwargs = model_kwargs
+            if (feat_names is not None) and len(feat_names) == model_kwargs["features"]:
+                self.feat_names = feat_names
+            else:
+                self.feat_names = list(range(model_kwargs["features"]))
         
         self.params = params
         self.apply_fun = apply_fun
         
         self.key = key
-        if (feat_names is not None) and len(feat_names) == model_kwargs["features"]:
-            self.feat_names = feat_names
-        else:
-            self.feat_names = list(range(model_kwargs["features"]))
-        
-        self.model_kwargs = model_kwargs
+
         self.loss_fun = loss_fun
         if metric_fun is not None:
             self.metric_fun = metric_fun
@@ -114,34 +102,50 @@ class UAT:
         self.training_kwargs = training_kwargs
 
     def fit(self, X, y):
-        if self.posterior_params["name"] in ["MAP", "Dropout", "Variational"]:
-            params, history, rng = training_loop(
-                X=X,
-                y=y,
-                model_fun=self.apply_fun,
-                params=self.params,
-                loss_fun=self.loss_fun,
-                metric_fun=self.metric_fun,
-                rng=self.key,
-                **self.training_kwargs
-                )
-            self.params = params
-            self._history = history
-            self.key = rng
-
-        if self.posterior_params["name"] == "laplace":
-            params, rng = laplace_approximation(
-                self.params,
-                self.apply_fun,
-                self.loss_fun,
-                X,
-                y,
-                self.key,
-                **self.posterior_params
+        params, history, rng = training_loop(
+            X=X,
+            y=y,
+            model_fun=self.apply_fun,
+            params=self.params,
+            loss_fun=self.loss_fun,
+            metric_fun=self.metric_fun,
+            rng=self.key,
+            **self.training_kwargs
             )
-            self.params = params
-            self.key = rng
+        self.params = params
+        self._history = history
+        self.key = rng
     
+    def grid_search(self, X, y, resample=False, folds=5):
+        key1, key2  = random.split(self.key)
+        kfolds = oversampled_Kfold(folds, key=int(key2[0]), resample=resample)
+        splits = kfolds.split(X, y)
+
+        performance = []
+        for model_kwargs, training_kwargs in self.model_kwargs:
+            key1, key2  = random.split(key1)
+            init_fun, apply_fun = AttentionModel_MAP(
+                **model_kwargs
+                )
+            params_ = init_fun(key2)
+            self.apply_fun = apply_fun
+            self.params = params_
+            self.training_kwargs = training_kwargs
+            losses=[]
+            for train, test in splits:
+                try:
+                    self.fit(X[train, :], y[train])
+                    # test set loss
+                    rng_placeholder = jnp.ones((len(test),2))
+                    out = self.apply_fun(self.params, X[test,:], rng_placeholder, False)
+                    loss, _ = self.loss_fun(params, out, y[test])
+                    losses.append(loss)
+                except:
+                    losses.append(np.nan)
+            performance.append(np.mean(losses))
+        self.optimal_model_kwargs = self.model_kwargs[np.array(performance).argmax()]
+        self.key = key1
+
     def predict_proba(self, X):
         if self.posterior_params["name"] == "MAP":
             rng_placeholder = jnp.ones((X.shape[0],2))
@@ -151,18 +155,7 @@ class UAT:
                 probs = jax.nn.softmax(logits)
             else:
                 probs = jax.nn.sigmoid(logits)
-            
         
-        if self.posterior_params["name"] == "Ensemble":
-            probs = []
-            for p in self.params:
-                rng_placeholder = jnp.ones((X.shape[0],2))
-                out = self.apply_fun(self.params, X, rng_placeholder, False)
-                logits = out
-                probs.append(jax.nn.sigmoid(logits))
-            probs = jnp.mean(jnp.stack(probs, axis=0))
-        
-
         return jnp.squeeze(probs)
     
     def predict(self, X):
@@ -254,25 +247,6 @@ class UAT:
         self.key = key
         if self.posterior_params["name"] == "MAP":
             init_fun, apply_fun = AttentionModel_MAP(
-                **self.model_kwargs
-                )
-            params = init_fun(init_key)
-        
-        if self.posterior_params["name"] == "Ensemble":
-            init_fun, apply_fun = AttentionModel_MAP(
-                **self.model_kwargs
-                )
-            ensemble_keys = random.split(init_key, self.posterior_params["m"])
-            params = [init_fun(k) for k in ensemble_keys]
-        
-        if self.posterior_params["name"] == "Dropout":
-            init_fun, apply_fun = AttentionModel_Dropout(
-                **self.model_kwargs
-                )
-            params = init_fun(init_key)
-        
-        if self.posterior_params["name"] == "Variational":
-            init_fun, apply_fun = AttentionModel_Variational(
                 **self.model_kwargs
                 )
             params = init_fun(init_key)

@@ -170,6 +170,21 @@ def NeuralNet(
     return init_fun, apply_fun
 
 
+def LayerNorm(epsilon=1e-5, center=True, scale=True, beta_init=zeros, gamma_init=ones):
+    def init_fun(rng):
+        return (0,0)
+    def apply_fun(x):
+        # beta, gamma = params
+        x = jnp.asarray(x, jnp.float32)
+        features = x.shape[-1]
+        mean = jnp.mean(x, axis=-1, keepdims=True)
+        mean2 = jnp.mean(jax.lax.square(x), axis=-1, keepdims=True)
+        var = mean2 - jax.lax.square(mean)
+        mul = jax.lax.rsqrt(var + epsilon)
+        y = (x - mean) * mul
+        return jnp.asarray(y, jnp.float32)
+    return init_fun, apply_fun
+
 def AttentionLayer(
     heads,
     dims,
@@ -184,9 +199,11 @@ def AttentionLayer(
     init_k, k_map = Dense(dims, dims*heads, W_init=W_init, b_init=b_init)
     init_v, v_map = Dense(dims, dims*heads, W_init=W_init, b_init=b_init)
     init_out, out = Dense(dims*heads, dims, W_init=W_init, b_init=b_init)
-    # feeedforward network
+    # feedforward network
     init_l1, l1 = Dense(dims, dff, W_init=W_init, b_init=b_init)
     init_l2, l2 = Dense(dff, dims, W_init=W_init, b_init=b_init)
+    # layer norm
+    init_ln, layernorm = LayerNorm()
 
     def init_fun(rng):
         params = {}
@@ -220,6 +237,7 @@ def AttentionLayer(
 
         # residual connection
         x = x + q
+        # x = layernorm(x)
         # feedforward network
         x = activation(l1((params["l1w"],params["l1b"]), x))
         x = l2((params["l2w"],params["l2b"]), x)

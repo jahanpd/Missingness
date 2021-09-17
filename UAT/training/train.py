@@ -51,7 +51,7 @@ def training_loop(
     print_step = make_schedule(lr)
     step_size = lr
     if optim == "sgd":
-        tqdm.write("optimizer: sgd, lr: {}".format(print_step(1)))
+        tqdm.write("optimizer: sgd, lr: {}, batch_size={}".format(print_step(1), batch_size))
         if optim_kwargs is None:
             optim_kwargs = dict(step_size=step_size)
         else:
@@ -71,7 +71,7 @@ def training_loop(
             optim_kwargs["N"] = X.shape[0]
 
         optim_init, optim_update, optim_params, get_other = adascore(**optim_kwargs)
-        tqdm.write("optimizer: adascore, lr: {}, start score: {}".format(print_step(1), start_score))
+        tqdm.write("optimizer: adascore, lr: {}, start score: {}, batch_size={}".format(print_step(1), start_score, batch_size))
         jit_other = jax.jit(get_other)
 
         # this function is for determining proportion of weights 'on'
@@ -90,7 +90,7 @@ def training_loop(
             return out_dict
     
     elif optim == "adam":
-        tqdm.write("optimizer: adam, lr: {}".format(print_step(1)))
+        tqdm.write("optimizer: adam, lr: {}, batch_size={}".format(print_step(1), batch_size))
         if optim_kwargs is None:
             optim_kwargs = dict(
                 step_size=step_size, b1=0.9, b2=0.99, eps=1e-8
@@ -101,7 +101,7 @@ def training_loop(
         optim_init, optim_update, optim_params = optimizers.adam(**optim_kwargs)
     
     elif optim == "adabelief":
-        tqdm.write("optimizer: adabelief, lr: {}".format(print_step(1)))
+        tqdm.write("optimizer: adabelief, lr: {}, batch_size={}".format(print_step(1), batch_size))
         if optim_kwargs is None:
             optim_kwargs = dict(
                 step_size=step_size, b1=0.9, b2=0.99, eps=1e-8

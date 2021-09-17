@@ -10,20 +10,46 @@ import UAT.datasets as data
 import xgboost as xgb
 
 # test imputation script
-for missing in [None, "MCAR", "MAR", "MNAR"]:
-    for imputation in [None]: #, "simple", "iterative", "miceforest"]:
-        X_train, X_valid, X_test, y_train, y_valid, y_test, (x_a, x_b), classes = data.spiral(
-            1000,
-            missing=missing,
-            imputation=imputation,  # one of none, simple, iterative, miceforest
-            train_complete=False,
-            test_complete=False,
-            split=0.33,
-            rng_key=0,
-            p=0.3,
-            cols_miss=100
-        )
-        print("spiral", missing, imputation, X_train.shape, X_valid.shape, X_test.shape)
+# for missing in [None, "MCAR", "MAR", "MNAR"]:
+#     for imputation in [None]: #, "simple", "iterative", "miceforest"]:
+#         X_train, X_valid, X_test, y_train, y_valid, y_test, (x_a, x_b), classes = data.spiral(
+#             1000,
+#             missing=missing,
+#             imputation=imputation,  # one of none, simple, iterative, miceforest
+#             train_complete=False,
+#             test_complete=False,
+#             split=0.33,
+#             rng_key=0,
+#             p=0.3,
+#             cols_miss=100
+#         )
+#         print("spiral", missing, imputation, X_train.shape, X_valid.shape, X_test.shape)
+
+
+# task_list = data.get_tasklist(0.5, 5, key=42, test=lambda x, m: x > m)
+task_list = data.get_list(0, 3, key=24, test=lambda x, m: x == m)
+task_list["task_type"] = ["Supervised Classification" if x > 0 else "Supervised Regression" for x in task_list.NumberOfClasses]
+print(task_list[['did', 'task_type', 'name']])
+
+for row in task_list[['did', 'task_type', 'name']].values:
+    # for missing in [None]:
+    # for missing in [None, "MCAR", "MAR", "MNAR"]:
+    for missing in ["MCAR", "MAR", "MNAR"]:
+        for imputation in ["simple"]: #, "iterative", "miceforest"]:
+            X_train, X_valid, X_test, y_train, y_valid, y_test, diagnostics, classes = data.openml_ds(
+                row[0],
+                row[1],
+                missing=missing,
+                imputation=imputation,  # one of none, simple, iterative, miceforest
+                train_complete=False,
+                test_complete=False,
+                split=0.33,
+                rng_key=0,
+                prop=0.35,
+                cols_miss=100
+            )
+            print(diagnostics)
+            print("{}".format(row[2]), missing, imputation, X_train.shape, X_valid.shape, X_test.shape)
 
 # for missing in [None, "MCAR", "MAR", "MNAR"]:
 #     for imputation in [None, "simple"]: # "iterative", "miceforest"]:

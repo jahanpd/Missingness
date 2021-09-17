@@ -10,14 +10,62 @@ from sklearn.impute import SimpleImputer, IterativeImputer
 import miceforest as mf
 # import tensorflow_datasets
 import os
+import openml
+
+def get_list(missing, sample, key=42, test=lambda x, m: x > m):
+    rng = np.random.default_rng(key)
+    # to generate list of datasets with high proportion of missingness
+    datasets = openml.datasets.list_datasets(output_format='dataframe')
+
+    class_tasks = datasets[datasets.NumberOfClasses > 0.0]
+    reg_tasks = datasets[datasets.NumberOfClasses == 0.0]
+    # where there are greater than 50% rows with missing data
+    class_subset = class_tasks[test(class_tasks.NumberOfInstancesWithMissingValues / class_tasks.NumberOfInstances, missing)]
+    reg_subset = reg_tasks[test(reg_tasks.NumberOfInstancesWithMissingValues / reg_tasks.NumberOfInstances, missing)]
+    # limit number of features to less than 500 for tractability
+    class_subset = class_subset[
+        (class_subset.NumberOfFeatures < 60) & (class_subset.NumberOfInstances < 100000) & (class_subset.NumberOfInstances > 2000)].drop_duplicates(subset=["name"])
+    reg_subset = reg_subset[
+        (reg_subset.NumberOfFeatures < 60) & (reg_subset.NumberOfInstances < 100000) & (reg_subset.NumberOfInstances > 2000)].drop_duplicates(subset=["name"])
+    
+    # test if datasets are gettable and add to list
+    did_list_class = []
+    while len(did_list_class) < sample:
+        try:
+            print(did_list_class, len(class_subset))
+            did = rng.choice(class_subset.did.values, 1)
+            ds = openml.datasets.get_dataset(dataset_id=int(did[0]))
+            X, y, categorical_indicator, attribute_names = ds.get_data(target = ds.default_target_attribute)
+            did_list_class.append(int(did[0]))
+            did_list_class = list(set(did_list_class))
+        except Exception as e:
+            print(e)
+            pass
+    did_list_reg = []
+    while len(did_list_reg) < sample:
+        try:
+            print(did_list_reg, len(reg_subset))
+            did = rng.choice(reg_subset.did.values, 1)
+            ds = openml.datasets.get_dataset(dataset_id=int(did[0]))
+            X, y, categorical_indicator, attribute_names = ds.get_data(target = ds.default_target_attribute)
+            did_list_reg.append(int(did[0]))
+            did_list_reg = list(set(did_list_reg))
+        except Exception as e:
+            print(e)
+            pass
+    class_subset = class_subset[class_subset['did'].isin(did_list_class)]
+    reg_subset = reg_subset[reg_subset['did'].isin(did_list_reg)]
+    df = pd.concat([class_subset, reg_subset])
+    return pd.concat([class_subset, reg_subset])
 
 # define path locations relative to this file
 dir_path = os.path.dirname(os.path.realpath(__file__))
-thoracic_path = os.path.join(dir_path, "ThoracicSurgery.arff")
-abalone_path = os.path.join(dir_path, "abalone.data")
-bank_path = os.path.join(dir_path, "bank-additional/bank-additional.csv")
-anneal_path_train = os.path.join(dir_path, "anneal.data")
-anneal_path_test = os.path.join(dir_path, "anneal.test")
+thoracic_path = os.path.join(dir_path, "thoracic/ThoracicSurgery.arff")
+abalone_path = os.path.join(dir_path, "abalone/abalone.data")
+bank_path = os.path.join(dir_path, "banking/bank-additional.csv")
+anneal_path_train = os.path.join(dir_path, "anneal/anneal.data")
+anneal_path_test = os.path.join(dir_path, "anneal/anneal.test")
+
 
 # convenience imputation functions
 def simple(train, valid, test, dtypes=None):
@@ -247,6 +295,207 @@ def spiral(
             X_test = test_input
 
     return X_train, X_valid, X_test, y_train, y_valid, y_test, (x_a, x_b), 2
+
+# convenience function for prepping openML datasets
+def prepOpenML(did, task):
+    # takes did, target colname and task type string
+    # returns prepared X, y numpy arrays
+    ds = openml.datasets.get_dataset(dataset_id=int(did))
+    X, y, categorical_indicator, attribute_names = ds.get_data(target = ds.default_target_attribute)
+
+    for cat, name in zip(categorical_indicator, list(X)):
+        if cat:
+            d = X[name].values.astype(str)
+            vals = np.unique(d[d != 'nan'])
+            vals = list(vals)
+            int_enc = [np.nan if j == 'nan' else vals.index(j) for j in d]
+            X[name] = int_enc
+
+    # ensure integer encoding of categorical outcome
+    if task == "Supervised Classification":
+        d = y.values.astype(str)
+        vals = np.unique(d[d != 'nan'])
+        vals = list(vals)
+        int_enc = [np.nan if j == 'nan' else vals.index(j) for j in d]
+        y = np.array(int_enc)
+        classes = len(vals)
+    elif task == "Supervised Regression":
+        y = y.values
+        classes = 1
+    
+    # ensure no missing outcomes in y included in analysis
+    # coerce to 
+    nan_mask = np.isnan(y)
+    X_ = X.values[~nan_mask, :].astype(np.float32)
+    y = y[~nan_mask].astype(np.float32)
+    return X_, y, classes
+
+# convenience function for stratification
+def stratify(classes, y):
+    if classes == 1:
+        bins = np.linspace(0, y.max(), classes)
+        y_binned = np.digitize(y, bins)
+    else:
+        bins = np.linspace(0, y.max(), 50)
+        y_binned = np.digitize(y, bins)
+    return y_binned
+
+def openml_ds(
+        did,
+        task,
+        missing=None,
+        imputation=None,  # one of none, simple, iterative, miceforest
+        train_complete=False,
+        test_complete=True,
+        split=0.33,
+        rng_key=0,
+        prop=0.5, # proportion of rows missing when corrupting
+        cols_miss=100,
+    ):
+    rng = np.random.default_rng(rng_key)
+    
+    X_, y, classes = prepOpenML(did, task)
+
+    key = rng.integers(9999)
+    if missing is None:
+        train_complete = True
+        test_complete = True
+
+    if train_complete and test_complete:
+        X = X_
+        y_binned = stratify(classes, y)
+        # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=split, stratify=y_binned, random_state=key)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=split, random_state=key)
+        key = rng.integers(9999)
+        y_binned = stratify(classes, y_train)
+        # X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, stratify=y_binned, test_size=split, random_state=key)
+        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=key)
+
+    elif train_complete and not test_complete: # TRAIN COMPLETE IS TRUE AND TEST COMPLETE IS FALSE
+        y_binned = stratify(classes, y)
+        # X_train, X, y_train, y_test = train_test_split(X_, y, test_size=split, stratify=y_binned, random_state=key)
+        X_train, X, y_train, y_test = train_test_split(X_, y, test_size=split, random_state=key)
+        key = rng.integers(9999)
+        y_binned = stratify(classes, y_train)
+        # X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, stratify=y_binned, test_size=split, random_state=key)
+        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=key)
+    
+    elif not train_complete and test_complete:
+        y_binned = stratify(classes, y)
+        # X, X_test, y_train, y_test = train_test_split(X_, y, test_size=split, stratify=y_binned, random_state=key)
+        X, X_test, y_train, y_test = train_test_split(X_, y, test_size=split, random_state=key)
+    
+    elif not train_complete and not test_complete:
+        X = X_
+
+    # create missingness mask
+    cols = X.shape[1]
+    if missing == "MCAR":
+        p = 1 - (prop)**(1/cols)
+        cols_miss = np.minimum(cols, cols_miss) # clip cols missing 
+        rand_arr = rng.uniform(0, 1, (X.shape[0], cols_miss))
+        nan_arr = np.where(rand_arr < p, np.nan, 1.0)
+        X[:, -cols_miss:] *= nan_arr
+
+    if missing == "MAR":
+        p = 1 - (prop/2)**(1/cols)
+        cols_miss = np.minimum(cols - 1, cols_miss) # clip cols missing 
+        q = rng.uniform(0.3,0.7,(cols-1,))
+        corrections = []
+        for col in range(cols-1):
+            correction = X[:,col] > np.quantile(X[:,col], q[col], keepdims=True) # dependency on each x
+            corrections.append(correction)
+        corrections = np.concatenate(corrections)
+        corrections = np.where(corrections, 0.0, 1.0).reshape((-1,cols - 1))
+        print(corrections.shape, X.shape)
+        rand_arr = rng.uniform(0,1,(X.shape[0], cols - 1)) * corrections
+        nan_arr = np.where(rand_arr > (1-p), np.nan, 1.0)
+        X[:, -cols_miss:] *= nan_arr[:, -cols_miss:]  # dependency is shifted to the left, therefore MAR
+
+    if missing == "MNAR":
+        p = 1 - (prop/2)**(1/cols)
+        cols_miss = np.minimum(cols, cols_miss) # clip cols missing 
+        q = rng.uniform(0.3,0.7,(cols,))
+        corrections = []
+        for col in range(cols):
+            correction = X[:,col] > np.quantile(X[:,col], q[col], keepdims=True) # dependency on each x
+            corrections.append(correction)
+        corrections = np.concatenate(corrections)
+        corrections = np.where(corrections, 0.0, 1.0).reshape((-1,cols))
+        rand_arr = rng.uniform(0,1,(X.shape[0], cols)) * corrections
+        nan_arr = np.where(rand_arr > (1-p), np.nan, 1.0)
+        X[:, -cols_miss:] *= nan_arr[:, -cols_miss:]  # dependency is not shifted to the left, therefore MNAR
+    
+    # generate train, validate, test datasets and impute training 
+    key = rng.integers(9999)
+    if train_complete and test_complete:
+        pass
+
+    elif train_complete and not test_complete:
+        X_test = X
+    
+    elif not train_complete and test_complete:
+        X_train = X
+        y_binned = stratify(classes, y_train)
+        # X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, stratify=y_binned, test_size=split, random_state=key)
+        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=key)
+    
+    elif not train_complete and not test_complete:
+        y_binned = stratify(classes, y)
+        # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=split, stratify=y_binned, random_state=key)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=split, random_state=key)
+        key = rng.integers(9999)
+        y_binned = stratify(classes, y_train)
+        # X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, stratify=y_binned, random_state=key)
+        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=key)
+
+    # missingness diagnostics
+    diagnostics = {"X_train":{}, "X_valid":{}, "X_test":{}}
+    diagnostics["X_train"]["cols"] = np.mean(np.isnan(X_train).sum(0) / X_train.shape[0])
+    diagnostics["X_train"]["rows"] = np.any(np.isnan(X_train), axis=1).sum() / X_train.shape[0]
+    diagnostics["X_valid"]["cols"] = np.mean(np.isnan(X_valid).sum(0) / X_valid.shape[0])
+    diagnostics["X_valid"]["rows"] = np.any(np.isnan(X_valid), axis=1).sum() / X_valid.shape[0]
+    diagnostics["X_test"]["cols"] = np.mean(np.isnan(X_test).sum(0) / X_test.shape[0])
+    diagnostics["X_test"]["rows"] = np.any(np.isnan(X_test), axis=1).sum() / X_test.shape[0]
+    # print(diagnostics)
+
+    # perform desired imputation strategy
+    if imputation == "simple" and missing is not None:
+        X_train, X_valid, X_test = simple(
+            X_train,
+            dtypes=None,
+            valid=X_valid,
+            test=X_test)
+    
+    key = rng.integers(9999)
+    if imputation == "iterative" and missing is not None:
+        X_train, X_valid, X_test = iterative(
+            X_train,
+            key,
+            dtypes=None,
+            valid=X_valid,
+            test=X_test)
+    
+    key = rng.integers(9999)
+    if imputation == "miceforest" and missing is not None:
+        if test_complete:
+            test_input = None
+        else:
+            test_input = X_test
+        X_train, X_valid, test_input = miceforest(
+            X_train,
+            int(key),
+            dtypes=None,
+            valid=X_valid,
+            test=test_input)
+        if test_complete:
+            X_test = X_test
+        else:
+            X_test = test_input
+
+    return X_train, X_valid, X_test, y_train, y_valid, y_test, diagnostics, classes
+
+
 
 def thoracic(
         missing="MAR", 
@@ -668,121 +917,4 @@ def anneal(imputation=None, split=0.33, rng_key=0):
     X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=rng_key+1)
 
     return X_train, X_valid, X_test, y_train, y_valid, y_test, 6
-
-def mnist(
-    missing="MCAR", 
-    imputation=None,  # one of none, simple, iterative, miceforest
-    train_complete=False,
-    test_complete=True,
-    split=0.33,
-    rng_key=0,
-    p=0.5,
-    ):
-    rng = np.random.default_rng(rng_key)
-    # X_, y = fetch_openml('mnist_784', version=1, return_X_y=True, as_frame=False)
-    X_, y = skdata.load_digits(return_X_y=True)
-
-    if missing is None:
-        train_complete = True
-        test_complete = True
-
-    if train_complete and test_complete:
-        X = X_
-        key = rng.integers(9999)
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=split, random_state=key)
-        key = rng.integers(9999)
-        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=key)
-
-    elif train_complete and not test_complete: # TRAIN COMPLETE IS TRUE AND TEST COMPLETE IS FALSE
-        key = rng.integers(9999)
-        X_train, X, y_train, y_test = train_test_split(X_, y, test_size=split, random_state=key)
-        key = rng.integers(9999)
-        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=key)
-    
-    elif not train_complete and test_complete:
-        key = rng.integers(9999)
-        X, X_test, y_train, y_test = train_test_split(X_, y, test_size=split, random_state=key)
-    
-    elif not train_complete and not test_complete:
-        X = X_
-
-    if missing == "MCAR":
-        rand_arr = rng.uniform(0, 1, X.shape)
-        nan_arr = np.where(rand_arr < p, np.nan, 1.0)
-        X *= nan_arr
-    elif missing == "MAR":
-        # delete a square based on location. Not 'technically' MAR but less 'random' than MCAR implementation
-        square = np.ones((1, 8, 8))
-        for xi in range(8):
-            for yi in range(8):
-                if (0 < xi <= 4) and (0 < yi <= 4):
-                    square[:, xi, yi] = np.nan
-        X *= square.reshape((1, 64))
-    elif missing is not None:
-        print("not implemented")
-
-
-    # generate train, validate, test datasets and impute training 
-    if train_complete and test_complete:
-        pass
-
-    elif train_complete and not test_complete:
-        X_test = X
-    
-    elif not train_complete and test_complete:
-        X_train = X
-        key = rng.integers(9999)
-        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=key)
-    
-    elif not train_complete and not test_complete:
-        key = rng.integers(9999)
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=split, random_state=key)
-        key = rng.integers(9999)
-        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=key)
-
-    # missingness diagnostics
-    # diagnostics = {"X_train":{}, "X_valid":{}, "X_test":{}}
-    # diagnostics["X_train"]["cols"] = np.isnan(X_train).sum(0) / X_train.shape[0]
-    # diagnostics["X_train"]["rows"] = np.any(np.isnan(X_train), axis=1).sum() / X_train.shape[0]
-    # diagnostics["X_valid"]["cols"] = np.isnan(X_valid).sum(0) / X_valid.shape[0]
-    # diagnostics["X_valid"]["rows"] = np.any(np.isnan(X_valid), axis=1).sum() / X_valid.shape[0]
-    # diagnostics["X_test"]["cols"] = np.isnan(X_test).sum(0) / X_test.shape[0]
-    # diagnostics["X_test"]["rows"] = np.any(np.isnan(X_test), axis=1).sum() / X_test.shape[0]
-    # print(diagnostics)
-
-    # perform desired imputation strategy
-    if imputation == "simple" and missing is not None:
-        X_train, X_valid, X_test = simple(
-            X_train,
-            dtypes=None,
-            valid=X_valid,
-            test=X_test)
-    
-    key = rng.integers(9999)
-    if imputation == "iterative" and missing is not None:
-        X_train, X_valid, X_test = iterative(
-            X_train,
-            key,
-            dtypes=None,
-            valid=X_valid,
-            test=X_test)
-    
-    key = rng.integers(9999)
-    if imputation == "miceforest" and missing is not None:
-        if test_complete:
-            test_input = None
-        else:
-            test_input = X_test
-        X_train, X_valid, test_input = miceforest(
-            X_train,
-            int(key),
-            dtypes=None,
-            valid=X_valid,
-            test=test_input)
-        if test_complete:
-            X_test = X_test
-        else:
-            X_test = test_input
-
-    return X_train, X_valid, X_test, y_train.astype(int), y_valid.astype(int), y_test.astype(int), 10
 
