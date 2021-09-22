@@ -8,7 +8,7 @@ from jax.experimental.optimizers import make_schedule
 from tqdm import tqdm
 from scipy.stats import halfnorm
 import functools
-from UAT.aux import flatten_params, unflatten_params
+# from UAT.aux import flatten_params, unflatten_params
 
 def training_loop(
     X,
@@ -77,15 +77,15 @@ def training_loop(
         # this function is for determining proportion of weights 'on'
         def weights_on_fn(opt_state, step):
             m, v, vn, p = jit_other(opt_state)
-            p, _ = flatten_params(p)
-            v, _ = flatten_params(v)
-            vn, _ = flatten_params(vn)
+            # p, _ = flatten_params(p)
+            # v, _ = flatten_params(v)
+            # vn, _ = flatten_params(vn)
             # get ratio of dzdx > dzdy
 
             out_dict = {
-                "avg_vn":np.mean(vn),
-                "avg_v":np.mean(v),
-                "avg_p":np.mean(p),
+                # "avg_vn":np.mean(vn),
+                # "avg_v":np.mean(v),
+                # "avg_p":np.mean(p),
             }
             return out_dict
     
