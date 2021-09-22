@@ -31,4 +31,4 @@ repeats=30
 # python imputation_benchmark.py --repeats $repeats --dataset banking --missing None --imputation None simple iterative miceforest --save
 
 # python benchmark_openml.py --repeats $repeats --missing None MCAR MAR MNAR --imputation None simple iterative miceforest --corrupt --save
-python benchmark_openml.py --repeats $repeats --folds 5 --missing None MCAR MAR MNAR --imputation None simple iterative miceforest --save
+python benchmark_openml.py --repeats $repeats --missing None MCAR MAR MNAR --imputation None simple iterative miceforest --save

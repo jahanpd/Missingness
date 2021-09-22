@@ -40,7 +40,8 @@ def run(
     rng_init=12345,
     trans_params = None,
     xgb_params =  None,
-    l2 = 1e-5
+    l2 = 1e-5,
+    corrupt = False
     ):
     """ 
     repeats: int, number of times to repeat for bootstrapping
@@ -83,6 +84,7 @@ def run(
                 split=0.15,
                 rng_key=key,
                 prop=prop,
+                corrupt=corrupt
             )
 
         # set params for models
@@ -126,9 +128,10 @@ def run(
 
         # set training params
         # define training parameters
-        stop_epochs = 25
-        wait_epochs = 250
         training_kwargs_uat = trans_params[1]
+        steps_per_epoch = X_train.shape[0] // training_kwargs_uat["batch_size"]
+        stop_epochs = 0
+        wait_epochs = 1000 // steps_per_epoch
 
         # equalise training classes if categorical
         if task == "Supervised Classification":
@@ -146,7 +149,6 @@ def run(
         # get valdation for early stopping and add to training kwargs
         training_kwargs_uat["X_test"] = X_valid
         training_kwargs_uat["y_test"] = y_valid
-        steps_per_epoch = X_train.shape[0] // training_kwargs_uat["batch_size"]
         max_steps = 1e5
         epochs = int(max_steps // steps_per_epoch)
         training_kwargs_uat["epochs"] = epochs
@@ -203,9 +205,15 @@ def run(
         if (not train_complete) and (not empty) and (imputation is None) and ((missing is not None and corrupt) or (missing is None and not corrupt)):
             training_kwargs_uat["X_test"] = X_valid_drop
             training_kwargs_uat["y_test"] = y_valid_drop
+            training_kwargs_uat_ = training_kwargs_uat.copy()
+            if X_train_drop.shape[0] < training_kwargs_uat["batch_size"]:
+                new_bs = 2
+                while new_bs <= X_train_drop.shape[0] - new_bs:
+                    new_bs *= 2
+                training_kwargs_uat_["batch_size"] = new_bs
             model_drop = UAT(
                 model_kwargs=model_kwargs_uat,
-                training_kwargs=training_kwargs_uat,
+                training_kwargs=training_kwargs_uat_,
                 loss_fun=loss_fun,
                 rng_key=key,
             )
@@ -312,7 +320,7 @@ def run(
 if __name__ ==  "__main__":
     parser = argparse.ArgumentParser("train model")
     parser.add_argument("--repeats", default=5, type=int)
-    parser.add_argument("--folds", default=5, type=int)
+    parser.add_argument("--folds", default=3, type=int)
     parser.add_argument("--missing", choices=["None", "MCAR", "MAR", "MNAR"], default="None", nargs='+')
     parser.add_argument("--imputation", choices=["None", "Drop", "simple", "iterative", "miceforest"], nargs='+')
     parser.add_argument("--epochs", default=10000, type=int)
@@ -325,12 +333,12 @@ if __name__ ==  "__main__":
     args = parser.parse_args()
     
     if args.corrupt:
-        data_list = data.get_list(0,2, key=24, test=lambda x, m: x == m)
+        data_list = data.get_list(0,2, key=12, test=lambda x, m: x == m)
         data_list["task_type"] = ["Supervised Classification" if x > 0 else "Supervised Regression" for x in data_list.NumberOfClasses]
         data_list.to_csv("results/openml/corrupted_tasklist.csv")
         missing_list = args.missing
     else:
-        data_list = data.get_list(0.2, 4, key=24, test=lambda x, m: x > m)
+        data_list = data.get_list(0.2, 4, key=13, test=lambda x, m: x > m)
         data_list["task_type"] = ["Supervised Classification" if x > 0 else "Supervised Regression" for x in data_list.NumberOfClasses]
         data_list.to_csv("results/openml/noncorrupted_tasklist.csv")
         missing_list = ["None"]
@@ -343,7 +351,7 @@ if __name__ ==  "__main__":
         ## GRID SEARCH
         folds = args.folds
         # do a grid search for optimal HP for selected dataset
-        X, y, classes = data.prepOpenML(row[0], row[1])
+        X, y, classes, _ = data.prepOpenML(row[0], row[1])
         key = rng.integers(9999)
         # split to get early stopping validations set
         X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.2, random_state=key)
@@ -400,18 +408,18 @@ if __name__ ==  "__main__":
             training_kwargs_uat["batch_size"] = temp_best_trans_params["batch_size"]
             best_trans_params = (model_kwargs_uat, training_kwargs_uat, temp_best_trans_params["l2"])
         else:
-            for hps in itertools.product([32], [64, 256, 512, 1024], [5e-4], [1e-4, 1e-8]):
-                print("hp search")
-                if hps[1] < X_train.shape[0] // devices:
+            for hps in itertools.product([32], [64, 512], [5e-4], [1e-4, 1e-10]):
+                print("hp search", row[2])
+                if hps[1] < X_train.shape[0]:
                     hps_list.append(hps)
                     try:
                         for train, test in splits:
                             losses = []
                             model_kwargs_uat["d_model"] = hps[0]
                             # generic training parameters
-                            stop_epochs = 25
-                            wait_epochs = 250
                             steps_per_epoch = X_train.shape[0] // hps[1]
+                            stop_epochs = 0
+                            wait_epochs = 1000 // steps_per_epoch
                             max_steps = 1e5
                             epochs = int(max_steps // steps_per_epoch)
                             stop_steps_ = steps_per_epoch * stop_epochs
@@ -423,7 +431,7 @@ if __name__ ==  "__main__":
                             training_kwargs_uat["y_test"] = y_valid
                             training_kwargs_uat["epochs"] = epochs
                             if row[1] == "Supervised Classification":
-                                print("Supervised Classification", hps[3])
+                                print("Supervised Classification", hps[3], hps[0])
                                 loss_fun = cross_entropy(classes, l2_reg=hps[3], dropout_reg=1e-5)
                             else:
                                 print("Supervised Regression", hps[3])
@@ -442,7 +450,8 @@ if __name__ ==  "__main__":
                             loss, _ = loss_fun(model.params, out, y_train[test])
                             losses.append(loss)
                         loss_list.append(np.mean(losses))
-                    except:
+                    except Exception as e:
+                        print(e)
                         for i, dev in enumerate(cuda.gpus):
                             cuda.select_device(dev)
                             cuda.close()
@@ -486,13 +495,25 @@ if __name__ ==  "__main__":
 
             with open('results/openml/hyperparams/{},xgb_hyperparams.pickle'.format(row[2]), 'wb') as handle:
                 pickle.dump(best_xgb_params, handle, protocol=pickle.HIGHEST_PROTOCOL)
-        # BOOTSTRAP PERFORMACE
+        # BOOTSTRAP PERFORMANCE if file not already present
+        path = "results/openml"
+        result_files = [f for f in listdir(path) if isfile(join(path, f))]
+        def result_exists(filename, ds, rpts, mis, imp):
+            splt = filename[:-7].split(",")
+            try:
+                return ds == splt[0] and rpts == int(splt[1]) and str(mis) == splt[2] and str(imp) == splt[3]
+            except:
+                return False
         for missing in missing_list:
             if missing == "None":
                 missing = None
             for imputation in args.imputation:
                 # we do not want to impute data if there is None missing and data is not corrupted
                 if imputation != "None" and missing is None and args.corrupt:
+                    continue
+                # if results file already exists then skip
+                sub = [f for f in result_files if result_exists(f, row[2], args.repeats, missing, imputation)]
+                if len(sub) > 0:
                     continue
 
                 if imputation == "None":
@@ -511,7 +532,8 @@ if __name__ ==  "__main__":
                     prop=args.p,
                     trans_params = best_trans_params,
                     xgb_params =  best_xgb_params,
-                    l2 = best_trans_params[2]
+                    l2 = best_trans_params[2],
+                    corrupt=args.corrupt
                     )
                 print(row[2], missing, imputation)
                 print(m1.mean())

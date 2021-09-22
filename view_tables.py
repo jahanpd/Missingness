@@ -30,7 +30,7 @@ for r in rows:
 
 multiindex = pd.MultiIndex.from_tuples(colnames, names=["Model", "Measure"])
 df = pd.DataFrame(result_strs, index=indexes, columns=multiindex)
-print(df.to_latex(multirow=True))
+# print(df.to_latex(multirow=True))
 
 # table 2 prep
 rows = [7, 11, 3, 15]
@@ -50,7 +50,7 @@ for r in rows:
 
 multiindex = pd.MultiIndex.from_tuples(colnames, names=["Model", "Measure"])
 df = pd.DataFrame(result_strs, index=indexes, columns=multiindex)
-print(df.to_latex(multirow=True))
+# print(df.to_latex(multirow=True))
 
 # table 3 prep
 rows = [7, 11, 3, 15]
@@ -67,7 +67,7 @@ for r in rows:
     result_strs.append(row)
 
 df = pd.DataFrame(result_strs, index=indexes, columns=colnames)
-print(df.to_latex(multirow=True))
+# print(df.to_latex(multirow=True))
 
 # table 4 prep
 rows = [0,1,2,3]
@@ -84,70 +84,78 @@ for r in rows:
     result_strs.append(row)
 
 df = pd.DataFrame(result_strs, index=indexes, columns=colnames)
-print(df.to_latex(multirow=True))
+# print(df.to_latex(multirow=True))
 
 ## tables for performance experiments
 
-def make_table(missingness, columns, indexes, imputation_list):
+def make_table(missingness, columns, indexes, imputation_list, path="results/openml"):
+    result_files = [f for f in listdir(path) if isfile(join(path, f))]
     index_success = []
     prepped = []
     for idx in indexes.values:
         out = []
         try:
-            fs = [f for f in results if idx[0].lower() in f.lower() and '30_' + missingness in f.lower()]
+            # convenience function for filter of filenames
+            def result_filter(filename, ds, rpts, mis, imp):
+                splt = filename[:-7].split(",")
+                try:
+                    return ds == splt[0] and rpts == int(splt[1]) and str(mis) == splt[2] and str(imp) == splt[3].lower()
+                except:
+                    return False
             full = np.nan
             dropped = np.nan
             xgb = np.nan
-            for imp in imputation_list:
+            xgbdrop = np.nan
+            for cidx in columns.values:
+            # for imp in imputation_list:
+                if cidx[0] == "Transformer":
+                    xgboost = False
+                else:
+                    xgboost = True
+                if cidx[2] == "Dropped":
+                    impn = "None"
+                else:
+                    impn = cidx[2]
+
                 try:
-                    if imp not in ["Dropped", "XGBoost"]:
-                        fs_sub = [f for f in fs if missingness + '_' + imp.lower() in f.lower()]
-                        print(fs_sub)
-                        data = pd.read_pickle(fs_sub[0])
-                        print(data.mean())
-                    if imp == "None":
+                    print(result_files)
+                    fs = [f for f in result_files if result_filter(f, idx[0], 30, missingness, impn.lower())]
+                    print("SUBSET", fs)
+                    data = pd.read_pickle(join(path, fs[0]))
+                    print(data.mean())
+                    
+                    if cidx[2] == "None":
+                        print("MADE IT")
                         full = data[idx[1].lower()]["full"].values
                         dropped = data[idx[1].lower()]["drop"].values
                         xgb = data[idx[1].lower()]["xgboost"].values
-                        temp = np.mean(full)
+                        xgbdrop = data[idx[1].lower()]["xgboost_drop"].values
+                        if xgboost:
+                            temp = np.mean(xgb)
+                        else:
+                            temp = np.mean(full)
                         if temp < 0.01 or np.abs(1 - temp) < 0.01:
                             val = "{:.2e}".format(temp)
                         else:
                             val = "{:.2f}".format(temp)
                         out.append(val)
-                    elif imp == "Dropped":
-                        temp = np.mean(dropped)
+                    elif cidx[2] == "Dropped":
+                        if xgboost:
+                            temp = np.mean(xgbdrop)
+                        else:
+                            temp = np.mean(dropped)
                         if temp < 0.01 or np.abs(1 - temp) < 0.01:
                             val = "{:.2e}".format(temp)
                         else:
                             val = "{:.2f}".format(temp)
                         out.append(val)
-                    elif imp == "Simple":
-                        ser = data[idx[1].lower()]["full"].values
+                    else:
+                        if xgboost:
+                            name = "xgboost"
+                        else:
+                            name = "full"
+                        ser = data[idx[1].lower()][name].values
                         temp = np.mean(ser)
-                        if temp < 0.01 or np.abs(1 - temp) < 0.01:
-                            val = "{:.2e}".format(temp)
-                        else:
-                            val = "{:.2f}".format(temp)
-                        out.append(val)
-                    elif imp == "Iterative":
-                        ser = data[idx[1].lower()]["full"].values
-                        temp = np.mean(ser)
-                        if temp < 0.01 or np.abs(1 - temp) < 0.01:
-                            val = "{:.2e}".format(temp)
-                        else:
-                            val = "{:.2f}".format(temp)
-                        out.append(val)
-                    elif imp == "Miceforest":
-                        ser = data[idx[1].lower()]["full"].values
-                        temp = np.mean(ser)
-                        if temp < 0.01 or np.abs(1 - temp) < 0.01:
-                            val = "{:.2e}".format(temp)
-                        else:
-                            val = "{:.2f}".format(temp)
-                        out.append(val)
-                    elif imp == "XGBoost":
-                        temp = np.mean(xgb)
                         if temp < 0.01 or np.abs(1 - temp) < 0.01:
                             val = "{:.2e}".format(temp)
                         else:
@@ -160,7 +168,7 @@ def make_table(missingness, columns, indexes, imputation_list):
             index_success.append(idx)
         except Exception as e:
             print(e)
-
+    print(out)
     multiindex = pd.MultiIndex.from_tuples(index_success, names=["Dataset", "Metric"])
     df = pd.DataFrame(prepped, index=multiindex, columns=columns)
 
@@ -168,39 +176,36 @@ def make_table(missingness, columns, indexes, imputation_list):
 
 
 
-
-
-path = "results/imputation"
-results = [join(path, f) for f in listdir(path) if isfile(join(path, f))]
-
-
 ## synthetic and controlled corrupted missingness
-datasets_cat = ["Spiral", "Thoracic"]
-datasets_reg = ["Abalone"]
-# missingness = ["None", "MCAR", "MAR", "MNAR"]
-imputation = ["None", "Dropped", "Simple", "Iterative", "Miceforest", "XGBoost"]
-metrics_cat = ["Accuracy", "NLL"]
-metrics_reg = ["RMSE"]
+# datasets_cat = ["profb"]
+# datasets_reg = []
+# # missingness = ["None", "MCAR", "MAR", "MNAR"]
+# imputation = ["None", "Dropped", "Simple", "Iterative", "Miceforest", "XGBoost"]
+# metrics_cat = ["Accuracy", "NLL"]
+# metrics_reg = ["RMSE"]
 
-multiindex_cat = pd.MultiIndex.from_product([datasets_cat, metrics_cat], names=["Dataset", "Imputation"])
-multiindex_reg = pd.MultiIndex.from_product([datasets_reg, metrics_reg], names=["Dataset", "Imputation"])
-multiindex = pd.MultiIndex.from_tuples(list(multiindex_cat.values) + list(multiindex_reg.values), names=["Dataset", "Imputation"])
-print(multiindex)
+# multiindex_cat = pd.MultiIndex.from_product([datasets_cat, metrics_cat], names=["Dataset", "Imputation"])
+# multiindex_reg = pd.MultiIndex.from_product([datasets_reg, metrics_reg], names=["Dataset", "Imputation"])
+# multiindex = pd.MultiIndex.from_tuples(list(multiindex_cat.values) + list(multiindex_reg.values), names=["Dataset", "Imputation"])
+# print(multiindex)
 
-colnames = [(' ','None'), (' ','Dropped'), ('Imputation', 'Simple'), ('Imputation', 'Iterative'), ('Imputation', 'Miceforest'), (' ', 'XGBoost')]
-colmulti = pd.MultiIndex.from_tuples(colnames, names=["", ""]) 
+colnames = [
+    ('Transformer',' ','None'), ('Transformer',' ','Dropped'),('Transformer', 'Imputation', 'Simple'), ('Transformer', 'Imputation', 'Iterative'), ('Transformer', 'Imputation', 'Miceforest'),
+    ('XGBoost',' ','None'), ('XGBoost',' ','Dropped'),('XGBoost', 'Imputation', 'Simple'), ('XGBoost', 'Imputation', 'Iterative'), ('XGBoost', 'Imputation', 'Miceforest')
+    ]
+colmulti = pd.MultiIndex.from_tuples(colnames, names=["", "", ""]) 
 print(colmulti)
 
-mcar = make_table('mcar', colmulti, multiindex, imputation)
-mar = make_table('mar', colmulti, multiindex, imputation)
-mnar = make_table('mnar', colmulti, multiindex, imputation)
+# mcar = make_table('mcar', colmulti, multiindex, imputation)
+# mar = make_table('mar', colmulti, multiindex, imputation)
+# mnar = make_table('mnar', colmulti, multiindex, imputation)
 
-print(mcar.to_latex(multirow=True))
-print(mar.to_latex(multirow=True))
-print(mnar.to_latex(multirow=True))
+# print(mcar.to_latex(multirow=True))
+# print(mar.to_latex(multirow=True))
+# print(mnar.to_latex(multirow=True))
 
 ## unknown missingness pattern
-datasets_cat = ["Banking", "Anneal"]
+datasets_cat = ["profb", "cjs", "meta"]
 datasets_reg = []
 # missingness = ["None", "MCAR", "MAR", "MNAR"]
 imputation = ["None", "Dropped", "Simple", "Iterative", "Miceforest", "XGBoost"]
@@ -212,6 +217,7 @@ multiindex_reg = pd.MultiIndex.from_product([datasets_reg, metrics_reg], names=[
 multiindex = pd.MultiIndex.from_tuples(list(multiindex_cat.values) + list(multiindex_reg.values), names=["Dataset", "Imputation"])
 print(multiindex)
 
-real_world = make_table('none', colmulti, multiindex, imputation)
+real_world = make_table('None', colmulti, multiindex, imputation)
+print(real_world)
 print(real_world.to_latex(multirow=True))
 

@@ -24,31 +24,39 @@ def get_list(missing, sample, key=42, test=lambda x, m: x > m):
     reg_subset = reg_tasks[test(reg_tasks.NumberOfInstancesWithMissingValues / reg_tasks.NumberOfInstances, missing)]
     # limit number of features to less than 500 for tractability
     class_subset = class_subset[
-        (class_subset.NumberOfFeatures < 120) & (class_subset.NumberOfInstances < 100000) & (class_subset.NumberOfInstances > 500)].drop_duplicates(subset=["name"])
+        (class_subset.NumberOfFeatures < 100) & 
+        (class_subset.NumberOfInstances < 100000) & 
+        (class_subset.NumberOfInstances > 1000) &
+        (class_subset.NumberOfInstancesWithMissingValues != class_subset.NumberOfMissingValues)
+        ].drop_duplicates(subset=["name"])
     reg_subset = reg_subset[
-        (reg_subset.NumberOfFeatures < 120) & (reg_subset.NumberOfInstances < 100000) & (reg_subset.NumberOfInstances > 500)].drop_duplicates(subset=["name"])
+        (reg_subset.NumberOfFeatures < 100) & 
+        (reg_subset.NumberOfInstances < 100000) & 
+        (reg_subset.NumberOfInstances > 1000) &
+        (reg_subset.NumberOfInstancesWithMissingValues != reg_subset.NumberOfMissingValues)
+        ].drop_duplicates(subset=["name"])
     
     # test if datasets are gettable and add to list
     did_list_class = []
-    while len(did_list_class) < sample:
+    for did in class_subset.did.values:
         try:
             print(did_list_class, len(class_subset))
-            did = rng.choice(class_subset.did.values, 1)
-            ds = openml.datasets.get_dataset(dataset_id=int(did[0]))
+            # did = rng.choice(class_subset.did.values, 1)
+            ds = openml.datasets.get_dataset(dataset_id=int(did))
             X, y, categorical_indicator, attribute_names = ds.get_data(target = ds.default_target_attribute)
-            did_list_class.append(int(did[0]))
+            did_list_class.append(int(did))
             did_list_class = list(set(did_list_class))
         except Exception as e:
             print(e)
             pass
     did_list_reg = []
-    while len(did_list_reg) < sample:
+    for did in reg_subset.did.values:
         try:
             print(did_list_reg, len(reg_subset))
-            did = rng.choice(reg_subset.did.values, 1)
-            ds = openml.datasets.get_dataset(dataset_id=int(did[0]))
+            # did = rng.choice(reg_subset.did.values, 1)
+            ds = openml.datasets.get_dataset(dataset_id=int(did))
             X, y, categorical_indicator, attribute_names = ds.get_data(target = ds.default_target_attribute)
-            did_list_reg.append(int(did[0]))
+            did_list_reg.append(int(did))
             did_list_reg = list(set(did_list_reg))
         except Exception as e:
             print(e)
@@ -303,16 +311,30 @@ def prepOpenML(did, task):
     ds = openml.datasets.get_dataset(dataset_id=int(did))
     X, y, categorical_indicator, attribute_names = ds.get_data(target = ds.default_target_attribute)
 
+    cat_list = []
     for cat, name in zip(categorical_indicator, list(X)):
         if cat:
+            cat_list.append(name)
             d = X[name].values.astype(str)
             vals = np.unique(d[d != 'nan'])
             vals = list(vals)
             int_enc = [np.nan if j == 'nan' else vals.index(j) for j in d]
             X[name] = int_enc
     
-    # get rid of features that are objects but not categorical - these are usually unhelpful columns like names etc
-    X = X.select_dtypes(exclude=['object'])
+    # get rid of features that are objects but not in categorical indicator - these are usually unhelpful columns like names etc
+    # also filter out variables with >95% missing data as imputation will likely fail here when test sets have all np.nan
+    col_list = []
+    for name in list(X):
+        try:
+            X[name] = X[name].astype(np.float32)
+            if np.sum(np.isnan(X[name].values)) / np.size(X[name].values) < 0.95:
+                col_list.append(name)
+        except:
+            pass
+
+    # X = X.select_dtypes(exclude=['object'])
+    X = X[col_list]
+    cat_bin = [1 if cname in cat_list else 0 for cname in col_list]
     # ensure integer encoding of categorical outcome
     if task == "Supervised Classification":
         d = y.values.astype(str)
@@ -330,7 +352,7 @@ def prepOpenML(did, task):
     nan_mask = np.isnan(y)
     X_ = X.values[~nan_mask, :].astype(np.float32)
     y = y[~nan_mask].astype(np.float32)
-    return X_, y, classes
+    return X_, y, classes, cat_bin
 
 # convenience function for stratification
 def stratify(classes, y):
@@ -353,10 +375,11 @@ def openml_ds(
         rng_key=0,
         prop=0.5, # proportion of rows missing when corrupting
         cols_miss=100,
+        corrupt=False
     ):
     rng = np.random.default_rng(rng_key)
     
-    X_, y, classes = prepOpenML(did, task)
+    X_, y, classes, cat_bin = prepOpenML(did, task)
 
     key = rng.integers(9999)
     if missing is None:
@@ -460,26 +483,30 @@ def openml_ds(
     diagnostics["X_test"]["cols"] = np.mean(np.isnan(X_test).sum(0) / X_test.shape[0])
     diagnostics["X_test"]["rows"] = np.any(np.isnan(X_test), axis=1).sum() / X_test.shape[0]
     # print(diagnostics)
+    
+    # final check on cat_bin
+    if np.sum(cat_bin) == 0:
+        cat_bin = None
 
     # perform desired imputation strategy
-    if imputation == "simple" and missing is not None:
+    if imputation == "simple" and ((missing is not None and corrupt) or (missing is None and not corrupt)):
         X_train, X_valid, X_test = simple(
             X_train,
-            dtypes=None,
+            dtypes=cat_bin,
             valid=X_valid,
             test=X_test)
     
     key = rng.integers(9999)
-    if imputation == "iterative" and missing is not None:
+    if imputation == "iterative" and ((missing is not None and corrupt) or (missing is None and not corrupt)):
         X_train, X_valid, X_test = iterative(
             X_train,
             key,
-            dtypes=None,
+            dtypes=cat_bin,
             valid=X_valid,
             test=X_test)
     
     key = rng.integers(9999)
-    if imputation == "miceforest" and missing is not None:
+    if imputation == "miceforest" and ((missing is not None and corrupt) or (missing is None and not corrupt)):
         if test_complete:
             test_input = None
         else:
@@ -487,7 +514,7 @@ def openml_ds(
         X_train, X_valid, test_input = miceforest(
             X_train,
             int(key),
-            dtypes=None,
+            dtypes=cat_bin,
             valid=X_valid,
             test=test_input)
         if test_complete:
