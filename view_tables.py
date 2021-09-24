@@ -205,8 +205,8 @@ print(colmulti)
 # print(mnar.to_latex(multirow=True))
 
 ## unknown missingness pattern
-datasets_cat = ["profb", "cjs", "meta"]
-datasets_reg = []
+datasets_cat = ["sick", "hypothyroid", "ipums_la_99-small"]
+datasets_reg = ["Moneyball", "dating_profile"]
 # missingness = ["None", "MCAR", "MAR", "MNAR"]
 imputation = ["None", "Dropped", "Simple", "Iterative", "Miceforest", "XGBoost"]
 metrics_cat = ["Accuracy", "NLL"]

@@ -76,9 +76,12 @@ anneal_path_test = os.path.join(dir_path, "anneal/anneal.test")
 
 
 # convenience imputation functions
-def simple(train, valid, test, dtypes=None):
+def simple(train, valid, test, dtypes=None, all_cat=False):
     if dtypes is None:
-        imp = SimpleImputer(missing_values=np.nan, strategy='mean')
+        if all_cat:
+            imp = SimpleImputer(missing_values=np.nan, strategy='most_frequent')
+        else:
+            imp = SimpleImputer(missing_values=np.nan, strategy='mean')
         imp.fit(train)
         train = imp.transform(train)
         if valid is not None:
@@ -365,8 +368,12 @@ def stratify(classes, y):
     return y_binned
 
 def openml_ds(
-        did,
+        X_train,
+        y_train,
+        X_test,
+        y_test,
         task,
+        cat_bin,
         missing=None,
         imputation=None,  # one of none, simple, iterative, miceforest
         train_complete=False,
@@ -378,8 +385,6 @@ def openml_ds(
         corrupt=False
     ):
     rng = np.random.default_rng(rng_key)
-    
-    X_, y, classes, cat_bin = prepOpenML(did, task)
 
     key = rng.integers(9999)
     if missing is None:
@@ -387,34 +392,19 @@ def openml_ds(
         test_complete = True
 
     if train_complete and test_complete:
-        X = X_
-        y_binned = stratify(classes, y)
-        # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=split, stratify=y_binned, random_state=key)
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=split, random_state=key)
-        key = rng.integers(9999)
-        y_binned = stratify(classes, y_train)
-        # X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, stratify=y_binned, test_size=split, random_state=key)
         X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=key)
-
+        
     elif train_complete and not test_complete: # TRAIN COMPLETE IS TRUE AND TEST COMPLETE IS FALSE
-        y_binned = stratify(classes, y)
-        # X_train, X, y_train, y_test = train_test_split(X_, y, test_size=split, stratify=y_binned, random_state=key)
-        X_train, X, y_train, y_test = train_test_split(X_, y, test_size=split, random_state=key)
-        key = rng.integers(9999)
-        y_binned = stratify(classes, y_train)
-        # X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, stratify=y_binned, test_size=split, random_state=key)
-        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=key)
+        X_train, X, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=key)
     
-    elif not train_complete and test_complete:
-        y_binned = stratify(classes, y)
-        # X, X_test, y_train, y_test = train_test_split(X_, y, test_size=split, stratify=y_binned, random_state=key)
-        X, X_test, y_train, y_test = train_test_split(X_, y, test_size=split, random_state=key)
+    elif not train_complete and test_complete:        
+        X, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=key)
     
     elif not train_complete and not test_complete:
-        X = X_
+        X = X_train
 
     # create missingness mask
-    cols = X.shape[1]
+    cols = X_train.shape[1]
     if missing == "MCAR":
         p = 1 - (prop)**(1/cols)
         cols_miss = np.minimum(cols, cols_miss) # clip cols missing 
@@ -461,18 +451,15 @@ def openml_ds(
     
     elif not train_complete and test_complete:
         X_train = X
-        y_binned = stratify(classes, y_train)
-        # X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, stratify=y_binned, test_size=split, random_state=key)
-        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=key)
-    
+
     elif not train_complete and not test_complete:
         y_binned = stratify(classes, y)
         # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=split, stratify=y_binned, random_state=key)
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=split, random_state=key)
         key = rng.integers(9999)
-        y_binned = stratify(classes, y_train)
+        X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=split, random_state=key)
+        # y_binned = stratify(classes, y_train)
         # X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, stratify=y_binned, random_state=key)
-        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=key)
+        # X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=key)
 
     # missingness diagnostics
     diagnostics = {"X_train":{}, "X_valid":{}, "X_test":{}}
@@ -485,8 +472,14 @@ def openml_ds(
     # print(diagnostics)
     
     # final check on cat_bin
+
+    all_cat = False    
     if np.sum(cat_bin) == 0:
         cat_bin = None
+        all_cat = False
+    if np.sum(cat_bin) == np.size(cat_bin):
+        cat_bin = None
+        all_cat = True
 
     # perform desired imputation strategy
     if imputation == "simple" and ((missing is not None and corrupt) or (missing is None and not corrupt)):
@@ -494,7 +487,9 @@ def openml_ds(
             X_train,
             dtypes=cat_bin,
             valid=X_valid,
-            test=X_test)
+            test=X_test,
+            all_cat=all_cat
+            )
     
     key = rng.integers(9999)
     if imputation == "iterative" and ((missing is not None and corrupt) or (missing is None and not corrupt)):
@@ -522,7 +517,7 @@ def openml_ds(
         else:
             X_test = test_input
 
-    return X_train, X_valid, X_test, y_train, y_valid, y_test, diagnostics, classes
+    return X_train, X_test, X_valid, y_train, y_test, y_valid, diagnostics
 
 
 

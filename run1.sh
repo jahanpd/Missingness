@@ -31,14 +31,21 @@ repeats=30
 # python imputation_benchmark.py --repeats $repeats --dataset banking --missing None --imputation None simple iterative miceforest --save
 
 # python benchmark_openml.py --repeats $repeats --missing None MCAR MAR MNAR --imputation None simple iterative miceforest --corrupt --save
-export CUDA_VISIBLE_DEVICES=0
-python benchmark_openml.py --repeats $repeats --missing None MCAR MAR MNAR --imputation None simple iterative miceforest --save --dataset 16
-python benchmark_openml.py --repeats $repeats --missing None MCAR MAR MNAR --imputation None simple iterative miceforest --save --dataset 17
-python benchmark_openml.py --repeats $repeats --missing None MCAR MAR MNAR --imputation None simple iterative miceforest --save --dataset 18
-python benchmark_openml.py --repeats $repeats --missing None MCAR MAR MNAR --imputation None simple iterative miceforest --save --dataset 19
-python benchmark_openml.py --repeats $repeats  --missing None MCAR MAR MNAR --imputation None simple iterative miceforest --save --dataset 20 
-python benchmark_openml.py --repeats $repeats --missing None MCAR MAR MNAR --imputation None simple iterative miceforest --save --dataset 21
-python benchmark_openml.py --repeats $repeats --missing None MCAR MAR MNAR --imputation None simple iterative miceforest --save --dataset 22
-python benchmark_openml.py --repeats $repeats --missing None MCAR MAR MNAR --imputation None simple iterative miceforest --save --dataset 23
-python benchmark_openml.py --repeats $repeats --missing None MCAR MAR MNAR --imputation None simple iterative miceforest --save --dataset 24
+export CUDA_VISIBLE_DEVICES=1
+python benchmark_openml.py --repeats $repeats --missing None MCAR MAR MNAR --imputation None simple iterative miceforest --save --dataset 1
+python benchmark_openml.py --repeats $repeats --missing None MCAR MAR MNAR --imputation None simple iterative miceforest --save --dataset 0
+python benchmark_openml.py --repeats $repeats --missing None MCAR MAR MNAR --imputation None simple iterative miceforest --save --dataset 2 
+python benchmark_openml.py --repeats $repeats --missing None MCAR MAR MNAR --imputation None simple iterative miceforest --save --dataset 3 
+python benchmark_openml.py --repeats $repeats --missing None MCAR MAR MNAR --imputation None simple iterative miceforest --save --dataset 4 
+python benchmark_openml.py --repeats $repeats  --missing None MCAR MAR MNAR --imputation None simple iterative miceforest --save --dataset 5 
+python benchmark_openml.py --repeats $repeats --missing None MCAR MAR MNAR --imputation None simple iterative miceforest --save --dataset 6 
+python benchmark_openml.py --repeats $repeats --missing None MCAR MAR MNAR --imputation None simple iterative miceforest --save --dataset 7 
+python benchmark_openml.py --repeats $repeats --missing None MCAR MAR MNAR --imputation None simple iterative miceforest --save --dataset 8 
+python benchmark_openml.py --repeats $repeats --missing None MCAR MAR MNAR --imputation None simple iterative miceforest --save --dataset 9 
+python benchmark_openml.py --repeats $repeats --missing None MCAR MAR MNAR --imputation None simple iterative miceforest --save --dataset 10 
+python benchmark_openml.py --repeats $repeats --missing None MCAR MAR MNAR --imputation None simple iterative miceforest --save --dataset 11 
+python benchmark_openml.py --repeats $repeats --missing None MCAR MAR MNAR --imputation None simple iterative miceforest --save --dataset 12 
+python benchmark_openml.py --repeats $repeats --missing None MCAR MAR MNAR --imputation None simple iterative miceforest --save --dataset 13 
+python benchmark_openml.py --repeats $repeats --missing None MCAR MAR MNAR --imputation None simple iterative miceforest --save --dataset 14 
+python benchmark_openml.py --repeats $repeats --missing None MCAR MAR MNAR --imputation None simple iterative miceforest --save --dataset 15
 # python benchmark_openml.py --repeats $repeats --missing None MCAR MAR MNAR --imputation None simple iterative miceforest --save --dataset 16 17 18 19 20 21 22 23 24

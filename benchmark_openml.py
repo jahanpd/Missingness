@@ -1,3 +1,5 @@
+# import os
+# os.environ["CUDA_VISIBLE_DEVICES"]="0"
 import argparse
 import pickle
 from jax.interpreters.batching import batch
@@ -70,22 +72,35 @@ def run(
     }
     rng = np.random.default_rng(rng_init)
 
-    for repeat in range(repeats):
+    key = rng.integers(9999)
+    # resample argument will randomly oversample training set
+    X, y, classes, cat_bin = data.prepOpenML(dataset, task)
+    resample = True if classes > 1 else False
+    kfolds = oversampled_Kfold(2, key=int(key), n_repeats=5, resample=resample)
+    splits = kfolds.split(X, y)
+    count = 0
+    for train, test in splits:
         key = rng.integers(9999)
-        print("key: {}, repeat: {}/{}, dataset: {}, missing: {}, impute: {}".format(key, repeat, repeats, dataset, missing, imputation))
-        # import dataset
-        X_train, X_valid, X_test, y_train, y_valid, y_test, diagnostics, classes = data.openml_ds(
-                dataset,
+
+        X_train, X_test, X_valid, y_train, y_test, y_valid, diagnostics = data.openml_ds(
+                X[train,:],
+                y[train],
+                X[test,:],
+                y[test],
                 task,
+                cat_bin=cat_bin,
                 missing=missing,
                 imputation=imputation,  # one of none, simple, iterative, miceforest
                 train_complete=False,
                 test_complete=False,
-                split=0.15,
+                split=0.1,
                 rng_key=key,
                 prop=prop,
                 corrupt=corrupt
             )
+        count += 1
+        print("key: {}, k: {}/{}, dataset: {}, missing: {}, impute: {}".format(key, count, len(splits), dataset, missing, imputation))
+        # import dataset
 
         # set params for models
         if task == "Supervised Classification":
@@ -131,7 +146,7 @@ def run(
         training_kwargs_uat = trans_params[1]
         steps_per_epoch = X_train.shape[0] // training_kwargs_uat["batch_size"]
         stop_epochs = 0
-        wait_epochs = 1000 // steps_per_epoch
+        wait_epochs = 50
 
         # equalise training classes if categorical
         if task == "Supervised Classification":
@@ -324,6 +339,7 @@ if __name__ ==  "__main__":
     parser.add_argument("--missing", choices=["None", "MCAR", "MAR", "MNAR"], default="None", nargs='+')
     parser.add_argument("--imputation", choices=["None", "Drop", "simple", "iterative", "miceforest"], nargs='+')
     parser.add_argument("--epochs", default=10000, type=int)
+    parser.add_argument("--dataset", type=int, nargs='+')
     parser.add_argument("--p", default=0.35, type=float)
     parser.add_argument("--corrupt", action='store_true')
     parser.add_argument("--train_complete", action='store_true') # default is false
@@ -347,14 +363,17 @@ if __name__ ==  "__main__":
     rng = np.random.default_rng(1234)
     key = rng.integers(9999)
     ros = RandomOverSampler(random_state=key)
-    for row in data_list[['did', 'task_type', 'name']].values:
+    if args.dataset is not None:
+        selection = np.array(args.dataset)
+    else:
+        selection = np.arange(len(data_list))
+
+    for row in data_list[['did', 'task_type', 'name']].values[selection,:]:
         ## GRID SEARCH
         folds = args.folds
         # do a grid search for optimal HP for selected dataset
-        X, y, classes, _ = data.prepOpenML(row[0], row[1])
+        X, y, classes, cat_bin = data.prepOpenML(row[0], row[1])
         key = rng.integers(9999)
-        # split to get early stopping validations set
-        X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.2, random_state=key)
         if row[1] == "Supervised Classification":
             objective = 'multi:softprob'
             resample=True
@@ -363,8 +382,8 @@ if __name__ ==  "__main__":
             resample=False
         ## set up transformer model grid search
         key = rng.integers(9999)
-        kfolds = oversampled_Kfold(folds, key=int(key), resample=resample)
-        splits = kfolds.split(X_train, y_train)
+        kfolds = oversampled_Kfold(2, key=int(key), n_repeats=1, resample=resample)
+        splits = kfolds.split(X, y)
         trans_param_list = []
         loss_list = []
         hps_list = []
@@ -373,21 +392,21 @@ if __name__ ==  "__main__":
         subset = [f for f in filenames if row[2] in f]
         # get batch size array
         model_kwargs_uat = dict(
-            features=X_train.shape[1],
+            features=X.shape[1],
             d_model=None,
-            embed_hidden_size=64,
+            embed_hidden_size=32,
             embed_hidden_layers=2,
             embed_activation=jax.nn.leaky_relu,
             encoder_layers=2,
-            encoder_heads=2,
+            encoder_heads=5,
             enc_activation=jax.nn.leaky_relu,
-            decoder_layers=4,
-            decoder_heads=8,
+            decoder_layers=6,
+            decoder_heads=10,
             dec_activation=jax.nn.leaky_relu,
-            net_hidden_size=64,
+            net_hidden_size=32,
             net_hidden_layers=2,
             net_activation=jax.nn.leaky_relu,
-            last_layer_size=32,
+            last_layer_size=16,
             out_size=classes,
             W_init = jax.nn.initializers.glorot_uniform(),
             b_init = jax.nn.initializers.normal(1e-5),
@@ -408,18 +427,34 @@ if __name__ ==  "__main__":
             training_kwargs_uat["batch_size"] = temp_best_trans_params["batch_size"]
             best_trans_params = (model_kwargs_uat, training_kwargs_uat, temp_best_trans_params["l2"])
         else:
-            for hps in itertools.product([32], [64, 512], [5e-4], [1e-4, 1e-10]):
+            for hps in itertools.product([24], [64, 256, 512], [5e-4], [1e-4, 1e-10]):
                 print("hp search", row[2])
-                if hps[1] < X_train.shape[0]:
+                if hps[1] < X.shape[0] // 2:
                     hps_list.append(hps)
                     try:
                         for train, test in splits:
+                            X_train, X_test, X_valid, y_train, y_test, y_valid, diagnostics = data.openml_ds(
+                                X[train,:],
+                                y[train],
+                                X[test,:],
+                                y[test],
+                                row[1],
+                                cat_bin=cat_bin,
+                                missing=None,
+                                imputation=None,  # one of none, simple, iterative, miceforest
+                                train_complete=False,
+                                test_complete=False,
+                                split=0.1,
+                                rng_key=key,
+                                prop=args.p,
+                                corrupt=False
+                            )
                             losses = []
                             model_kwargs_uat["d_model"] = hps[0]
                             # generic training parameters
                             steps_per_epoch = X_train.shape[0] // hps[1]
                             stop_epochs = 0
-                            wait_epochs = 1000 // steps_per_epoch
+                            wait_epochs = 15
                             max_steps = 1e5
                             epochs = int(max_steps // steps_per_epoch)
                             stop_steps_ = steps_per_epoch * stop_epochs
@@ -444,10 +479,10 @@ if __name__ ==  "__main__":
                                 loss_fun=loss_fun,
                                 rng_key=key,
                             )
-                            model.fit(X_train[train,:], y_train[train])
+                            model.fit(X_train, y_train)
                             rng_placeholder = jnp.ones((len(test),2))
-                            out = model.apply_fun(model.params, X_train[test,:], rng_placeholder, False)
-                            loss, _ = loss_fun(model.params, out, y_train[test])
+                            out = model.apply_fun(model.params, X_test, rng_placeholder, False)
+                            loss, _ = loss_fun(model.params, out, y_test)
                             losses.append(loss)
                         loss_list.append(np.mean(losses))
                     except Exception as e:
