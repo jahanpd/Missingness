@@ -700,13 +700,13 @@ def abalone(
         key = rng.integers(9999)
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=split, random_state=key)
         key = rng.integers(9999)
-        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=key)
+        X_test, X_valid, y_test, y_valid = train_test_split(X_test, y_test, test_size=split, random_state=key)
 
     elif train_complete and not test_complete: # TRAIN COMPLETE IS TRUE AND TEST COMPLETE IS FALSE
         key = rng.integers(9999)
         X_train, X, y_train, y_test = train_test_split(X_, y, test_size=split, random_state=key)
         key = rng.integers(9999)
-        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=key)
+        X_test, X_valid, y_test, y_valid = train_test_split(X_test, y_test, test_size=split, random_state=key)
     
     elif not train_complete and test_complete:
         key = rng.integers(9999)
@@ -759,13 +759,13 @@ def abalone(
     elif not train_complete and test_complete:
         X_train = X
         key = rng.integers(9999)
-        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=key)
+        X_test, X_valid, y_test, y_valid = train_test_split(X_test, y_test, test_size=split, random_state=key)
     
     elif not train_complete and not test_complete:
         key = rng.integers(9999)
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=split, random_state=key)
         key = rng.integers(9999)
-        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=key)
+        X_test, X_valid, y_test, y_valid = train_test_split(X_test, y_test, test_size=split, random_state=key)
 
     # missingness diagnostics
     # diagnostics = {"X_train":{}, "X_valid":{}, "X_test":{}}

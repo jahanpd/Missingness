@@ -206,7 +206,7 @@ print(colmulti)
 
 ## unknown missingness pattern
 datasets_cat = ["sick", "hypothyroid", "ipums_la_99-small"]
-datasets_reg = ["Moneyball", "dating_profile"]
+datasets_reg = ["Moneyball", "dating_profile", "colleges", "employee_salaries"]
 # missingness = ["None", "MCAR", "MAR", "MNAR"]
 imputation = ["None", "Dropped", "Simple", "Iterative", "Miceforest", "XGBoost"]
 metrics_cat = ["Accuracy", "NLL"]

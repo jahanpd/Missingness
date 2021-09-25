@@ -76,7 +76,7 @@ def run(
     # resample argument will randomly oversample training set
     X, y, classes, cat_bin = data.prepOpenML(dataset, task)
     resample = True if classes > 1 else False
-    kfolds = oversampled_Kfold(2, key=int(key), n_repeats=5, resample=resample)
+    kfolds = oversampled_Kfold(2, key=int(key), n_repeats=2, resample=resample)
     splits = kfolds.split(X, y)
     count = 0
     for train, test in splits:
@@ -93,7 +93,7 @@ def run(
                 imputation=imputation,  # one of none, simple, iterative, miceforest
                 train_complete=False,
                 test_complete=False,
-                split=0.1,
+                split=0.25,
                 rng_key=key,
                 prop=prop,
                 corrupt=corrupt
@@ -128,7 +128,7 @@ def run(
                     last_layer_size=16,
                     out_size=classes,
                     W_init = jax.nn.initializers.glorot_uniform(),
-                    b_init = jax.nn.initializers.normal(0.0001),
+                    b_init = jax.nn.initializers.normal(1e-5),
                     )
         else:
             model_kwargs_uat = trans_params[0]
@@ -146,7 +146,7 @@ def run(
         training_kwargs_uat = trans_params[1]
         steps_per_epoch = X_train.shape[0] // training_kwargs_uat["batch_size"]
         stop_epochs = 0
-        wait_epochs = 50
+        wait_epochs = 250
 
         # equalise training classes if categorical
         if task == "Supervised Classification":
@@ -427,7 +427,7 @@ if __name__ ==  "__main__":
             training_kwargs_uat["batch_size"] = temp_best_trans_params["batch_size"]
             best_trans_params = (model_kwargs_uat, training_kwargs_uat, temp_best_trans_params["l2"])
         else:
-            for hps in itertools.product([24], [64, 256, 512], [5e-4], [1e-4, 1e-10]):
+            for hps in itertools.product([16], [256, 1024], [1e-3, 1e-4], [1e-10]):
                 print("hp search", row[2])
                 if hps[1] < X.shape[0] // 2:
                     hps_list.append(hps)
@@ -454,7 +454,7 @@ if __name__ ==  "__main__":
                             # generic training parameters
                             steps_per_epoch = X_train.shape[0] // hps[1]
                             stop_epochs = 0
-                            wait_epochs = 15
+                            wait_epochs = 100
                             max_steps = 1e5
                             epochs = int(max_steps // steps_per_epoch)
                             stop_steps_ = steps_per_epoch * stop_epochs
