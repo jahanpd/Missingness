@@ -146,7 +146,7 @@ def run(
         training_kwargs_uat = trans_params[1]
         steps_per_epoch = X_train.shape[0] // training_kwargs_uat["batch_size"]
         stop_epochs = 0
-        wait_epochs = 250
+        wait_epochs = 300
 
         # equalise training classes if categorical
         if task == "Supervised Classification":
@@ -427,11 +427,32 @@ if __name__ ==  "__main__":
             training_kwargs_uat["batch_size"] = temp_best_trans_params["batch_size"]
             best_trans_params = (model_kwargs_uat, training_kwargs_uat, temp_best_trans_params["l2"])
         else:
-            for hps in itertools.product([16], [256, 1024], [1e-3, 1e-4], [1e-10]):
+            for hps in itertools.product([64], [128, 512], [1e-3, 1e-4], [1e-4, 1e-10]):
                 print("hp search", row[2])
                 if hps[1] < X.shape[0] // 2:
                     hps_list.append(hps)
                     try:
+                        model_kwargs_uat["d_model"] = hps[0]
+                        # generic training parameters
+                        steps_per_epoch = (X.shape[0] // 2) // hps[1]
+                        stop_epochs = 0
+                        wait_epochs = 250
+                        max_steps = 1e5
+                        epochs = int(max_steps // steps_per_epoch)
+                        stop_steps_ = steps_per_epoch * stop_epochs
+                        early_stopping = create_early_stopping(stop_steps_, wait_epochs, metric_name="loss", tol=1e-8)
+                        training_kwargs_uat["early_stopping"] = early_stopping
+                        training_kwargs_uat['batch_size'] = hps[1]
+                        training_kwargs_uat['lr'] = hps[2]
+                        training_kwargs_uat["epochs"] = epochs
+                        if row[1] == "Supervised Classification":
+                            print("Supervised Classification", hps[3], hps[0])
+                            loss_fun = cross_entropy(classes, l2_reg=hps[3], dropout_reg=1e-5)
+                        else:
+                            print("Supervised Regression", hps[3])
+                            loss_fun = mse(l2_reg=hps[3], dropout_reg=1e-5)
+                        trans_param_list.append((model_kwargs_uat, training_kwargs_uat, hps[3]))
+                        losses = []
                         for train, test in splits:
                             X_train, X_test, X_valid, y_train, y_test, y_valid, diagnostics = data.openml_ds(
                                 X[train,:],
@@ -444,34 +465,13 @@ if __name__ ==  "__main__":
                                 imputation=None,  # one of none, simple, iterative, miceforest
                                 train_complete=False,
                                 test_complete=False,
-                                split=0.1,
+                                split=0.25,
                                 rng_key=key,
                                 prop=args.p,
                                 corrupt=False
                             )
-                            losses = []
-                            model_kwargs_uat["d_model"] = hps[0]
-                            # generic training parameters
-                            steps_per_epoch = X_train.shape[0] // hps[1]
-                            stop_epochs = 0
-                            wait_epochs = 100
-                            max_steps = 1e5
-                            epochs = int(max_steps // steps_per_epoch)
-                            stop_steps_ = steps_per_epoch * stop_epochs
-                            early_stopping = create_early_stopping(stop_steps_, wait_epochs, metric_name="loss", tol=1e-8)
-                            training_kwargs_uat["early_stopping"] = early_stopping
-                            training_kwargs_uat['batch_size'] = hps[1]
-                            training_kwargs_uat['lr'] = hps[2]
                             training_kwargs_uat["X_test"] = X_valid
                             training_kwargs_uat["y_test"] = y_valid
-                            training_kwargs_uat["epochs"] = epochs
-                            if row[1] == "Supervised Classification":
-                                print("Supervised Classification", hps[3], hps[0])
-                                loss_fun = cross_entropy(classes, l2_reg=hps[3], dropout_reg=1e-5)
-                            else:
-                                print("Supervised Regression", hps[3])
-                                loss_fun = mse(l2_reg=hps[3], dropout_reg=1e-5)
-                            trans_param_list.append((model_kwargs_uat, training_kwargs_uat, hps[3]))
                             key = rng.integers(9999)
                             model = UAT(
                                 model_kwargs=model_kwargs_uat,
@@ -493,7 +493,7 @@ if __name__ ==  "__main__":
                         loss_list.append(np.inf)
 
             print(list(zip(hps_list, loss_list)))
-            best_trans_params = trans_param_list[np.array(loss_list).argmin()]
+            best_trans_params = trans_param_list[np.argmin(loss_list)]
 
             xgb_param_list = []
             for max_depth in [10,20,50]:
@@ -518,7 +518,7 @@ if __name__ ==  "__main__":
                     early_stopping_rounds=10,
                     verbose_eval=100)
                 performance.append(history.values.flatten()[2])
-            best_xgb_params = xgb_param_list[np.array(performance).argmin()]
+            best_xgb_params = xgb_param_list[np.argmin(performance)]
             
             with open('results/openml/hyperparams/{},trans_hyperparams.pickle'.format(row[2]), 'wb') as handle:
                 pickle.dump({

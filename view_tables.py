@@ -205,8 +205,11 @@ print(colmulti)
 # print(mnar.to_latex(multirow=True))
 
 ## unknown missingness pattern
-datasets_cat = ["sick", "hypothyroid", "ipums_la_99-small"]
-datasets_reg = ["Moneyball", "dating_profile", "colleges", "employee_salaries"]
+datasets = pd.read_csv("results/openml/noncorrupted_tasklist.csv")
+datasets_cat = datasets.name.values[datasets.task_type.values == "Supervised Classification"]
+datasets_reg = datasets.name.values[datasets.task_type.values == "Supervised Regression"]
+# datasets_cat = ["sick", "hypothyroid", "ipums_la_99-small"]
+# datasets_reg = ["Moneyball", "dating_profile", "colleges", "employee_salaries"]
 # missingness = ["None", "MCAR", "MAR", "MNAR"]
 imputation = ["None", "Dropped", "Simple", "Iterative", "Miceforest", "XGBoost"]
 metrics_cat = ["Accuracy", "NLL"]
@@ -219,5 +222,5 @@ print(multiindex)
 
 real_world = make_table('None', colmulti, multiindex, imputation)
 print(real_world)
-print(real_world.to_latex(multirow=True))
+# print(real_world.to_latex(multirow=True))
 
