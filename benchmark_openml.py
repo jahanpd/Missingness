@@ -18,6 +18,7 @@ import UAT.datasets as data
 from UAT import UAT, create_early_stopping
 from UAT import binary_cross_entropy, cross_entropy, mse
 from UAT.aux import oversampled_Kfold
+from UAT.training.lr_schedule import attention_lr
 import xgboost as xgb
 from tqdm import tqdm
 import itertools
@@ -111,25 +112,25 @@ def run(
             objective = 'reg:squarederror'
         if trans_params is None:
             model_kwargs_uat = dict(
-                    features=X_train.shape[1],
-                    d_model=16,
-                    embed_hidden_size=16,
-                    embed_hidden_layers=3,
-                    embed_activation=jax.nn.leaky_relu,
-                    encoder_layers=3,
-                    encoder_heads=10,
-                    enc_activation=jax.nn.leaky_relu,
-                    decoder_layers=6,
-                    decoder_heads=20,
-                    dec_activation=jax.nn.leaky_relu,
-                    net_hidden_size=16,
-                    net_hidden_layers=3,
-                    net_activation=jax.nn.leaky_relu,
-                    last_layer_size=16,
-                    out_size=classes,
-                    W_init = jax.nn.initializers.glorot_uniform(),
-                    b_init = jax.nn.initializers.normal(1e-5),
-                    )
+            features=X.shape[1],
+            d_model=None,
+            embed_hidden_size=64,
+            embed_hidden_layers=2,
+            embed_activation=jax.nn.leaky_relu,
+            encoder_layers=3,
+            encoder_heads=10,
+            enc_activation=jax.nn.leaky_relu,
+            decoder_layers=6,
+            decoder_heads=20,
+            dec_activation=jax.nn.leaky_relu,
+            net_hidden_size=64,
+            net_hidden_layers=2,
+            net_activation=jax.nn.leaky_relu,
+            last_layer_size=32,
+            out_size=classes,
+            W_init = jax.nn.initializers.glorot_uniform(),
+            b_init = jax.nn.initializers.normal(1e-5),
+            )
         else:
             model_kwargs_uat = trans_params[0]
         
@@ -145,8 +146,6 @@ def run(
         # define training parameters
         training_kwargs_uat = trans_params[1]
         steps_per_epoch = X_train.shape[0] // training_kwargs_uat["batch_size"]
-        stop_epochs = 0
-        wait_epochs = 300
 
         # equalise training classes if categorical
         if task == "Supervised Classification":
@@ -167,8 +166,8 @@ def run(
         max_steps = 1e5
         epochs = int(max_steps // steps_per_epoch)
         training_kwargs_uat["epochs"] = epochs
-        stop_steps_ = steps_per_epoch * stop_epochs
-        early_stopping = create_early_stopping(stop_steps_, wait_epochs, metric_name="loss", tol=1e-8)
+        stop_steps_ = 200
+        early_stopping = create_early_stopping(0, stop_steps_, metric_name="loss", tol=1e-8)
         training_kwargs_uat["early_stopping"] = early_stopping
         
         # create dropped dataset baseline and implement missingness strategy
@@ -359,6 +358,7 @@ if __name__ ==  "__main__":
         data_list.to_csv("results/openml/noncorrupted_tasklist.csv")
         missing_list = ["None"]
 
+    data_list = data_list.reset_index()
     print(data_list)
     rng = np.random.default_rng(1234)
     key = rng.integers(9999)
@@ -394,25 +394,26 @@ if __name__ ==  "__main__":
         model_kwargs_uat = dict(
             features=X.shape[1],
             d_model=None,
-            embed_hidden_size=32,
+            embed_hidden_size=64,
             embed_hidden_layers=2,
             embed_activation=jax.nn.leaky_relu,
-            encoder_layers=2,
-            encoder_heads=5,
+            encoder_layers=3,
+            encoder_heads=10,
             enc_activation=jax.nn.leaky_relu,
             decoder_layers=6,
-            decoder_heads=10,
+            decoder_heads=20,
             dec_activation=jax.nn.leaky_relu,
-            net_hidden_size=32,
+            net_hidden_size=64,
             net_hidden_layers=2,
             net_activation=jax.nn.leaky_relu,
-            last_layer_size=16,
+            last_layer_size=32,
             out_size=classes,
             W_init = jax.nn.initializers.glorot_uniform(),
             b_init = jax.nn.initializers.normal(1e-5),
             )
         training_kwargs_uat = dict(
-                optim="adam"
+                optim="adam",
+                frequency=10
             )
         if len(subset) > 1 and args.load_params:
             trans_subset = [f for f in subset if 'trans' in f]
@@ -423,11 +424,11 @@ if __name__ ==  "__main__":
                 best_xgb_params = pickle.load(handle)
             # load up params
             model_kwargs_uat["d_model"] = temp_best_trans_params["d_model"]
-            training_kwargs_uat["lr"] = temp_best_trans_params["lr"]
+            training_kwargs_uat["lr"] = attention_lr(1000, temp_best_trans_params["lr"])
             training_kwargs_uat["batch_size"] = temp_best_trans_params["batch_size"]
             best_trans_params = (model_kwargs_uat, training_kwargs_uat, temp_best_trans_params["l2"])
         else:
-            for hps in itertools.product([64], [128, 512], [1e-3, 1e-4], [1e-4, 1e-10]):
+            for hps in itertools.product([64, 256], [16, 32, 64], [1000], [1e-10]):
                 print("hp search", row[2])
                 if hps[1] < X.shape[0] // 2:
                     hps_list.append(hps)
@@ -436,14 +437,13 @@ if __name__ ==  "__main__":
                         # generic training parameters
                         steps_per_epoch = (X.shape[0] // 2) // hps[1]
                         stop_epochs = 0
-                        wait_epochs = 250
                         max_steps = 1e5
                         epochs = int(max_steps // steps_per_epoch)
-                        stop_steps_ = steps_per_epoch * stop_epochs
-                        early_stopping = create_early_stopping(stop_steps_, wait_epochs, metric_name="loss", tol=1e-8)
+                        stop_steps_ = 100
+                        early_stopping = create_early_stopping(0, stop_steps_, metric_name="loss", tol=1e-8)
                         training_kwargs_uat["early_stopping"] = early_stopping
                         training_kwargs_uat['batch_size'] = hps[1]
-                        training_kwargs_uat['lr'] = hps[2]
+                        training_kwargs_uat['lr'] = attention_lr(1000, hps[2])
                         training_kwargs_uat["epochs"] = epochs
                         if row[1] == "Supervised Classification":
                             print("Supervised Classification", hps[3], hps[0])
@@ -451,7 +451,7 @@ if __name__ ==  "__main__":
                         else:
                             print("Supervised Regression", hps[3])
                             loss_fun = mse(l2_reg=hps[3], dropout_reg=1e-5)
-                        trans_param_list.append((model_kwargs_uat, training_kwargs_uat, hps[3]))
+                        trans_param_list.append((model_kwargs_uat.copy(), training_kwargs_uat.copy(), hps[3]))
                         losses = []
                         for train, test in splits:
                             X_train, X_test, X_valid, y_train, y_test, y_valid, diagnostics = data.openml_ds(

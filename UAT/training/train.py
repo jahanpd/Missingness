@@ -28,6 +28,7 @@ def training_loop(
     y_test=None,
     start_score=100, # epochs when to start 
     early_stopping=None, # or callable
+    output_freq=5,
     ):
     devices = jax.local_device_count()
     assert batch_size % devices == 0, "batch size must be divisible by number of devices"
@@ -174,32 +175,32 @@ def training_loop(
                 1)
         pbar2 = tqdm(total=len(batches), leave=False)
         
-        # evaluate test set performance OR early stopping test
         perform_test = ((X_test is not None) and (y_test is not None)) and early_stopping is not None
-        if perform_test:
-            params_ = jax.device_get(jax.tree_map(lambda x: x[0], params))
-            if step == 0:
-                params_store = params_.copy()
-                metric_store = None
-            if type(X_test) == type(y_test) == str:
-                test_dict = {"loss":np.nan}
-            else:
-                key_ = jnp.ones((X_test.shape[0], 2))
-                test_dict = metrics(params_, X_test, y_test, key_)
-            for k, v in grad_dict.items():
-                test_dict[k] = v
-            # test for early stopping
-            # early stopping is a function that returns a bool, params_store, metric_store
-            stop, params_store, metric_store = early_stopping(
-                step, params_, params_store, test_dict, metric_store)
-            if stop:
-                tqdm.write("Final test loss: {}, epoch: {}".format(
-                    metric_store["loss"], metrics_ewa_["epoch"]))
-                return params_store, history, rng
-
-
-
         for i, b in enumerate(batches):
+        # evaluate test set performance OR early stopping test
+            if perform_test and step % frequency == 0:
+                params_ = jax.device_get(jax.tree_map(lambda x: x[0], params))
+                if step == 0:
+                    params_store = params_.copy()
+                    metric_store = None
+                if type(X_test) == type(y_test) == str:
+                    test_dict = {"loss":np.nan}
+                else:
+                    key_ = jnp.ones((X_test.shape[0], 2))
+                    test_dict = metrics(params_, X_test, y_test, key_)
+                for k, v in grad_dict.items():
+                    test_dict[k] = v
+                # test for early stopping
+                # early stopping is a function that returns a bool, params_store, metric_store
+                stop, params_store, metric_store = early_stopping(
+                    step, params_, params_store, test_dict, metric_store)
+                if stop:
+                    tqdm.write("Final test loss: {}, epoch: {}".format(
+                        metric_store["loss"], metrics_ewa_["epoch"]))
+                    return params_store, history, rng
+
+
+
                 
             step += 1
             rng, key = random.split(rng, 2)
@@ -215,7 +216,7 @@ def training_loop(
             params, opt_state = take_step(
                step, params, batch_x, batch_y, key, opt_state)
 
-            if step % frequency == 0 and optim == "adascore":
+            if step % output_freq == 0 and optim == "adascore":
                 grad_dict = weights_on_fn(opt_state, step)
 
             # initialize some training metrics
@@ -225,7 +226,7 @@ def training_loop(
                 metrics_ewa["step"]=step
 
             pbar2.update(1)
-            if step % frequency == 0:
+            if step % output_freq == 0:
                 params_ = jax.device_get(jax.tree_map(lambda x: x[0], params))
                 metrics_dict = metrics(params_, batch_x.reshape((batch_size,)+xbs[1:]), batch_y.reshape((batch_size,-1)), None)
                 metrics_dict["step"]=step
