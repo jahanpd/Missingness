@@ -54,6 +54,9 @@ def run(
     missing: str, one of "MCAR", "MAR", "MNAR" to define missingness pattern if corrupting data, "None" if not
     train_complete: bool, whether the training set is to be complete if corrupting data
     test_complete: bool, whether the test set is to be complete if corrupting data
+
+
+
     strategy: str, one of "Simple", "Iterative", "Miceforest" method of dealing with missingness
     epochs: int, number of epochs to train model
     """
@@ -77,7 +80,7 @@ def run(
     # resample argument will randomly oversample training set
     X, y, classes, cat_bin = data.prepOpenML(dataset, task)
     resample = True if classes > 1 else False
-    kfolds = oversampled_Kfold(2, key=int(key), n_repeats=2, resample=resample)
+    kfolds = oversampled_Kfold(5, key=int(key), n_repeats=1, resample=resample)
     splits = kfolds.split(X, y)
     count = 0
     for train, test in splits:
@@ -94,7 +97,7 @@ def run(
                 imputation=imputation,  # one of none, simple, iterative, miceforest
                 train_complete=False,
                 test_complete=False,
-                split=0.25,
+                split=0.1,
                 rng_key=key,
                 prop=prop,
                 corrupt=corrupt
@@ -146,6 +149,7 @@ def run(
         # define training parameters
         training_kwargs_uat = trans_params[1]
         steps_per_epoch = X_train.shape[0] // training_kwargs_uat["batch_size"]
+        start_steps = steps_per_epoch * 5 // 10 # wait at least 5 epochs before early stopping
 
         # equalise training classes if categorical
         if task == "Supervised Classification":
@@ -158,6 +162,7 @@ def run(
 
         # sanity check
         if imputation is not None:
+            print("assertion is ", np.all(~np.isnan(X_train)))
             assert np.all(~np.isnan(X_train))
 
         # get valdation for early stopping and add to training kwargs
@@ -167,7 +172,7 @@ def run(
         epochs = int(max_steps // steps_per_epoch)
         training_kwargs_uat["epochs"] = epochs
         stop_steps_ = 200
-        early_stopping = create_early_stopping(0, stop_steps_, metric_name="loss", tol=1e-8)
+        early_stopping = create_early_stopping(start_steps, stop_steps_, metric_name="loss", tol=1e-8)
         training_kwargs_uat["early_stopping"] = early_stopping
         
         # create dropped dataset baseline and implement missingness strategy
@@ -206,9 +211,9 @@ def run(
         dvalid = xgb.DMatrix(X_valid, label=y_valid)
         dtest = xgb.DMatrix(X_test)
         evallist = [(dvalid, 'eval'), (dtrain, 'train')]
-        num_round = 500
+        num_round = 1000
         print("training xgboost for {} epochs".format(num_round))
-        bst = xgb.train(param, dtrain, num_round, evallist, early_stopping_rounds=10, verbose_eval=100)
+        bst = xgb.train(param, dtrain, num_round, evallist, early_stopping_rounds=50, verbose_eval=100)
         output_xgb = bst.predict(dtest)
 
         # 1. there is no point dropping if the training set is complete
@@ -310,6 +315,7 @@ def run(
                 metrics[("rmse","drop")].append(rmse_drop)
                 metrics[("rmse","xgboost")].append(rmse_xgb)
                 metrics[("rmse","xgboost_drop")].append(rmse_xgb_drop)
+                tqdm.write("strategy:{}, rmse full:{}, rmse drop:{}, rmse xbg:{}".format(imputation, rmse, rmse_drop, rmse_xgb))
     
     # convert metrics dict to dataframe and determine % change
     # get rid of unused metrics
@@ -397,11 +403,11 @@ if __name__ ==  "__main__":
             embed_hidden_size=64,
             embed_hidden_layers=2,
             embed_activation=jax.nn.leaky_relu,
-            encoder_layers=3,
-            encoder_heads=10,
+            encoder_layers=2,
+            encoder_heads=4,
             enc_activation=jax.nn.leaky_relu,
-            decoder_layers=6,
-            decoder_heads=20,
+            decoder_layers=4,
+            decoder_heads=4,
             dec_activation=jax.nn.leaky_relu,
             net_hidden_size=64,
             net_hidden_layers=2,
@@ -421,14 +427,19 @@ if __name__ ==  "__main__":
             with (open(trans_subset[0], "rb")) as handle:
                 temp_best_trans_params = pickle.load(handle)
             with (open(xgb_subset[0], "rb")) as handle:
-                best_xgb_params = pickle.load(handle)
+                temp_best_xgb_params = pickle.load(handle)
             # load up params
-            model_kwargs_uat["d_model"] = temp_best_trans_params["d_model"]
-            training_kwargs_uat["lr"] = attention_lr(1000, temp_best_trans_params["lr"])
-            training_kwargs_uat["batch_size"] = temp_best_trans_params["batch_size"]
-            best_trans_params = (model_kwargs_uat, training_kwargs_uat, temp_best_trans_params["l2"])
+            temp_best_trans_params = temp_best_trans_params[np.argmin([l[1] for l in temp_best_trans_params])]
+            temp_best_xgb_params = temp_best_xgb_params[np.argmin([l[1] for l in temp_best_xgb_params])]
+            # set trans params
+            model_kwargs_uat["d_model"] = temp_best_trans_params[0][0]
+            training_kwargs_uat["lr"] = attention_lr(temp_best_trans_params[0][3], 1000)
+            training_kwargs_uat["batch_size"] = temp_best_trans_params[0][1]
+            best_trans_params = (model_kwargs_uat, training_kwargs_uat, temp_best_trans_params[0][2])
+            # set xgb params
+            best_xgb_params = temp_best_xgb_params[0]
         else:
-            for hps in itertools.product([64, 256], [16, 32, 64], [1000], [1e-10]):
+            for hps in itertools.product([256], [16, 64], [1e-4, 1e-8], [1000, 6000]):
                 print("hp search", row[2])
                 if hps[1] < X.shape[0] // 2:
                     hps_list.append(hps)
@@ -436,22 +447,22 @@ if __name__ ==  "__main__":
                         model_kwargs_uat["d_model"] = hps[0]
                         # generic training parameters
                         steps_per_epoch = (X.shape[0] // 2) // hps[1]
-                        stop_epochs = 0
                         max_steps = 1e5
                         epochs = int(max_steps // steps_per_epoch)
-                        stop_steps_ = 100
-                        early_stopping = create_early_stopping(0, stop_steps_, metric_name="loss", tol=1e-8)
+                        start_steps = steps_per_epoch * 5 // 10 # wait at least 5 epochs before early stopping
+                        stop_steps_ = 200
+                        early_stopping = create_early_stopping(start_steps, stop_steps_, metric_name="loss", tol=1e-8)
                         training_kwargs_uat["early_stopping"] = early_stopping
                         training_kwargs_uat['batch_size'] = hps[1]
-                        training_kwargs_uat['lr'] = attention_lr(1000, hps[2])
+                        training_kwargs_uat['lr'] = attention_lr(hps[3], 1000)
                         training_kwargs_uat["epochs"] = epochs
                         if row[1] == "Supervised Classification":
-                            print("Supervised Classification", hps[3], hps[0])
-                            loss_fun = cross_entropy(classes, l2_reg=hps[3], dropout_reg=1e-5)
+                            print("Supervised Classification", hps[2], hps[0])
+                            loss_fun = cross_entropy(classes, l2_reg=hps[2], dropout_reg=1e-5)
                         else:
-                            print("Supervised Regression", hps[3])
-                            loss_fun = mse(l2_reg=hps[3], dropout_reg=1e-5)
-                        trans_param_list.append((model_kwargs_uat.copy(), training_kwargs_uat.copy(), hps[3]))
+                            print("Supervised Regression", hps[2], hps[0])
+                            loss_fun = mse(l2_reg=hps[2], dropout_reg=1e-5)
+                        trans_param_list.append((model_kwargs_uat.copy(), training_kwargs_uat.copy(), hps[2]))
                         losses = []
                         for train, test in splits:
                             X_train, X_test, X_valid, y_train, y_test, y_valid, diagnostics = data.openml_ds(
@@ -465,7 +476,7 @@ if __name__ ==  "__main__":
                                 imputation=None,  # one of none, simple, iterative, miceforest
                                 train_complete=False,
                                 test_complete=False,
-                                split=0.25,
+                                split=0.1,
                                 rng_key=key,
                                 prop=args.p,
                                 corrupt=False
@@ -479,11 +490,28 @@ if __name__ ==  "__main__":
                                 loss_fun=loss_fun,
                                 rng_key=key,
                             )
+
                             model.fit(X_train, y_train)
-                            rng_placeholder = jnp.ones((len(test),2))
-                            out = model.apply_fun(model.params, X_test, rng_placeholder, False)
-                            loss, _ = loss_fun(model.params, out, y_test)
-                            losses.append(loss)
+                            # break test into 'batches' to avoid OOM errors
+                            test_mod = X_test.shape[0] % (hps[1])
+                            test_rows = np.arange(X_test.shape[0] - test_mod)
+                            test_batches = np.split(test_rows,
+                                        np.maximum(1, X_test.shape[0] // (hps[1])))
+
+                            loss_loop = 0
+                            pbar1 = tqdm(total=len(test_batches), position=0, leave=False)
+                            @jax.jit
+                            def loss_calc(params, x_batch, y_batch, rng):
+                                out = model.apply_fun(params, x_batch, rng, False)
+                                loss, _ = loss_fun(params, out, y_batch)
+                                return loss
+                            for tbatch in test_batches:
+                                key_ = jnp.ones((X_test[np.array(tbatch), ...].shape[0], 2))
+                                loss = loss_calc(model.params, X_test[np.array(tbatch), ...], y_test[np.array(tbatch)], key_)
+                                loss_loop += loss
+                                pbar1.update(1)
+                            # average metrics over test batches
+                            losses.append(loss_loop / len(test_batches))
                         loss_list.append(np.mean(losses))
                     except Exception as e:
                         print(e)
@@ -491,8 +519,8 @@ if __name__ ==  "__main__":
                             cuda.select_device(dev)
                             cuda.close()
                         loss_list.append(np.inf)
-
-            print(list(zip(hps_list, loss_list)))
+            hp_search = list(zip(hps_list, loss_list))
+            print(hp_search)
             best_trans_params = trans_param_list[np.argmin(loss_list)]
 
             xgb_param_list = []
@@ -505,9 +533,9 @@ if __name__ ==  "__main__":
                         param['min_child_weight'] = child_weight
                         param['eta'] = eta
                         param['verbose_eval']=100
-                        xgb_param_list.append(param)
+                        xgb_param_list.append(param.copy())
             dtrain = xgb.DMatrix(X, label=y)
-            num_round = 500
+            num_round = 1000
             performance = []
             for params in xgb_param_list:
                 history = xgb.cv(
@@ -515,21 +543,17 @@ if __name__ ==  "__main__":
                     dtrain=dtrain,
                     num_boost_round=num_round,
                     folds=splits,
-                    early_stopping_rounds=10,
+                    early_stopping_rounds=50,
                     verbose_eval=100)
                 performance.append(history.values.flatten()[2])
+            hp_search_xgb = list(zip(xgb_param_list, performance))
             best_xgb_params = xgb_param_list[np.argmin(performance)]
             
             with open('results/openml/hyperparams/{},trans_hyperparams.pickle'.format(row[2]), 'wb') as handle:
-                pickle.dump({
-                    "d_model":best_trans_params[0]["d_model"],
-                    "batch_size":best_trans_params[1]["batch_size"],
-                    "lr":best_trans_params[1]["lr"],
-                    "l2":best_trans_params[2],
-                    }, handle, protocol=pickle.HIGHEST_PROTOCOL)
+                pickle.dump(hp_search, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
             with open('results/openml/hyperparams/{},xgb_hyperparams.pickle'.format(row[2]), 'wb') as handle:
-                pickle.dump(best_xgb_params, handle, protocol=pickle.HIGHEST_PROTOCOL)
+                pickle.dump(hp_search_xgb, handle, protocol=pickle.HIGHEST_PROTOCOL)
         # BOOTSTRAP PERFORMANCE if file not already present
         path = "results/openml"
         result_files = [f for f in listdir(path) if isfile(join(path, f))]
@@ -543,35 +567,39 @@ if __name__ ==  "__main__":
             if missing == "None":
                 missing = None
             for imputation in args.imputation:
-                # we do not want to impute data if there is None missing and data is not corrupted
-                if imputation != "None" and missing is None and args.corrupt:
-                    continue
-                # if results file already exists then skip
-                sub = [f for f in result_files if result_exists(f, row[2], args.repeats, missing, imputation)]
-                if len(sub) > 0:
-                    continue
+                try:
+                    # we do not want to impute data if there is None missing and data is not corrupted
+                    if imputation != "None" and missing is None and args.corrupt:
+                        continue
+                    # if results file already exists then skip
+                    sub = [f for f in result_files if result_exists(f, row[2], args.repeats, missing, imputation)]
+                    if len(sub) > 0:
+                        continue
 
-                if imputation == "None":
-                    imputation = None
+                    if imputation == "None":
+                        imputation = None
 
-                m1 = run(
-                    repeats=args.repeats,
-                    dataset=row[0],
-                    task=row[1],
-                    target=row[2],
-                    missing=missing,
-                    train_complete=args.train_complete,
-                    test_complete=args.test_complete,
-                    imputation=imputation,
-                    epochs=args.epochs,
-                    prop=args.p,
-                    trans_params = best_trans_params,
-                    xgb_params =  best_xgb_params,
-                    l2 = best_trans_params[2],
-                    corrupt=args.corrupt
-                    )
-                print(row[2], missing, imputation)
-                print(m1.mean())
-                if args.save:
-                    m1.to_pickle("results/openml/{},{},{},{},{},{}.pickle".format(
-                    row[2], args.repeats, str(missing), str(imputation), args.test_complete, args.corrupt))
+                    m1 = run(
+                        repeats=args.repeats,
+                        dataset=row[0],
+                        task=row[1],
+                        target=row[2],
+                        missing=missing,
+                        train_complete=args.train_complete,
+                        test_complete=args.test_complete,
+                        imputation=imputation,
+                        epochs=args.epochs,
+                        prop=args.p,
+                        trans_params = best_trans_params,
+                        xgb_params =  best_xgb_params,
+                        l2 = best_trans_params[2],
+                        corrupt=args.corrupt
+                        )
+                    print(row[2], missing, imputation)
+                    print(m1.mean())
+                    if args.save:
+                        m1.to_pickle("results/openml/{},{},{},{},{},{}.pickle".format(
+                        row[2], args.repeats, str(missing), str(imputation), args.test_complete, args.corrupt))
+
+                except Exception as e:
+                    print(e)

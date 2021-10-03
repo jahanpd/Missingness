@@ -34,6 +34,7 @@ def training_loop(
     assert batch_size % devices == 0, "batch size must be divisible by number of devices"
     tqdm.write("{} device(s)".format(devices))
     params_flat, params_build = jax.tree_util.tree_flatten(params)
+    params_ = params
     params = jax.tree_map(lambda x: jnp.array([x] * devices), params)
     in_ax1 = jax.tree_map(lambda x: 0, params)
 
@@ -158,6 +159,22 @@ def training_loop(
     else:
         grad_dict = {}
     
+    # set up test batches to avoid OOM errors on test set computation if test set is large
+    rng, key = random.split(rng, 2)
+    test_mod = X_test.shape[0] % (batch_size)
+    test_rows = random.permutation(key, X_test.shape[0] - test_mod)
+    test_batches = np.split(test_rows,
+                X_test.shape[0] // (batch_size))
+    # large_test = True if len(test_batches) > 10 else False
+
+    perform_test = ((X_test is not None) and (y_test is not None)) and early_stopping is not None
+    if perform_test:
+        temp_row = np.minimum(20, X_test.shape[0])
+        key_ = jnp.ones((temp_row, 2))
+        metric_store_master = metrics(params_, X_test[:temp_row, ...], y_test[:temp_row], key_)
+        metric_store_master["loss"] = np.inf
+        metric_store_master["counter"] = 0
+        test_dict = metric_store_master.copy()
     for epoch in range(epochs):
         rng, key = random.split(rng, 2)
         if X.shape[0] > batch_size:
@@ -174,20 +191,25 @@ def training_loop(
             batches = np.split(rows, 
                 1)
         pbar2 = tqdm(total=len(batches), leave=False)
-        
-        perform_test = ((X_test is not None) and (y_test is not None)) and early_stopping is not None
+
         for i, b in enumerate(batches):
         # evaluate test set performance OR early stopping test
             if perform_test and step % frequency == 0:
                 params_ = jax.device_get(jax.tree_map(lambda x: x[0], params))
                 if step == 0:
                     params_store = params_.copy()
-                    metric_store = None
-                if type(X_test) == type(y_test) == str:
-                    test_dict = {"loss":np.nan}
+                    metric_store = metric_store_master.copy()
                 else:
-                    key_ = jnp.ones((X_test.shape[0], 2))
-                    test_dict = metrics(params_, X_test, y_test, key_)
+                    # calculate list of metrics over 10 batches of the test set
+                    test_dict = dict(zip(metric_store.keys(), [0.0]*len(metric_store.keys())))
+                    for tbatch in test_batches[:np.minimum(10, len(test_batches) - 1)]:
+                        key_ = jnp.ones((X_test[np.array(tbatch), ...].shape[0], 2))
+                        temp = metrics(params_, X_test[np.array(tbatch), ...], y_test[np.array(tbatch)], key_)
+                        for k in temp.keys():
+                            test_dict[k] += temp[k]
+                    # average metrics over test batches
+                    for key, value in test_dict.items():
+                        test_dict[key] = value / np.minimum(10, len(test_batches))
                 for k, v in grad_dict.items():
                     test_dict[k] = v
                 # test for early stopping
@@ -198,9 +220,6 @@ def training_loop(
                     tqdm.write("Final test loss: {}, epoch: {}".format(
                         metric_store["loss"], metrics_ewa_["epoch"]))
                     return params_store, history, rng
-
-
-
                 
             step += 1
             rng, key = random.split(rng, 2)
@@ -238,9 +257,10 @@ def training_loop(
                 metrics_ewa_["epoch"] = epoch
                 if perform_test:
                     metrics_ewa_["lr"] = print_step(step)
-                    metrics_ewa_["test_loss"] = metric_store["loss"]
-                    metrics_ewa_["test_current"] = test_dict["loss"]
-                    metrics_ewa_["test_counter"] = metric_store["counter"]
+                    # annoying hacky solution
+                    metrics_ewa_["test_loss"] = metric_store["loss"] if "loss" in metric_store.keys() else np.nan
+                    metrics_ewa_["test_current"] = test_dict["loss"] if "loss" in test_dict.keys() else np.nan
+                    metrics_ewa_["test_counter"] = metric_store["counter"] if "counter" in metric_store.keys() else np.nan
                 if optim == "adascore":
                     metrics_ewa_["avg_vn"] = grad_dict["avg_vn"]
                     metrics_ewa_["avg_v"] = grad_dict["avg_v"]
@@ -249,8 +269,12 @@ def training_loop(
                 # enforce dtype float for dict object while saving
                 for k in metrics_ewa_.keys():
                     metrics_ewa_[k] = float(metrics_ewa_[k])
+                if np.isnan(metrics_ewa_["loss"]):
+                    break
                 pbar1.set_postfix(metrics_ewa_)
                 history.append(metrics_ewa_)
+        if np.isnan(metrics_ewa_["loss"]):
+            break
         pbar2.close()
         pbar1.update(1)
     try:

@@ -7,6 +7,7 @@ from sklearn.datasets import fetch_openml
 from sklearn.model_selection import train_test_split
 from sklearn.experimental import enable_iterative_imputer
 from sklearn.impute import SimpleImputer, IterativeImputer
+from sklearn.preprocessing import StandardScaler
 import miceforest as mf
 # import tensorflow_datasets
 import os
@@ -22,6 +23,10 @@ def get_list(missing, sample, key=42, test=lambda x, m: x > m):
     # where there are greater than 50% rows with missing data
     class_subset = class_tasks[test(class_tasks.NumberOfInstancesWithMissingValues / class_tasks.NumberOfInstances, missing)]
     reg_subset = reg_tasks[test(reg_tasks.NumberOfInstancesWithMissingValues / reg_tasks.NumberOfInstances, missing)]
+    # most features need to be mainly numerical or symbolic in order to avoid NLP tasks
+    perc = lambda a, b, c: (a+b)/c > 0.8
+    class_subset = class_subset[perc(class_subset.NumberOfNumericFeatures, class_subset.NumberOfSymbolicFeatures, class_subset.NumberOfFeatures)]
+    reg_subset = reg_subset[perc(reg_subset.NumberOfNumericFeatures, reg_subset.NumberOfSymbolicFeatures, reg_subset.NumberOfFeatures)]
     # limit number of features to less than 500 for tractability
     class_subset = class_subset[
         (class_subset.NumberOfFeatures < 100) & 
@@ -106,7 +111,7 @@ def simple(train, valid, test, dtypes=None, all_cat=False):
     return train, valid, test
 
 def iterative(train, rng_key, dtypes=None, valid=None, test=None):
-    imp = IterativeImputer(max_iter=10, random_state=rng_key)
+    imp = IterativeImputer(max_iter=10, random_state=rng_key, n_nearest_features=np.minimum(10, train.shape[1]))
     imp.fit(train)
     train = imp.transform(train)
     if valid is not None:
@@ -118,14 +123,25 @@ def iterative(train, rng_key, dtypes=None, valid=None, test=None):
 def miceforest(train, rng_key, dtypes=None, valid=None, test=None):
     colnames = [str(i) for i in range(train.shape[1])]
     df = pd.DataFrame(train, columns=colnames)
+    # set mean match candidates to max of 10
+    mms = int(np.minimum(10, train.shape[1]))
     kernel = mf.MultipleImputedKernel(
                 df,
-                datasets=20,
+                datasets=4,
                 save_all_iterations=True,
-                random_state=10,
-                mean_match_candidates=0
+                random_state=rng_key,
+                mean_match_candidates=0,
+                mean_match_subset=mms
                 )
-    kernel.mice(3)
+    # define tree parameters
+    print("fitting mice model")
+    kernel.mice(
+            3,
+            n_estimators=5,
+            num_leaves=30,
+            max_depth=10,
+            )
+    print("mice model fitted")
     train = kernel.complete_data(0).values
     if valid is not None:
         valid_imp = kernel.impute_new_data(
@@ -330,11 +346,10 @@ def prepOpenML(did, task):
     for name in list(X):
         try:
             X[name] = X[name].astype(np.float32)
-            if np.sum(np.isnan(X[name].values)) / np.size(X[name].values) < 0.95:
+            if np.sum(np.isnan(X[name].values)) / np.size(X[name].values) < 0.99:
                 col_list.append(name)
         except:
             pass
-
     # X = X.select_dtypes(exclude=['object'])
     X = X[col_list]
     cat_bin = [1 if cname in cat_list else 0 for cname in col_list]
@@ -516,6 +531,12 @@ def openml_ds(
             X_test = X_test
         else:
             X_test = test_input
+
+    if task == "Supervised Regression":
+        scaler = StandardScaler()
+        y_train = scaler.fit_transform(y_train.reshape((-1,1))).flatten()
+        y_test = scaler.transform(y_test.reshape((-1,1)))
+        y_valid = scaler.transform(y_valid.reshape((-1,1)))
 
     return X_train, X_test, X_valid, y_train, y_test, y_valid, diagnostics
 

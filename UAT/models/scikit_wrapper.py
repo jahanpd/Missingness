@@ -13,7 +13,7 @@ from UAT.training.train import training_loop
 from UAT.models.layers import NeuralNet as nn
 from UAT.aux import oversampled_Kfold
 from imblearn.over_sampling import RandomOverSampler
-
+from tqdm import tqdm
 
 """ 
 Scikit wrappers for models where they are initialized with dicts of kwargs for defining:
@@ -146,11 +146,37 @@ class UAT:
         self.optimal_model_kwargs = self.model_kwargs[np.array(performance).argmax()]
         self.key = key1
 
-    def predict_proba(self, X):
+    def batch_forward(self, X, batch_size=64):
+        # break test into 'batches' to avoid OOM errors
+        rows = np.arange(X.shape[0])
+        batches = np.array_split(rows,
+                    X.shape[0] // batch_size)
+        pbar1 = tqdm(total=len(batches), position=0, leave=False)
+        out_list = []
+        # jitted forward pass
+        @jax.jit
+        def forward(params, x_batch, rng):
+            return self.apply_fun(params, x_batch, rng, False)
+
+        for tbatch in batches:
+            key_ = jnp.ones((X[np.array(tbatch), ...].shape[0], 2))
+            out = forward(self.params, X[np.array(tbatch), ...], key_)
+            out_list.append(out)
+            pbar1.update(1)
+        temp = [[j[..., None] for j in i] for i in out_list]
+        stacked = list(map(np.vstack, zip(*temp) ))
+        squeezed = [np.squeeze(x) for x in stacked]
+        return squeezed
+
+    def predict_proba(self, X, batch_size=64):
         if self.posterior_params["name"] == "MAP":
-            rng_placeholder = jnp.ones((X.shape[0],2))
-            out = self.apply_fun(self.params, X, rng_placeholder, False)
-            logits = out[0]
+            if X.shape[0] <= batch_size:
+                rng_placeholder = jnp.ones((X.shape[0],2))
+                out = self.apply_fun(self.params, X, rng_placeholder, False)
+            else:
+                out = self.batch_forward(X)
+
+            logits = out[0][..., None] if len(out[0].shape) == 1 else out[0]
             if logits.shape[1] > 1:
                 probs = jax.nn.softmax(logits)
             else:
@@ -158,17 +184,23 @@ class UAT:
         
         return jnp.squeeze(probs)
     
-    def predict(self, X):
+    def predict(self, X, batch_size=64):
         if self.posterior_params["name"] == "MAP":
-            rng_placeholder = jnp.ones((X.shape[0],2))
-            out = self.apply_fun(self.params, X, rng_placeholder, False)
+            if X.shape[0] <= batch_size:
+                rng_placeholder = jnp.ones((X.shape[0],2))
+                out = self.apply_fun(self.params, X, rng_placeholder, False)
+            else:
+                 out = self.batch_forward(X)
             out = out[0]
 
         return jnp.squeeze(out)
     
-    def attention(self, X):
-        rng_placeholder = jnp.ones((X.shape[0],2))
-        out = self.apply_fun(self.params, X, rng_placeholder, False)
+    def attention(self, X, batch_size=64):
+        if X.shape[0] <= batch_size:
+            rng_placeholder = jnp.ones((X.shape[0],2))
+            out = self.apply_fun(self.params, X, rng_placeholder, False)
+        else:
+            out = self.batch_forward(X)
         attn = out[1]
         return attn
     
