@@ -439,7 +439,7 @@ if __name__ ==  "__main__":
             # set xgb params
             best_xgb_params = temp_best_xgb_params[0]
         else:
-            for hps in itertools.product([256], [16, 64], [1e-4, 1e-8], [1000, 6000]):
+            for hps in itertools.product([256], [16, 64], [1e-4, 1e-8], [4000, 10000]):
                 print("hp search", row[2])
                 if hps[1] < X.shape[0] // 2:
                     hps_list.append(hps)

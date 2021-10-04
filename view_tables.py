@@ -118,22 +118,22 @@ def make_table(missingness, columns, indexes, imputation_list, path="results/ope
                     impn = cidx[2]
 
                 try:
-                    print(result_files)
+                    # print(result_files)
                     fs = [f for f in result_files if result_filter(f, idx[0], 30, missingness, impn.lower())]
-                    print("SUBSET", fs)
+                    # print("SUBSET", fs)
                     data = pd.read_pickle(join(path, fs[0]))
-                    print(data.mean())
+                    # print(data.mean())
                     
                     if cidx[2] == "None":
-                        print("MADE IT")
+                        # print("MADE IT")
                         full = data[idx[1].lower()]["full"].values
                         dropped = data[idx[1].lower()]["drop"].values
                         xgb = data[idx[1].lower()]["xgboost"].values
                         xgbdrop = data[idx[1].lower()]["xgboost_drop"].values
                         if xgboost:
-                            temp = np.mean(xgb)
+                            temp = np.mean(xgb[~np.isnan(np.array([float(i) for i in xgb]))])
                         else:
-                            temp = np.mean(full)
+                            temp = np.mean(full[~np.isnan(np.array([float(i) for i in full]))])
                         if temp < 0.01 or np.abs(1 - temp) < 0.01:
                             val = "{:.2e}".format(temp)
                         else:
@@ -141,9 +141,9 @@ def make_table(missingness, columns, indexes, imputation_list, path="results/ope
                         out.append(val)
                     elif cidx[2] == "Dropped":
                         if xgboost:
-                            temp = np.mean(xgbdrop)
+                            temp = np.mean(xgbdrop[~np.isnan(np.array([float(i) for i in xgbdrop]))])
                         else:
-                            temp = np.mean(dropped)
+                            temp = np.mean(dropped[~np.isnan(np.array([float(i) for i in dropped]))])
                         if temp < 0.01 or np.abs(1 - temp) < 0.01:
                             val = "{:.2e}".format(temp)
                         else:
@@ -155,7 +155,7 @@ def make_table(missingness, columns, indexes, imputation_list, path="results/ope
                         else:
                             name = "full"
                         ser = data[idx[1].lower()][name].values
-                        temp = np.mean(ser)
+                        temp = np.mean(ser[~np.isnan(np.array([float(i) for i in ser]))])
                         if temp < 0.01 or np.abs(1 - temp) < 0.01:
                             val = "{:.2e}".format(temp)
                         else:
@@ -168,7 +168,7 @@ def make_table(missingness, columns, indexes, imputation_list, path="results/ope
             index_success.append(idx)
         except Exception as e:
             print(e)
-    print(out)
+    # print(out)
     multiindex = pd.MultiIndex.from_tuples(index_success, names=["Dataset", "Metric"])
     df = pd.DataFrame(prepped, index=multiindex, columns=columns)
 
@@ -222,5 +222,6 @@ print(multiindex)
 
 real_world = make_table('None', colmulti, multiindex, imputation)
 print(real_world)
+real_world.to_csv("results/openml/results.csv")
 # print(real_world.to_latex(multirow=True))
 
