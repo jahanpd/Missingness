@@ -12,52 +12,81 @@ import miceforest as mf
 # import tensorflow_datasets
 import os
 import openml
+from tqdm import tqdm
 
-def get_list(missing, sample, key=42, test=lambda x, m: x > m):
+def get_list(
+        missing,
+        max_features=100,
+        min_instances=1000,
+        max_instances=100000,
+        key=42,
+        test=lambda x, m: x > m
+        ):
+    """ 
+        This function returns a complete pandas dataframe of datasets available on OpenML 
+        that fulfil the necessary prerequisites.
+        Args:
+        missing: float [0,1], the fraction of missingness in the data
+        key: int, random key
+        test: callable, needs to return bool. Used for subsetting based on missing arg
+            eg lambda x, m: x > m will select datasets with missingnes greater than the above specified missing
+            and lambda x, m: x == 0 will select dataset with no missing data_a
+    """
+    benchmark_suite_reg = openml.study.get_suite('amlb-regression')
+    benchmark_suite_cla = openml.study.get_suite('OpenML-CC18')
+    try:
+        tasklist = pd.read_csv("results/openml/tasklist.csv")
+    except:
+        tasklist = openml.tasks.list_tasks(output_format="dataframe")
+        tasklist.to_csv("results/openml/tasklist.csv")
+    reglist = tasklist[tasklist.tid.isin(benchmark_suite_reg.tasks)]
+    clalist = tasklist[tasklist.tid.isin(benchmark_suite_cla.tasks)]
     rng = np.random.default_rng(key)
     # to generate list of datasets with high proportion of missingness
-    datasets = openml.datasets.list_datasets(output_format='dataframe')
+    # datasets = openml.datasets.list_datasets(output_format='dataframe')
 
-    class_tasks = datasets[datasets.NumberOfClasses > 0.0]
-    reg_tasks = datasets[datasets.NumberOfClasses == 0.0]
-    # where there are greater than 50% rows with missing data
-    class_subset = class_tasks[test(class_tasks.NumberOfInstancesWithMissingValues / class_tasks.NumberOfInstances, missing)]
-    reg_subset = reg_tasks[test(reg_tasks.NumberOfInstancesWithMissingValues / reg_tasks.NumberOfInstances, missing)]
+    # class_tasks = datasets[datasets.NumberOfClasses > 0.0]
+    # reg_tasks = datasets[datasets.NumberOfClasses == 0.0]
+    # subsets based on missingness
+    class_subset = clalist[test(clalist.NumberOfInstancesWithMissingValues / clalist.NumberOfInstances, missing)]
+    reg_subset = reglist[test(reglist.NumberOfInstancesWithMissingValues / reglist.NumberOfInstances, missing)]
     # most features need to be mainly numerical or symbolic in order to avoid NLP tasks
-    perc = lambda a, b, c: (a+b)/c > 0.8
-    class_subset = class_subset[perc(class_subset.NumberOfNumericFeatures, class_subset.NumberOfSymbolicFeatures, class_subset.NumberOfFeatures)]
-    reg_subset = reg_subset[perc(reg_subset.NumberOfNumericFeatures, reg_subset.NumberOfSymbolicFeatures, reg_subset.NumberOfFeatures)]
+    # perc = lambda a, b, c: (a+b)/c > 0.8
+    # class_subset = class_subset[perc(class_subset.NumberOfNumericFeatures, class_subset.NumberOfSymbolicFeatures, class_subset.NumberOfFeatures)]
+    # reg_subset = reg_subset[perc(reg_subset.NumberOfNumericFeatures, reg_subset.NumberOfSymbolicFeatures, reg_subset.NumberOfFeatures)]
     # limit number of features to less than 500 for tractability
     class_subset = class_subset[
-        (class_subset.NumberOfFeatures < 100) & 
-        (class_subset.NumberOfInstances < 100000) & 
-        (class_subset.NumberOfInstances > 1000) &
-        (class_subset.NumberOfInstancesWithMissingValues != class_subset.NumberOfMissingValues)
+        (class_subset.NumberOfFeatures < max_features) & 
+        (class_subset.NumberOfInstances < max_instances) & 
+        (class_subset.NumberOfInstances > min_instances) &
+        test(class_subset.NumberOfMissingValues, class_subset.NumberOfInstancesWithMissingValues)
         ].drop_duplicates(subset=["name"])
     reg_subset = reg_subset[
-        (reg_subset.NumberOfFeatures < 100) & 
-        (reg_subset.NumberOfInstances < 100000) & 
-        (reg_subset.NumberOfInstances > 1000) &
-        (reg_subset.NumberOfInstancesWithMissingValues != reg_subset.NumberOfMissingValues)
+        (reg_subset.NumberOfFeatures < max_features) & 
+        (reg_subset.NumberOfInstances < max_instances) & 
+        (reg_subset.NumberOfInstances > min_instances) &
+        test(reg_subset.NumberOfMissingValues, reg_subset.NumberOfInstancesWithMissingValues)
         ].drop_duplicates(subset=["name"])
     
     # test if datasets are gettable and add to list
     did_list_class = []
-    for did in class_subset.did.values:
+    pbar = tqdm()
+    for did in tqdm(list(class_subset.did.values)):
         try:
-            print(did_list_class, len(class_subset))
+            # print(did_list_class, len(class_subset))
             # did = rng.choice(class_subset.did.values, 1)
             ds = openml.datasets.get_dataset(dataset_id=int(did))
             X, y, categorical_indicator, attribute_names = ds.get_data(target = ds.default_target_attribute)
             did_list_class.append(int(did))
             did_list_class = list(set(did_list_class))
+            pbar.update()
         except Exception as e:
             print(e)
             pass
     did_list_reg = []
-    for did in reg_subset.did.values:
+    for did in tqdm(list(reg_subset.did.values)):
         try:
-            print(did_list_reg, len(reg_subset))
+            # print(did_list_reg, len(reg_subset))
             # did = rng.choice(reg_subset.did.values, 1)
             ds = openml.datasets.get_dataset(dataset_id=int(did))
             X, y, categorical_indicator, attribute_names = ds.get_data(target = ds.default_target_attribute)
@@ -70,14 +99,6 @@ def get_list(missing, sample, key=42, test=lambda x, m: x > m):
     reg_subset = reg_subset[reg_subset['did'].isin(did_list_reg)]
     df = pd.concat([class_subset, reg_subset])
     return pd.concat([class_subset, reg_subset])
-
-# define path locations relative to this file
-dir_path = os.path.dirname(os.path.realpath(__file__))
-thoracic_path = os.path.join(dir_path, "thoracic/ThoracicSurgery.arff")
-abalone_path = os.path.join(dir_path, "abalone/abalone.data")
-bank_path = os.path.join(dir_path, "banking/bank-additional.csv")
-anneal_path_train = os.path.join(dir_path, "anneal/anneal.data")
-anneal_path_test = os.path.join(dir_path, "anneal/anneal.test")
 
 
 # convenience imputation functions
@@ -98,31 +119,58 @@ def simple(train, valid, test, dtypes=None, all_cat=False):
         cat = np.array(dtypes) == 1
         imp1 = SimpleImputer(missing_values=np.nan, strategy='mean')
         imp2 = SimpleImputer(missing_values=np.nan, strategy='most_frequent')
-        imp1.fit(train[:, cont])
-        imp2.fit(train[:, cat])
-        train[:, cont] = imp1.transform(train[:, cont])
-        train[:, cat] = imp2.transform(train[:, cat])
+        if np.sum(cont) > 0: 
+            imp1.fit(train[:, cont])
+            train[:, cont] = imp1.transform(train[:, cont])
+        if np.sum(cat) > 0:
+            imp2.fit(train[:, cat])
+            train[:, cat] = imp2.transform(train[:, cat])
         if valid is not None:
+            if np.sum(cont) > 0: 
+                valid[:, cont] = imp1.transform(valid[:, cont])
+            if np.sum(cat) > 0:
+                valid[:, cat] = imp2.transform(valid[:, cat])
+        if test is not None:
+            if np.sum(cont) > 0: 
+                test[:, cont] = imp1.transform(test[:, cont])
+            if np.sum(cat) > 0: 
+                test[:, cat] = imp2.transform(test[:, cat])
+    return train, valid, test
+
+def iterative(train, rng_key, dtypes=None, valid=None, test=None, all_cat=False):
+    cont = np.array(dtypes) == 0
+    cat = np.array(dtypes) == 1
+    imp1 = IterativeImputer(max_iter=10, random_state=rng_key, n_nearest_features=np.minimum(10, len(cont)))
+    imp2 = SimpleImputer(missing_values=np.nan, strategy='most_frequent')
+    if np.sum(cont) > 0: 
+        imp1.fit(train[:, cont])
+        train[:, cont] = imp1.transform(train[:, cont])
+    if np.sum(cat) > 0:
+        imp2.fit(train[:, cat])
+        train[:, cat] = imp2.transform(train[:, cat])
+    if valid is not None:
+        if np.sum(cont) > 0: 
             valid[:, cont] = imp1.transform(valid[:, cont])
+        if np.sum(cat) > 0:
             valid[:, cat] = imp2.transform(valid[:, cat])
-        if test is not None:    
+    if test is not None:
+        if np.sum(cont) > 0: 
             test[:, cont] = imp1.transform(test[:, cont])
+        if np.sum(cat) > 0: 
             test[:, cat] = imp2.transform(test[:, cat])
     return train, valid, test
 
-def iterative(train, rng_key, dtypes=None, valid=None, test=None):
-    imp = IterativeImputer(max_iter=10, random_state=rng_key, n_nearest_features=np.minimum(10, train.shape[1]))
-    imp.fit(train)
-    train = imp.transform(train)
-    if valid is not None:
-            valid = imp.transform(valid)
-    if test is not None:    
-        test = imp.transform(test)
-    return train, valid, test
-
-def miceforest(train, rng_key, dtypes=None, valid=None, test=None):
+def miceforest(train, rng_key, dtypes=None, valid=None, test=None, all_cat=False):
     colnames = [str(i) for i in range(train.shape[1])]
     df = pd.DataFrame(train, columns=colnames)
+    # set dtypes of each column
+    dtype_dict = {}
+    for colname, dt in zip(colnames, dtypes):
+        if dt == 0:
+            dtype_dict[colname] = 'float'
+        else:
+            dtype_dict[colname] = 'category'
+    df.astype(dtype_dict)
     # set mean match candidates to max of 10
     mms = int(np.minimum(10, train.shape[1]))
     kernel = mf.MultipleImputedKernel(
@@ -389,6 +437,7 @@ def openml_ds(
         y_test,
         task,
         cat_bin,
+        classes,
         missing=None,
         imputation=None,  # one of none, simple, iterative, miceforest
         train_complete=False,
@@ -428,7 +477,7 @@ def openml_ds(
         X[:, -cols_miss:] *= nan_arr
 
     if missing == "MAR":
-        p = 1 - (prop/2)**(1/cols)
+        p = 1 - (prop)**(1/cols)
         cols_miss = np.minimum(cols - 1, cols_miss) # clip cols missing 
         q = rng.uniform(0.3,0.7,(cols-1,))
         corrections = []
@@ -443,7 +492,7 @@ def openml_ds(
         X[:, -cols_miss:] *= nan_arr[:, -cols_miss:]  # dependency is shifted to the left, therefore MAR
 
     if missing == "MNAR":
-        p = 1 - (prop/2)**(1/cols)
+        p = 1 - (prop)**(1/cols)
         cols_miss = np.minimum(cols, cols_miss) # clip cols missing 
         q = rng.uniform(0.3,0.7,(cols,))
         corrections = []
@@ -468,7 +517,7 @@ def openml_ds(
         X_train = X
 
     elif not train_complete and not test_complete:
-        y_binned = stratify(classes, y)
+        # y_binned = stratify(classes, y)
         # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=split, stratify=y_binned, random_state=key)
         key = rng.integers(9999)
         X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=split, random_state=key)
@@ -490,11 +539,18 @@ def openml_ds(
 
     all_cat = False    
     if np.sum(cat_bin) == 0:
-        cat_bin = None
         all_cat = False
     if np.sum(cat_bin) == np.size(cat_bin):
-        cat_bin = None
         all_cat = True
+
+    if not all_cat:
+        # normalize categorical data
+        cont = np.array(cat_bin) == 0
+        scale_train = StandardScaler()
+        X_train[:, cont] = scale_train.fit_transform(X_train[:, cont])
+        X_valid[:, cont] = scale_train.transform(X_valid[:, cont])
+        X_test[:, cont] = scale_train.transform(X_test[:, cont])
+        
 
     # perform desired imputation strategy
     if imputation == "simple" and ((missing is not None and corrupt) or (missing is None and not corrupt)):

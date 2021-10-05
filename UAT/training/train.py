@@ -163,8 +163,12 @@ def training_loop(
     rng, key = random.split(rng, 2)
     test_mod = X_test.shape[0] % (batch_size)
     test_rows = random.permutation(key, X_test.shape[0] - test_mod)
-    test_batches = np.split(test_rows,
-                X_test.shape[0] // (batch_size))
+    
+    if batch_size >= X_test.shape[0]:
+        test_batches = np.split(test_rows,
+                        X_test.shape[0] // (batch_size))
+    else:
+        test_batches = [test_rows]
     # large_test = True if len(test_batches) > 10 else False
 
     perform_test = ((X_test is not None) and (y_test is not None)) and early_stopping is not None
@@ -202,7 +206,7 @@ def training_loop(
                 else:
                     # calculate list of metrics over 10 batches of the test set
                     test_dict = dict(zip(metric_store.keys(), [0.0]*len(metric_store.keys())))
-                    for tbatch in test_batches[:np.minimum(10, len(test_batches) - 1)]:
+                    for tbatch in test_batches[:np.minimum(10, len(test_batches))]:
                         key_ = jnp.ones((X_test[np.array(tbatch), ...].shape[0], 2))
                         temp = metrics(params_, X_test[np.array(tbatch), ...], y_test[np.array(tbatch)], key_)
                         for k in temp.keys():

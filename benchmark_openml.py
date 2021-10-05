@@ -25,9 +25,72 @@ import itertools
 from os import listdir
 from os.path import isfile, join
 from numba import cuda
+from bayes_opt import BayesianOptimization
+from bayes_opt import SequentialDomainReductionTransformer
 
 devices = jax.local_device_count()
 xgb.set_config(verbosity=0)
+
+def create_make_model(features, rows, task, key):
+    def make_model(
+            d_model,
+            batch_size,
+            lr_param,
+            reg,
+            X_valid,
+            y_valid
+        ):
+        batch_size_base2 = 2 ** int(np.round(np.log2(batch_size)))
+        model_kwargs_uat = dict(
+                features=features,
+                d_model=int(np.round(d_model)),
+                embed_hidden_size=64,
+                embed_hidden_layers=2,
+                embed_activation=jax.nn.leaky_relu,
+                encoder_layers=2,
+                encoder_heads=4,
+                enc_activation=jax.nn.leaky_relu,
+                decoder_layers=4,
+                decoder_heads=4,
+                dec_activation=jax.nn.leaky_relu,
+                net_hidden_size=64,
+                net_hidden_layers=2,
+                net_activation=jax.nn.leaky_relu,
+                last_layer_size=32,
+                out_size=classes,
+                W_init = jax.nn.initializers.glorot_uniform(),
+                b_init = jax.nn.initializers.normal(1e-5),
+                )
+        steps_per_epoch = rows // batch_size_base2
+        max_steps = 1e5
+        epochs = int(max_steps // steps_per_epoch)
+        start_steps = steps_per_epoch * 5 # wait at least 5 epochs before early stopping
+        stop_steps_ = 50
+  
+        early_stopping = create_early_stopping(start_steps, stop_steps_, metric_name="loss", tol=1e-8)
+        training_kwargs_uat = dict(
+                    optim="adam",
+                    frequency=20,
+                    batch_size=batch_size_base2,
+                    lr=attention_lr(lr_param, 1000),
+                    epochs=epochs,
+                    early_stopping=early_stopping
+                )
+        if task == "Supervised Classification":
+            loss_fun = cross_entropy(classes, l2_reg=reg, dropout_reg=1e-5) 
+        elif task == "Supervised Regression":
+            loss_fun = mse(l2_reg=reg, dropout_reg=1e-5)
+        training_kwargs_uat["X_test"] = X_valid
+        training_kwargs_uat["y_test"] = y_valid 
+        model = UAT(
+            model_kwargs=model_kwargs_uat,
+            training_kwargs=training_kwargs_uat,
+            loss_fun=loss_fun,
+            rng_key=key,
+            )
+        return model, batch_size_base2, loss_fun
+    return make_model
+
 
 def run(
     repeats=5,
@@ -93,11 +156,12 @@ def run(
                 y[test],
                 task,
                 cat_bin=cat_bin,
+                classes=classes,
                 missing=missing,
                 imputation=imputation,  # one of none, simple, iterative, miceforest
                 train_complete=False,
                 test_complete=False,
-                split=0.1,
+                split=0.2,
                 rng_key=key,
                 prop=prop,
                 corrupt=corrupt
@@ -337,10 +401,10 @@ def run(
 
     return metrics
 
+
 if __name__ ==  "__main__":
     parser = argparse.ArgumentParser("train model")
     parser.add_argument("--repeats", default=5, type=int)
-    parser.add_argument("--folds", default=3, type=int)
     parser.add_argument("--missing", choices=["None", "MCAR", "MAR", "MNAR"], default="None", nargs='+')
     parser.add_argument("--imputation", choices=["None", "Drop", "simple", "iterative", "miceforest"], nargs='+')
     parser.add_argument("--epochs", default=10000, type=int)
@@ -354,12 +418,12 @@ if __name__ ==  "__main__":
     args = parser.parse_args()
     
     if args.corrupt:
-        data_list = data.get_list(0,2, key=12, test=lambda x, m: x == m)
+        data_list = data.get_list(0, key=12, test=lambda x, m: x == m)
         data_list["task_type"] = ["Supervised Classification" if x > 0 else "Supervised Regression" for x in data_list.NumberOfClasses]
         data_list.to_csv("results/openml/corrupted_tasklist.csv")
         missing_list = args.missing
     else:
-        data_list = data.get_list(0.2, 4, key=13, test=lambda x, m: x > m)
+        data_list = data.get_list(0.2, key=13, test=lambda x, m: x > m)
         data_list["task_type"] = ["Supervised Classification" if x > 0 else "Supervised Regression" for x in data_list.NumberOfClasses]
         data_list.to_csv("results/openml/noncorrupted_tasklist.csv")
         missing_list = ["None"]
@@ -375,53 +439,47 @@ if __name__ ==  "__main__":
         selection = np.arange(len(data_list))
 
     for row in data_list[['did', 'task_type', 'name']].values[selection,:]:
-        ## GRID SEARCH
-        folds = args.folds
-        # do a grid search for optimal HP for selected dataset
+        # BAYESIAN HYPERPARAMETER  SEARCH
+        # will search if cannot load params from file
+        print(row[2])
+        key = rng.integers(9999)
         X, y, classes, cat_bin = data.prepOpenML(row[0], row[1])
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=key)
+        key = rng.integers(9999)
+        X_train, X_test, X_valid, y_train, y_test, y_valid, diagnostics = data.openml_ds(
+                X_train,
+                y_train,
+                X_test,
+                y_test,
+                row[1],
+                cat_bin=cat_bin,
+                classes=classes,
+                missing="MNAR",
+                imputation=None,  # one of none, simple, iterative, miceforest
+                train_complete=False,
+                test_complete=True,
+                split=0.2,
+                rng_key=key,
+                prop=args.p,
+                corrupt=args.corrupt
+            )
+        row_mask = np.any(np.isnan(X_train), axis=1)
+        print("proportion missing: {}".format(np.sum(row_mask)/X_train.shape[0]))
+        continue
         key = rng.integers(9999)
         if row[1] == "Supervised Classification":
             objective = 'multi:softprob'
-            resample=True
+            X_train, y_train = ros.fit_resample(X_train, y_train)
         else:
             objective = 'reg:squarederror'
             resample=False
         ## set up transformer model grid search
-        key = rng.integers(9999)
-        kfolds = oversampled_Kfold(2, key=int(key), n_repeats=1, resample=resample)
-        splits = kfolds.split(X, y)
-        trans_param_list = []
-        loss_list = []
-        hps_list = []
         path = "results/openml/hyperparams"
         filenames = [join(path, f) for f in listdir(path) if isfile(join(path, f))]
         subset = [f for f in filenames if row[2] in f]
-        # get batch size array
-        model_kwargs_uat = dict(
-            features=X.shape[1],
-            d_model=None,
-            embed_hidden_size=64,
-            embed_hidden_layers=2,
-            embed_activation=jax.nn.leaky_relu,
-            encoder_layers=2,
-            encoder_heads=4,
-            enc_activation=jax.nn.leaky_relu,
-            decoder_layers=4,
-            decoder_heads=4,
-            dec_activation=jax.nn.leaky_relu,
-            net_hidden_size=64,
-            net_hidden_layers=2,
-            net_activation=jax.nn.leaky_relu,
-            last_layer_size=32,
-            out_size=classes,
-            W_init = jax.nn.initializers.glorot_uniform(),
-            b_init = jax.nn.initializers.normal(1e-5),
-            )
-        training_kwargs_uat = dict(
-                optim="adam",
-                frequency=10
-            )
-        if len(subset) > 1 and args.load_params:
+        
+        # attempt to get params from file
+        if len(subset) > 1 and args.load_params and False:
             trans_subset = [f for f in subset if 'trans' in f]
             xgb_subset = [f for f in subset if 'xgb' in f]
             with (open(trans_subset[0], "rb")) as handle:
@@ -439,90 +497,53 @@ if __name__ ==  "__main__":
             # set xgb params
             best_xgb_params = temp_best_xgb_params[0]
         else:
-            for hps in itertools.product([256], [16, 64], [1e-4, 1e-8], [4000, 10000]):
-                print("hp search", row[2])
-                if hps[1] < X.shape[0] // 2:
-                    hps_list.append(hps)
-                    try:
-                        model_kwargs_uat["d_model"] = hps[0]
-                        # generic training parameters
-                        steps_per_epoch = (X.shape[0] // 2) // hps[1]
-                        max_steps = 1e5
-                        epochs = int(max_steps // steps_per_epoch)
-                        start_steps = steps_per_epoch * 5 // 10 # wait at least 5 epochs before early stopping
-                        stop_steps_ = 200
-                        early_stopping = create_early_stopping(start_steps, stop_steps_, metric_name="loss", tol=1e-8)
-                        training_kwargs_uat["early_stopping"] = early_stopping
-                        training_kwargs_uat['batch_size'] = hps[1]
-                        training_kwargs_uat['lr'] = attention_lr(hps[3], 1000)
-                        training_kwargs_uat["epochs"] = epochs
-                        if row[1] == "Supervised Classification":
-                            print("Supervised Classification", hps[2], hps[0])
-                            loss_fun = cross_entropy(classes, l2_reg=hps[2], dropout_reg=1e-5)
-                        else:
-                            print("Supervised Regression", hps[2], hps[0])
-                            loss_fun = mse(l2_reg=hps[2], dropout_reg=1e-5)
-                        trans_param_list.append((model_kwargs_uat.copy(), training_kwargs_uat.copy(), hps[2]))
-                        losses = []
-                        for train, test in splits:
-                            X_train, X_test, X_valid, y_train, y_test, y_valid, diagnostics = data.openml_ds(
-                                X[train,:],
-                                y[train],
-                                X[test,:],
-                                y[test],
-                                row[1],
-                                cat_bin=cat_bin,
-                                missing=None,
-                                imputation=None,  # one of none, simple, iterative, miceforest
-                                train_complete=False,
-                                test_complete=False,
-                                split=0.1,
-                                rng_key=key,
-                                prop=args.p,
-                                corrupt=False
-                            )
-                            training_kwargs_uat["X_test"] = X_valid
-                            training_kwargs_uat["y_test"] = y_valid
-                            key = rng.integers(9999)
-                            model = UAT(
-                                model_kwargs=model_kwargs_uat,
-                                training_kwargs=training_kwargs_uat,
-                                loss_fun=loss_fun,
-                                rng_key=key,
-                            )
+            # implement bayesian hyperparameter optimization with sequential domain reduction
+            key = rng.integers(9999)
+            make_model = create_make_model(X_train.shape[1], X_train.shape[0], row[1], key)
+            def black_box(d_model, batch_size, lr_param, reg):
+                model, batch_size_base2, loss_fun = make_model(d_model, batch_size, lr_param, reg, X_valid, y_valid)
+                model.fit(X_train, y_train)
+                # break test into 'batches' to avoid OOM errors
+                test_mod = X_test.shape[0] % batch_size_base2
+                test_rows = np.arange(X_test.shape[0] - test_mod)
+                test_batches = np.split(test_rows,
+                            np.maximum(1, X_test.shape[0] // batch_size_base2))
 
-                            model.fit(X_train, y_train)
-                            # break test into 'batches' to avoid OOM errors
-                            test_mod = X_test.shape[0] % (hps[1])
-                            test_rows = np.arange(X_test.shape[0] - test_mod)
-                            test_batches = np.split(test_rows,
-                                        np.maximum(1, X_test.shape[0] // (hps[1])))
+                loss_loop = 0
+                pbar1 = tqdm(total=len(test_batches), position=0, leave=False)
+                @jax.jit
+                def loss_calc(params, x_batch, y_batch, rng):
+                    out = model.apply_fun(params, x_batch, rng, False)
+                    loss, _ = loss_fun(params, out, y_batch)
+                    return loss
+                for tbatch in test_batches:
+                    key_ = jnp.ones((X_test[np.array(tbatch), ...].shape[0], 2))
+                    loss = loss_calc(model.params, X_test[np.array(tbatch), ...], y_test[np.array(tbatch)], key_)
+                    loss_loop += loss
+                    pbar1.update(1)
+                # average metrics over test batches
+                return - loss_loop / len(test_batches)
 
-                            loss_loop = 0
-                            pbar1 = tqdm(total=len(test_batches), position=0, leave=False)
-                            @jax.jit
-                            def loss_calc(params, x_batch, y_batch, rng):
-                                out = model.apply_fun(params, x_batch, rng, False)
-                                loss, _ = loss_fun(params, out, y_batch)
-                                return loss
-                            for tbatch in test_batches:
-                                key_ = jnp.ones((X_test[np.array(tbatch), ...].shape[0], 2))
-                                loss = loss_calc(model.params, X_test[np.array(tbatch), ...], y_test[np.array(tbatch)], key_)
-                                loss_loop += loss
-                                pbar1.update(1)
-                            # average metrics over test batches
-                            losses.append(loss_loop / len(test_batches))
-                        loss_list.append(np.mean(losses))
-                    except Exception as e:
-                        print(e)
-                        for i, dev in enumerate(cuda.gpus):
-                            cuda.select_device(dev)
-                            cuda.close()
-                        loss_list.append(np.inf)
-            hp_search = list(zip(hps_list, loss_list))
-            print(hp_search)
-            best_trans_params = trans_param_list[np.argmin(loss_list)]
-
+            pbounds={
+                    "d_model":(16,256),
+                    "batch_size":(8, 256),
+                    "lr_param":(500, 20000),
+                    "reg":(1e-12, 1e-2)
+                    }
+        
+            bounds_transformer = SequentialDomainReductionTransformer()
+            key = rng.integers(9999)
+            mutating_optimizer = BayesianOptimization(
+                f=black_box,
+                pbounds=pbounds,
+                verbose=0,
+                random_state=int(key),
+                bounds_transformer=bounds_transformer
+            )
+            mutating_optimizer.probe(params={"d_model":64, "batch_size":128, "lr_param":3000, "reg":1e-6})
+            mutating_optimizer.maximize(init_points=3, n_iter=5)
+            print(mutating_optimizer.space)
+            print(mutating_optimizer.max)
             xgb_param_list = []
             for max_depth in [10,20,50]:
                 for child_weight in [3, 9]:
@@ -542,7 +563,7 @@ if __name__ ==  "__main__":
                     params=param,
                     dtrain=dtrain,
                     num_boost_round=num_round,
-                    folds=splits,
+                    folds=5,
                     early_stopping_rounds=50,
                     verbose_eval=100)
                 performance.append(history.values.flatten()[2])
