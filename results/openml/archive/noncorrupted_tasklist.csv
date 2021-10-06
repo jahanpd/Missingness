@@ -1,0 +1,21 @@
+,did,name,version,uploader,status,format,MajorityClassSize,MaxNominalAttDistinctValues,MinorityClassSize,NumberOfClasses,NumberOfFeatures,NumberOfInstances,NumberOfInstancesWithMissingValues,NumberOfMissingValues,NumberOfNumericFeatures,NumberOfSymbolicFeatures,task_type
+38,38,sick,1,1,active,ARFF,3541.0,5.0,231.0,2.0,30.0,3772.0,3772.0,6064.0,7.0,23.0,Supervised Classification
+57,57,hypothyroid,1,1,active,ARFF,3481.0,5.0,2.0,4.0,30.0,3772.0,3772.0,6064.0,7.0,23.0,Supervised Classification
+378,378,ipums_la_99-small,1,2,active,ARFF,5803.0,3890.0,197.0,7.0,61.0,8844.0,8844.0,51515.0,0.0,61.0,Supervised Classification
+381,381,ipums_la_98-small,1,2,active,ARFF,4802.0,3594.0,71.0,7.0,61.0,7485.0,7485.0,52048.0,0.0,61.0,Supervised Classification
+382,382,ipums_la_97-small,1,2,active,ARFF,1938.0,488.0,258.0,8.0,61.0,7019.0,7019.0,48089.0,0.0,61.0,Supervised Classification
+473,473,cjs,1,2,active,ARFF,680.0,57.0,274.0,6.0,35.0,2796.0,2795.0,68100.0,32.0,3.0,Supervised Classification
+802,802,pbcseq,2,2,active,ARFF,973.0,1024.0,972.0,2.0,19.0,1945.0,832.0,1133.0,12.0,7.0,Supervised Classification
+930,930,colleges_usnews,2,2,active,ARFF,688.0,51.0,614.0,2.0,34.0,1302.0,1144.0,7830.0,32.0,2.0,Supervised Classification
+993,993,kdd_ipums_la_97-small,1,2,active,ARFF,4425.0,191.0,2594.0,2.0,61.0,7019.0,7019.0,43814.0,33.0,28.0,Supervised Classification
+40966,40966,MiceProtein,4,2,active,ARFF,150.0,8.0,105.0,8.0,82.0,1080.0,528.0,1396.0,77.0,5.0,Supervised Classification
+41160,41160,rl,1,1478,active,ARFF,28411.0,2580.0,2995.0,2.0,23.0,31406.0,17204.0,29756.0,8.0,15.0,Supervised Classification
+41162,41162,kick,1,1478,active,ARFF,64007.0,,8976.0,2.0,33.0,72983.0,69709.0,149271.0,14.0,19.0,Supervised Classification
+41440,41440,okcupid-stem,2,1475,active,ARFF,36350.0,7019.0,4882.0,3.0,20.0,50789.0,48622.0,154107.0,2.0,18.0,Supervised Classification
+516,516,pbcseq,1,2,active,ARFF,,1024.0,,0.0,19.0,1945.0,832.0,1133.0,13.0,6.0,Supervised Regression
+41021,41021,Moneyball,2,2,active,ARFF,,39.0,,0.0,15.0,1232.0,1118.0,3600.0,9.0,6.0,Supervised Regression
+42563,42563,house_prices_nominal,1,11601,active,arff,,,,0.0,80.0,1460.0,1460.0,6965.0,37.0,43.0,Supervised Regression
+42723,42723,colleges,12,869,active,arff,,,,0.0,47.0,7063.0,7063.0,104305.0,33.0,11.0,Supervised Regression
+42931,42931,audit-data,1,25579,active,arff,,,,0.0,37.0,1552.0,1552.0,19402.0,36.0,0.0,Supervised Regression
+43078,43078,Code_Smells_Blob,1,1,active,arff,,,,0.0,67.0,83943.0,83943.0,2801627.0,67.0,0.0,Supervised Regression
+43079,43079,Code_Smells_Data_Class,1,1,active,arff,,,,0.0,67.0,86467.0,86467.0,2852906.0,67.0,0.0,Supervised Regression

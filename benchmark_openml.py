@@ -40,6 +40,7 @@ def create_make_model(features, rows, task, key):
             X_valid,
             y_valid
         ):
+        print("dims: {}, lr_param: {}, reg: {}".format(d_model, lr_param, reg))
         batch_size_base2 = 2 ** int(np.round(np.log2(batch_size)))
         model_kwargs_uat = dict(
                 features=features,
@@ -65,7 +66,7 @@ def create_make_model(features, rows, task, key):
         max_steps = 1e5
         epochs = int(max_steps // steps_per_epoch)
         start_steps = steps_per_epoch * 5 # wait at least 5 epochs before early stopping
-        stop_steps_ = 50
+        stop_steps_ = 100
   
         early_stopping = create_early_stopping(start_steps, stop_steps_, metric_name="loss", tol=1e-8)
         training_kwargs_uat = dict(
@@ -77,9 +78,9 @@ def create_make_model(features, rows, task, key):
                     early_stopping=early_stopping
                 )
         if task == "Supervised Classification":
-            loss_fun = cross_entropy(classes, l2_reg=reg, dropout_reg=1e-5) 
+            loss_fun = cross_entropy(classes, l2_reg=10.0**-reg, dropout_reg=1e-5) 
         elif task == "Supervised Regression":
-            loss_fun = mse(l2_reg=reg, dropout_reg=1e-5)
+            loss_fun = mse(l2_reg=10.0**-reg, dropout_reg=1e-5)
         training_kwargs_uat["X_test"] = X_valid
         training_kwargs_uat["y_test"] = y_valid 
         model = UAT(
@@ -93,10 +94,8 @@ def create_make_model(features, rows, task, key):
 
 
 def run(
-    repeats=5,
     dataset=61,  # iris
     task="Supervised Classification",
-    target='class',
     missing=None,
     imputation=None,
     train_complete=True,
@@ -106,11 +105,9 @@ def run(
     rng_init=12345,
     trans_params = None,
     xgb_params =  None,
-    l2 = 1e-5,
     corrupt = False
     ):
     """ 
-    repeats: int, number of times to repeat for bootstrapping
     dataset: int, referring to an OpenML dataset ID
     task: str, one of "Supervised Classification" or "Supervised Regression"
     target: str, colname of target variable
@@ -159,8 +156,8 @@ def run(
                 classes=classes,
                 missing=missing,
                 imputation=imputation,  # one of none, simple, iterative, miceforest
-                train_complete=False,
-                test_complete=False,
+                train_complete=train_complete,
+                test_complete=test_complete,
                 split=0.2,
                 rng_key=key,
                 prop=prop,
@@ -169,52 +166,12 @@ def run(
         count += 1
         print("key: {}, k: {}/{}, dataset: {}, missing: {}, impute: {}".format(key, count, len(splits), dataset, missing, imputation))
         # import dataset
-
-        # set params for models
-        if task == "Supervised Classification":
-            loss_fun = cross_entropy(classes, l2_reg=l2, dropout_reg=1e-5)
-            objective = 'multi:softprob'
-        else:
-            loss_fun = mse(l2_reg=l2, dropout_reg=1e-5)
-            objective = 'reg:squarederror'
-        if trans_params is None:
-            model_kwargs_uat = dict(
-            features=X.shape[1],
-            d_model=None,
-            embed_hidden_size=64,
-            embed_hidden_layers=2,
-            embed_activation=jax.nn.leaky_relu,
-            encoder_layers=3,
-            encoder_heads=10,
-            enc_activation=jax.nn.leaky_relu,
-            decoder_layers=6,
-            decoder_heads=20,
-            dec_activation=jax.nn.leaky_relu,
-            net_hidden_size=64,
-            net_hidden_layers=2,
-            net_activation=jax.nn.leaky_relu,
-            last_layer_size=32,
-            out_size=classes,
-            W_init = jax.nn.initializers.glorot_uniform(),
-            b_init = jax.nn.initializers.normal(1e-5),
-            )
-        else:
-            model_kwargs_uat = trans_params[0]
-        
-        if xgb_params is None:
-            param = {'objective':objective, 'num_class':classes}
-            param['max_depth'] = 12
-            param['min_child_weight'] = 3
-            param['eta'] = 0.01
-        else:
-            param = xgb_params
-
-        # set training params
-        # define training parameters
-        training_kwargs_uat = trans_params[1]
-        steps_per_epoch = X_train.shape[0] // training_kwargs_uat["batch_size"]
-        start_steps = steps_per_epoch * 5 // 10 # wait at least 5 epochs before early stopping
-
+        key = rng.integers(9999)
+        make_model = create_make_model(X_train.shape[1], X_train.shape[0], task, key)
+        print(trans_params)
+        model, batch_size_base2, loss_fun = make_model(
+                trans_params["d_model"], trans_params["batch_size"], trans_params["lr_param"], trans_params["reg"], X_valid, y_valid)
+                
         # equalise training classes if categorical
         if task == "Supervised Classification":
             relevant_metrics = ["accuracy", "nll"]
@@ -229,26 +186,16 @@ def run(
             print("assertion is ", np.all(~np.isnan(X_train)))
             assert np.all(~np.isnan(X_train))
 
-        # get valdation for early stopping and add to training kwargs
-        training_kwargs_uat["X_test"] = X_valid
-        training_kwargs_uat["y_test"] = y_valid
-        max_steps = 1e5
-        epochs = int(max_steps // steps_per_epoch)
-        training_kwargs_uat["epochs"] = epochs
-        stop_steps_ = 200
-        early_stopping = create_early_stopping(start_steps, stop_steps_, metric_name="loss", tol=1e-8)
-        training_kwargs_uat["early_stopping"] = early_stopping
-        
-        # create dropped dataset baseline and implement missingness strategy
+       # create dropped dataset baseline and implement missingness strategy
         def drop_nans(xarray, yarray):
             row_mask = ~np.any(np.isnan(xarray), axis=1)
             xdrop = xarray[row_mask, :]
             ydrop = yarray[row_mask]
-            return xdrop, ydrop
+            return xdrop, ydrop, 1.0 - (np.sum(row_mask) / len(row_mask))
         
-        X_train_drop, y_train_drop = drop_nans(X_train, y_train)
-        X_test_drop, y_test_drop = drop_nans(X_test, y_test)
-        X_valid_drop, y_valid_drop = drop_nans(X_valid, y_valid)
+        X_train_drop, y_train_drop, perc_missing = drop_nans(X_train, y_train)
+        X_test_drop, y_test_drop, _ = drop_nans(X_test, y_test)
+        X_valid_drop, y_valid_drop, _ = drop_nans(X_valid, y_valid)
         
         print("dataset sizes")
         print(X_train.shape, X_valid.shape, X_test.shape)
@@ -260,14 +207,6 @@ def run(
             print(X_train_drop.shape, X_valid_drop.shape, X_test_drop.shape)
             empty=False
         
-        # initialize drop model and strategy model and train
-        key = rng.integers(9999)
-        model = UAT(
-            model_kwargs=model_kwargs_uat,
-            training_kwargs=training_kwargs_uat,
-            loss_fun=loss_fun,
-            rng_key=key,
-        )
         model.fit(X_train, y_train)
         # XGBoost comparison
         # build XGBoost model
@@ -277,7 +216,9 @@ def run(
         evallist = [(dvalid, 'eval'), (dtrain, 'train')]
         num_round = 1000
         print("training xgboost for {} epochs".format(num_round))
-        bst = xgb.train(param, dtrain, num_round, evallist, early_stopping_rounds=50, verbose_eval=100)
+        for k in ["min_child_weight", "max_depth"]:
+            xgb_params[k] = int(xgb_params[k])
+        bst = xgb.train(xgb_params, dtrain, num_round, evallist, early_stopping_rounds=50, verbose_eval=500)
         output_xgb = bst.predict(dtest)
 
         # 1. there is no point dropping if the training set is complete
@@ -286,30 +227,22 @@ def run(
         # 4a. if we are corrupting we want to drop when missing is not none OR
         # 4b. if we are not corrupting we want to drop when missing is none
         if (not train_complete) and (not empty) and (imputation is None) and ((missing is not None and corrupt) or (missing is None and not corrupt)):
-            training_kwargs_uat["X_test"] = X_valid_drop
-            training_kwargs_uat["y_test"] = y_valid_drop
-            training_kwargs_uat_ = training_kwargs_uat.copy()
-            if X_train_drop.shape[0] < training_kwargs_uat["batch_size"]:
+            if X_train_drop.shape[0] < trans_params["batch_size"]:
                 new_bs = 2
                 while new_bs <= X_train_drop.shape[0] - new_bs:
                     new_bs *= 2
-                training_kwargs_uat_["batch_size"] = new_bs
-            model_drop = UAT(
-                model_kwargs=model_kwargs_uat,
-                training_kwargs=training_kwargs_uat_,
-                loss_fun=loss_fun,
-                rng_key=key,
-            )
+            model_drop, batch_size_base2, loss_fun = make_model(
+                trans_params["d_model"], new_bs, trans_params["lr_param"], trans_results["reg"], X_valid, y_valid)
             model_drop.fit(X_train_drop, y_train_drop)
             # XGBoost comparison
             # build XGBoost model
             dtrain_drop = xgb.DMatrix(X_train_drop, label=y_train_drop)
             dvalid_drop = xgb.DMatrix(X_valid_drop, label=y_valid_drop)
             dtest_drop = xgb.DMatrix(X_test_drop)
-            evallist = [(dvalid, 'eval'), (dtrain, 'train')]
-            num_round = 500
+            evallist = [(dvalid_drop, 'eval'), (dtrain_drop, 'train')]
+            num_round = 1000
             print("training xgboost for {} epochs".format(num_round))
-            bst_drop = xgb.train(param, dtrain, num_round, evallist, early_stopping_rounds=10, verbose_eval=100)
+            bst_drop = xgb.train(xgb_params, dtrain_drop, num_round, evallist, early_stopping_rounds=50, verbose_eval=500)
             output_xgb_drop = bst_drop.predict(dtest_drop)
         else:
             empty = True # in order to set dropped metrics to NA
@@ -399,12 +332,11 @@ def run(
         ) / (metrics[m, "full"].values + metrics[m, "drop"].values) * 100
     metrics = metrics.sort_index(axis=1)
 
-    return metrics
+    return metrics, perc_missing
 
 
 if __name__ ==  "__main__":
     parser = argparse.ArgumentParser("train model")
-    parser.add_argument("--repeats", default=5, type=int)
     parser.add_argument("--missing", choices=["None", "MCAR", "MAR", "MNAR"], default="None", nargs='+')
     parser.add_argument("--imputation", choices=["None", "Drop", "simple", "iterative", "miceforest"], nargs='+')
     parser.add_argument("--epochs", default=10000, type=int)
@@ -415,6 +347,7 @@ if __name__ ==  "__main__":
     parser.add_argument("--test_complete", action='store_false') # default is true
     parser.add_argument("--load_params", action='store_false') # default is true
     parser.add_argument("--save", action='store_true')
+    parser.add_argument("--iters", type=int, default=15)
     args = parser.parse_args()
     
     if args.corrupt:
@@ -454,7 +387,7 @@ if __name__ ==  "__main__":
                 row[1],
                 cat_bin=cat_bin,
                 classes=classes,
-                missing="MNAR",
+                missing=None,
                 imputation=None,  # one of none, simple, iterative, miceforest
                 train_complete=False,
                 test_complete=True,
@@ -463,9 +396,6 @@ if __name__ ==  "__main__":
                 prop=args.p,
                 corrupt=args.corrupt
             )
-        row_mask = np.any(np.isnan(X_train), axis=1)
-        print("proportion missing: {}".format(np.sum(row_mask)/X_train.shape[0]))
-        continue
         key = rng.integers(9999)
         if row[1] == "Supervised Classification":
             objective = 'multi:softprob'
@@ -479,23 +409,13 @@ if __name__ ==  "__main__":
         subset = [f for f in filenames if row[2] in f]
         
         # attempt to get params from file
-        if len(subset) > 1 and args.load_params and False:
+        if len(subset) > 1 and args.load_params:
             trans_subset = [f for f in subset if 'trans' in f]
             xgb_subset = [f for f in subset if 'xgb' in f]
             with (open(trans_subset[0], "rb")) as handle:
-                temp_best_trans_params = pickle.load(handle)
+                trans_results = pickle.load(handle)
             with (open(xgb_subset[0], "rb")) as handle:
-                temp_best_xgb_params = pickle.load(handle)
-            # load up params
-            temp_best_trans_params = temp_best_trans_params[np.argmin([l[1] for l in temp_best_trans_params])]
-            temp_best_xgb_params = temp_best_xgb_params[np.argmin([l[1] for l in temp_best_xgb_params])]
-            # set trans params
-            model_kwargs_uat["d_model"] = temp_best_trans_params[0][0]
-            training_kwargs_uat["lr"] = attention_lr(temp_best_trans_params[0][3], 1000)
-            training_kwargs_uat["batch_size"] = temp_best_trans_params[0][1]
-            best_trans_params = (model_kwargs_uat, training_kwargs_uat, temp_best_trans_params[0][2])
-            # set xgb params
-            best_xgb_params = temp_best_xgb_params[0]
+                xgb_results = pickle.load(handle)
         else:
             # implement bayesian hyperparameter optimization with sequential domain reduction
             key = rng.integers(9999)
@@ -526,9 +446,9 @@ if __name__ ==  "__main__":
 
             pbounds={
                     "d_model":(16,256),
-                    "batch_size":(8, 256),
-                    "lr_param":(500, 20000),
-                    "reg":(1e-12, 1e-2)
+                    "batch_size":(8, 128),
+                    "lr_param":(100, 10000),
+                    "reg":(3, 12)
                     }
         
             bounds_transformer = SequentialDomainReductionTransformer()
@@ -540,87 +460,95 @@ if __name__ ==  "__main__":
                 random_state=int(key),
                 bounds_transformer=bounds_transformer
             )
-            mutating_optimizer.probe(params={"d_model":64, "batch_size":128, "lr_param":3000, "reg":1e-6})
-            mutating_optimizer.maximize(init_points=3, n_iter=5)
-            print(mutating_optimizer.space)
+            mutating_optimizer.probe(params={"d_model":64, "batch_size":64, "lr_param":3000, "reg":6})
+            mutating_optimizer.maximize(init_points=1, n_iter=args.iters)
+            print(mutating_optimizer.res)
             print(mutating_optimizer.max)
-            xgb_param_list = []
-            for max_depth in [10,20,50]:
-                for child_weight in [3, 9]:
-                    for eta in [0.01, 1]:
-                        print("hp search")
-                        param = {'objective':objective, 'num_class':classes}
-                        param['max_depth'] = max_depth
-                        param['min_child_weight'] = child_weight
-                        param['eta'] = eta
-                        param['verbose_eval']=100
-                        xgb_param_list.append(param.copy())
-            dtrain = xgb.DMatrix(X, label=y)
-            num_round = 1000
-            performance = []
-            for params in xgb_param_list:
+            trans_results = {"max": mutating_optimizer.max, "all":mutating_optimizer.res}
+            
+            def black_box_xgb(max_depth, min_child_weight, eta):
+                param = {'objective':objective, 'num_class':classes}
+                param['max_depth'] = int(max_depth)
+                param['min_child_weight'] = int(child_weight)
+                param['eta'] = eta
+                param['verbose_eval']=100
+                dtrain = xgb.DMatrix(X_train, label=y_train)
                 history = xgb.cv(
                     params=param,
                     dtrain=dtrain,
-                    num_boost_round=num_round,
-                    folds=5,
+                    num_boost_round=1000,
+                    nfold=5,
                     early_stopping_rounds=50,
-                    verbose_eval=100)
-                performance.append(history.values.flatten()[2])
-            hp_search_xgb = list(zip(xgb_param_list, performance))
-            best_xgb_params = xgb_param_list[np.argmin(performance)]
-            
+                    verbose_eval=500)
+                loss = history.values.flatten()[2]
+                return - loss
+            pbounds_xgb={
+                    "max_depth":(3,50),
+                    "min_child_weight":(0, 100),
+                    "eta":(0.001, 1),
+                    }
+        
+            key = rng.integers(9999)
+            mutating_optimizer_xgb = BayesianOptimization(
+                f=black_box_xgb,
+                pbounds=pbounds_xgb,
+                verbose=0,
+                random_state=int(key),
+            )
+            mutating_optimizer_xgb.maximize(init_points=5, n_iter=args.iters)
+            print(mutating_optimizer_xgb.res)
+            print(mutating_optimizer_xgb.max)
+            xgb_results = {"max": mutating_optimizer_xgb.max, "all":mutating_optimizer_xgb.res}
+ 
             with open('results/openml/hyperparams/{},trans_hyperparams.pickle'.format(row[2]), 'wb') as handle:
-                pickle.dump(hp_search, handle, protocol=pickle.HIGHEST_PROTOCOL)
+                pickle.dump(trans_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
             with open('results/openml/hyperparams/{},xgb_hyperparams.pickle'.format(row[2]), 'wb') as handle:
-                pickle.dump(hp_search_xgb, handle, protocol=pickle.HIGHEST_PROTOCOL)
+                pickle.dump(xgb_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        
         # BOOTSTRAP PERFORMANCE if file not already present
         path = "results/openml"
         result_files = [f for f in listdir(path) if isfile(join(path, f))]
-        def result_exists(filename, ds, rpts, mis, imp):
+        def result_exists(filename, ds, mis, imp):
             splt = filename[:-7].split(",")
             try:
-                return ds == splt[0] and rpts == int(splt[1]) and str(mis) == splt[2] and str(imp) == splt[3]
+                return ds == splt[0] and str(mis) == splt[2] and str(imp) == splt[3]
             except:
                 return False
         for missing in missing_list:
             if missing == "None":
                 missing = None
             for imputation in args.imputation:
-                try:
-                    # we do not want to impute data if there is None missing and data is not corrupted
-                    if imputation != "None" and missing is None and args.corrupt:
-                        continue
-                    # if results file already exists then skip
-                    sub = [f for f in result_files if result_exists(f, row[2], args.repeats, missing, imputation)]
-                    if len(sub) > 0:
-                        continue
+                # try:
+                # we do not want to impute data if there is None missing and data is not corrupted
+                if imputation != "None" and missing is None and args.corrupt:
+                    continue
+                # if results file already exists then skip
+                sub = [f for f in result_files if result_exists(f, row[2], missing, imputation)]
+                if len(sub) > 0:
+                    continue
 
-                    if imputation == "None":
-                        imputation = None
+                if imputation == "None":
+                    imputation = None
 
-                    m1 = run(
-                        repeats=args.repeats,
-                        dataset=row[0],
-                        task=row[1],
-                        target=row[2],
-                        missing=missing,
-                        train_complete=args.train_complete,
-                        test_complete=args.test_complete,
-                        imputation=imputation,
-                        epochs=args.epochs,
-                        prop=args.p,
-                        trans_params = best_trans_params,
-                        xgb_params =  best_xgb_params,
-                        l2 = best_trans_params[2],
-                        corrupt=args.corrupt
-                        )
-                    print(row[2], missing, imputation)
-                    print(m1.mean())
-                    if args.save:
-                        m1.to_pickle("results/openml/{},{},{},{},{},{}.pickle".format(
-                        row[2], args.repeats, str(missing), str(imputation), args.test_complete, args.corrupt))
+                m1, perc_missing = run(
+                    dataset=row[0],
+                    task=row[1],
+                    missing=missing,
+                    train_complete=args.train_complete,
+                    test_complete=args.test_complete,
+                    imputation=imputation,
+                    epochs=args.epochs,
+                    prop=args.p,
+                    trans_params = trans_results["max"]["params"],
+                    xgb_params =  xgb_results["max"]["params"],
+                    corrupt=args.corrupt
+                    )
+                print(row[2], missing, imputation)
+                print(m1.mean())
+                if args.save:
+                    m1.to_pickle("results/openml/{},{:2f},{},{},{},{}.pickle".format(
+                    row[2], perc_missing, str(missing), str(imputation), args.test_complete, args.corrupt))
 
-                except Exception as e:
-                    print(e)
+#                 except Exception as e:
+#                     print(e)
