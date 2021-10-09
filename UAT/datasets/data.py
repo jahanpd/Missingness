@@ -192,13 +192,17 @@ def miceforest(train, rng_key, dtypes=None, valid=None, test=None, all_cat=False
     print("mice model fitted")
     train = kernel.complete_data(0).values
     if valid is not None:
-        valid_imp = kernel.impute_new_data(
-            new_data=pd.DataFrame(valid, columns=colnames))
-        valid = valid_imp.complete_data(0).values
+        row_mask = np.any(np.isnan(valid), axis=1)
+        if np.sum(row_mask) > 0:
+            valid_imp = kernel.impute_new_data(
+                new_data=pd.DataFrame(valid, columns=colnames))
+            valid = valid_imp.complete_data(0).values
     if test is not None:
-        test_imp = kernel.impute_new_data(
-            new_data=pd.DataFrame(test, columns=colnames))
-        test = test_imp.complete_data(0).values
+        row_mask = np.any(np.isnan(test), axis=1)
+        if np.sum(row_mask) > 0:
+            test_imp = kernel.impute_new_data(
+                new_data=pd.DataFrame(test, columns=colnames))
+            test = test_imp.complete_data(0).values
     return train, valid, test
 
 # dataset generating functions

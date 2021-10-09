@@ -19,7 +19,8 @@ from UAT import UAT, create_early_stopping
 from UAT import binary_cross_entropy, cross_entropy, mse
 from UAT.aux import oversampled_Kfold
 from UAT.training.lr_schedule import attention_lr
-import xgboost as xgb
+# import xgboost as xgb
+import lightgbm as lgb
 from tqdm import tqdm
 import itertools
 from os import listdir
@@ -28,8 +29,10 @@ from numba import cuda
 from bayes_opt import BayesianOptimization
 from bayes_opt import SequentialDomainReductionTransformer
 
+
+
 devices = jax.local_device_count()
-xgb.set_config(verbosity=0)
+# xgb.set_config(verbosity=0)
 
 def create_make_model(features, rows, task, key):
     def make_model(
@@ -104,7 +107,7 @@ def run(
     prop=0.35,
     rng_init=12345,
     trans_params = None,
-    xgb_params =  None,
+    gbm_params =  None,
     corrupt = False
     ):
     """ 
@@ -123,16 +126,16 @@ def run(
     metrics = {
         ("accuracy", "full"):[],
         ("accuracy", "drop"):[],
-        ("accuracy", "xgboost"):[],
-        ("accuracy", "xgboost_drop"):[],
+        ("accuracy", "gbmoost"):[],
+        ("accuracy", "gbmoost_drop"):[],
         ("nll", "full"):[],
         ("nll", "drop"):[],
-        ("nll", "xgboost"):[],
-        ("nll", "xgboost_drop"):[],
+        ("nll", "gbmoost"):[],
+        ("nll", "gbmoost_drop"):[],
         ("rmse", "full"):[],
         ("rmse", "drop"):[],
-        ("rmse", "xgboost"):[],
-        ("rmse", "xgboost_drop"):[],
+        ("rmse", "gbmoost"):[],
+        ("rmse", "gbmoost_drop"):[],
     }
     rng = np.random.default_rng(rng_init)
 
@@ -210,16 +213,19 @@ def run(
         model.fit(X_train, y_train)
         # XGBoost comparison
         # build XGBoost model
-        dtrain = xgb.DMatrix(X_train, label=y_train)
-        dvalid = xgb.DMatrix(X_valid, label=y_valid)
-        dtest = xgb.DMatrix(X_test)
+        # dtrain = xgb.DMatrix(X_train, label=y_train)
+        dtrain = lgb.Dataset(X_train, label=y_train, categorical_feature=list(np.argwhere(cat_bin == 1)), free_raw_data=False)
+        # dvalid = xgb.DMatrix(X_valid, label=y_valid)
+        dvalid = lgb.Dataset(X_valid, label=y_valid, categorical_feature=list(np.argwhere(cat_bin == 1)), reference=dtrain, free_raw_data=False)
+        # dtest = xgb.DMatrix(X_test)
+        dtest = lgb.Dataset(X_test, label=y_test, categorical_feature=list(np.argwhere(cat_bin == 1)), free_raw_data=False)
         evallist = [(dvalid, 'eval'), (dtrain, 'train')]
         num_round = 1000
-        print("training xgboost for {} epochs".format(num_round))
-        for k in ["min_child_weight", "max_depth"]:
-            xgb_params[k] = int(xgb_params[k])
-        bst = xgb.train(xgb_params, dtrain, num_round, evallist, early_stopping_rounds=50, verbose_eval=500)
-        output_xgb = bst.predict(dtest)
+        print("training gbmoost for {} epochs".format(num_round))
+        for k in ["max_depth", "max_bin"]:
+            gbm_params[k] = int(gbm_params[k])
+        bst = lgb.train(gbm_params, dtrain, num_round, valid_sets=[dvalid], early_stopping_rounds=50)
+        output_gbm = bst.predict(X_test)
 
         # 1. there is no point dropping if the training set is complete
         # 2. there is no point dropping if when dropped the dataset is empty
@@ -231,19 +237,27 @@ def run(
                 new_bs = 2
                 while new_bs <= X_train_drop.shape[0] - new_bs:
                     new_bs *= 2
+            else:
+                new_bs = trans_params["batch_size"]
             model_drop, batch_size_base2, loss_fun = make_model(
-                trans_params["d_model"], new_bs, trans_params["lr_param"], trans_results["reg"], X_valid, y_valid)
+                trans_params["d_model"], new_bs, trans_params["lr_param"], trans_params["reg"], X_valid, y_valid)
             model_drop.fit(X_train_drop, y_train_drop)
             # XGBoost comparison
             # build XGBoost model
-            dtrain_drop = xgb.DMatrix(X_train_drop, label=y_train_drop)
-            dvalid_drop = xgb.DMatrix(X_valid_drop, label=y_valid_drop)
-            dtest_drop = xgb.DMatrix(X_test_drop)
-            evallist = [(dvalid_drop, 'eval'), (dtrain_drop, 'train')]
+            dtrain_drop = lgb.Dataset(X_train_drop, label=y_train_drop, categorical_feature=list(np.argwhere(cat_bin == 1)), free_raw_data=False)
+            # dvalid = xgb.DMatrix(X_valid, label=y_valid)
+            dvalid_drop = lgb.Dataset(X_valid_drop, label=y_valid_drop, categorical_feature=list(np.argwhere(cat_bin == 1)), reference=dtrain,
+                    free_raw_data=False)
+            # dtest = xgb.DMatrix(X_test)
+            dtest_drop = lgb.Dataset(X_test_drop, label=y_test_drop, categorical_feature=list(np.argwhere(cat_bin == 1)),free_raw_data=False)
+#             train_drop = gbm.DMatrix(X_train_drop, label=y_train_drop)
+            # dvalid_drop = gbm.DMatrix(X_valid_drop, label=y_valid_drop)
+#             dtest_drop = gbm.DMatrix(X_test_drop)
             num_round = 1000
-            print("training xgboost for {} epochs".format(num_round))
-            bst_drop = xgb.train(xgb_params, dtrain_drop, num_round, evallist, early_stopping_rounds=50, verbose_eval=500)
-            output_xgb_drop = bst_drop.predict(dtest_drop)
+            print("training gbmoost for {} epochs".format(num_round))
+            bst_drop = lgb.train(
+                    gbm_params, dtrain_drop, num_round, valid_sets=[dvalid], early_stopping_rounds=50)
+            output_gbm_drop = bst_drop.predict(X_test_drop)
         else:
             empty = True # in order to set dropped metrics to NA
 
@@ -266,53 +280,53 @@ def run(
                 correct_o = class_o == y_test
                 acc = np.sum(correct_o) / y_test.shape[0]
                 
-                class_x = np.argmax(output_xgb, axis=1)
+                class_x = np.argmax(output_gbm, axis=1)
                 correct_x = class_x == y_test
-                acc_xgb = np.sum(correct_x) / y_test.shape[0]
+                acc_gbm = np.sum(correct_x) / y_test.shape[0]
                 if not train_complete and not empty:
                     class_d = np.argmax(output_drop, axis=1)
                     correct_d = class_d == y_test_drop
                     acc_drop = np.sum(correct_d) / y_test_drop.shape[0]
                     
-                    class_d = np.argmax(output_xgb_drop, axis=1)
+                    class_d = np.argmax(output_gbm_drop, axis=1)
                     correct_d = class_d == y_test_drop
-                    acc_drop_xgb = np.sum(correct_d) / y_test_drop.shape[0]
+                    acc_drop_gbm = np.sum(correct_d) / y_test_drop.shape[0]
                 else:
                     acc_drop = np.nan
-                    acc_drop_xgb = np.nan
+                    acc_drop_gbm = np.nan
                 metrics[("accuracy","full")].append(acc)
                 metrics[("accuracy","drop")].append(acc_drop)
-                metrics[("accuracy","xgboost")].append(acc_xgb)
-                metrics[("accuracy","xgboost_drop")].append(acc_drop_xgb)
-                tqdm.write("strategy:{}, acc full:{}, acc drop:{}, acc xgb: {}".format(imputation, acc, acc_drop, acc_xgb))
+                metrics[("accuracy","gbmoost")].append(acc_gbm)
+                metrics[("accuracy","gbmoost_drop")].append(acc_drop_gbm)
+                tqdm.write("strategy:{}, acc full:{}, acc drop:{}, acc gbm: {}".format(imputation, acc, acc_drop, acc_gbm))
             if rm == "nll":
                 nll = (- jnp.log(output + 1e-8) * jax.nn.one_hot(y_test, classes)).sum(axis=-1).mean()
-                nll_xgb = (- jnp.log(output_xgb + 1e-8) * jax.nn.one_hot(y_test, classes)).sum(axis=-1).mean()
+                nll_gbm = (- jnp.log(output_gbm + 1e-8) * jax.nn.one_hot(y_test, classes)).sum(axis=-1).mean()
                 if not train_complete and not empty:
                     nll_drop = (- jnp.log(output_drop + 1e-8) * jax.nn.one_hot(y_test_drop, classes)).sum(axis=-1).mean()
-                    nll_drop_xgb = (- jnp.log(output_xgb_drop + 1e-8) * jax.nn.one_hot(y_test_drop, classes)).sum(axis=-1).mean()
+                    nll_drop_gbm = (- jnp.log(output_gbm_drop + 1e-8) * jax.nn.one_hot(y_test_drop, classes)).sum(axis=-1).mean()
                 else:
                     nll_drop = np.nan
-                    nll_drop_xgb = np.nan
+                    nll_drop_gbm = np.nan
                 metrics[("nll","full")].append(nll)
                 metrics[("nll","drop")].append(nll_drop)
-                metrics[("nll","xgboost")].append(nll_xgb)
-                metrics[("nll","xgboost_drop")].append(nll_drop_xgb)
-                tqdm.write("strategy:{}, nll full:{}, nll drop:{}, nll xbg:{}".format(imputation, nll, nll_drop, nll_xgb))
+                metrics[("nll","gbmoost")].append(nll_gbm)
+                metrics[("nll","gbmoost_drop")].append(nll_drop_gbm)
+                tqdm.write("strategy:{}, nll full:{}, nll drop:{}, nll xbg:{}".format(imputation, nll, nll_drop, nll_gbm))
             if rm == "rmse":
                 rmse = np.sqrt(np.square(output - y_test).mean())
-                rmse_xgb = np.sqrt(np.square(output_xgb - y_test).mean())
+                rmse_gbm = np.sqrt(np.square(output_gbm - y_test).mean())
                 if not train_complete and not empty:
                     rmse_drop = np.sqrt(np.square(output_drop - y_test_drop).mean())
-                    rmse_xgb_drop = np.sqrt(np.square(output_xgb_drop - y_test_drop).mean())
+                    rmse_gbm_drop = np.sqrt(np.square(output_gbm_drop - y_test_drop).mean())
                 else:
                     rmse_drop = np.nan
-                    rmse_xgb_drop = np.nan
+                    rmse_gbm_drop = np.nan
                 metrics[("rmse","full")].append(rmse)
                 metrics[("rmse","drop")].append(rmse_drop)
-                metrics[("rmse","xgboost")].append(rmse_xgb)
-                metrics[("rmse","xgboost_drop")].append(rmse_xgb_drop)
-                tqdm.write("strategy:{}, rmse full:{}, rmse drop:{}, rmse xbg:{}".format(imputation, rmse, rmse_drop, rmse_xgb))
+                metrics[("rmse","gbmoost")].append(rmse_gbm)
+                metrics[("rmse","gbmoost_drop")].append(rmse_gbm_drop)
+                tqdm.write("strategy:{}, rmse full:{}, rmse drop:{}, rmse xbg:{}".format(imputation, rmse, rmse_drop, rmse_gbm))
     
     # convert metrics dict to dataframe and determine % change
     # get rid of unused metrics
@@ -348,6 +362,8 @@ if __name__ ==  "__main__":
     parser.add_argument("--load_params", action='store_false') # default is true
     parser.add_argument("--save", action='store_true')
     parser.add_argument("--iters", type=int, default=15)
+    parser.add_argument("--inverse", action='store_true')
+    parser.add_argument("--gbm_gpu", type=int, default=-1)
     args = parser.parse_args()
     
     if args.corrupt:
@@ -370,6 +386,8 @@ if __name__ ==  "__main__":
         selection = np.array(args.dataset)
     else:
         selection = np.arange(len(data_list))
+        if args.inverse:
+            selection = np.flip(selection)
 
     for row in data_list[['did', 'task_type', 'name']].values[selection,:]:
         # BAYESIAN HYPERPARAMETER  SEARCH
@@ -398,10 +416,10 @@ if __name__ ==  "__main__":
             )
         key = rng.integers(9999)
         if row[1] == "Supervised Classification":
-            objective = 'multi:softprob'
+            objective = 'softmax'
             X_train, y_train = ros.fit_resample(X_train, y_train)
         else:
-            objective = 'reg:squarederror'
+            objective = 'regression'
             resample=False
         ## set up transformer model grid search
         path = "results/openml/hyperparams"
@@ -409,14 +427,22 @@ if __name__ ==  "__main__":
         subset = [f for f in filenames if row[2] in f]
         
         # attempt to get params from file
-        if len(subset) > 1 and args.load_params:
+        try:
             trans_subset = [f for f in subset if 'trans' in f]
-            xgb_subset = [f for f in subset if 'xgb' in f]
             with (open(trans_subset[0], "rb")) as handle:
                 trans_results = pickle.load(handle)
-            with (open(xgb_subset[0], "rb")) as handle:
-                xgb_results = pickle.load(handle)
-        else:
+            loaded_hps_trans = True
+        except Exception as e:
+            loaded_hps_trans = False
+        try:
+            gbm_subset = [f for f in subset if 'gbm' in f]
+            with (open(gbm_subset[0], "rb")) as handle:
+                gbm_results = pickle.load(handle)
+            loaded_hps_gbm = True
+        except Exception as e:
+            loaded_hps_gbm = False
+
+        if not loaded_hps_trans:
             # implement bayesian hyperparameter optimization with sequential domain reduction
             key = rng.integers(9999)
             make_model = create_make_model(X_train.shape[1], X_train.shape[0], row[1], key)
@@ -466,46 +492,55 @@ if __name__ ==  "__main__":
             print(mutating_optimizer.max)
             trans_results = {"max": mutating_optimizer.max, "all":mutating_optimizer.res}
             
-            def black_box_xgb(max_depth, min_child_weight, eta):
+            with open('results/openml/hyperparams/{},trans_hyperparams.pickle'.format(row[2]), 'wb') as handle:
+                pickle.dump(trans_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        print(classes, objective, row[1])    
+        if not loaded_hps_gbm:
+            def black_box_gbm(max_depth, learning_rate, max_bin):
                 param = {'objective':objective, 'num_class':classes}
                 param['max_depth'] = int(max_depth)
-                param['min_child_weight'] = int(child_weight)
-                param['eta'] = eta
-                param['verbose_eval']=100
-                dtrain = xgb.DMatrix(X_train, label=y_train)
-                history = xgb.cv(
+                param['num_leaves'] = int(0.8 * (2**max_depth))
+                param['learning_rate'] = learning_rate
+                param['max_bin']=int(max_bin)
+                param['verbosity']=-1
+                dtrain = lgb.Dataset(X_train, label=y_train, categorical_feature=list(np.argwhere(cat_bin == 1)))
+                history = lgb.cv(
                     params=param,
-                    dtrain=dtrain,
+                    train_set=dtrain,
                     num_boost_round=1000,
                     nfold=5,
                     early_stopping_rounds=50,
-                    verbose_eval=500)
-                loss = history.values.flatten()[2]
+                    stratified=False,
+                    categorical_feature=list(np.argwhere(cat_bin == 1))
+                    )
+                loss = np.mean(history[list(history.keys())[0]])
+                print(loss)
                 return - loss
-            pbounds_xgb={
-                    "max_depth":(3,50),
-                    "min_child_weight":(0, 100),
-                    "eta":(0.001, 1),
+            pbounds_gbm={
+                    "max_depth":(3,12),
+                    "learning_rate":(0.001, 1),
+                    "max_bin":(10, 100)
                     }
         
             key = rng.integers(9999)
-            mutating_optimizer_xgb = BayesianOptimization(
-                f=black_box_xgb,
-                pbounds=pbounds_xgb,
+            mutating_optimizer_gbm = BayesianOptimization(
+                f=black_box_gbm,
+                pbounds=pbounds_gbm,
                 verbose=0,
                 random_state=int(key),
             )
-            mutating_optimizer_xgb.maximize(init_points=5, n_iter=args.iters)
-            print(mutating_optimizer_xgb.res)
-            print(mutating_optimizer_xgb.max)
-            xgb_results = {"max": mutating_optimizer_xgb.max, "all":mutating_optimizer_xgb.res}
- 
-            with open('results/openml/hyperparams/{},trans_hyperparams.pickle'.format(row[2]), 'wb') as handle:
-                pickle.dump(trans_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
+            mutating_optimizer_gbm.maximize(init_points=5, n_iter=args.iters)
+            print(mutating_optimizer_gbm.res)
+            print(mutating_optimizer_gbm.max)
+            best_params_gbm = mutating_optimizer_gbm.max
+            best_params_gbm["params"]["objective"]=objective
+            best_params_gbm["params"]["num_class"]=classes
+            best_params_gbm["params"]['num_leaves'] = int(0.8 * (2**best_params_gbm["params"]["max_depth"]))
+            gbm_results = {"max": best_params_gbm, "all":mutating_optimizer_gbm.res} 
 
-            with open('results/openml/hyperparams/{},xgb_hyperparams.pickle'.format(row[2]), 'wb') as handle:
-                pickle.dump(xgb_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
-        
+            with open('results/openml/hyperparams/{},gbm_hyperparams.pickle'.format(row[2]), 'wb') as handle:
+                pickle.dump(gbm_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
+ 
         # BOOTSTRAP PERFORMANCE if file not already present
         path = "results/openml"
         result_files = [f for f in listdir(path) if isfile(join(path, f))]
@@ -541,7 +576,7 @@ if __name__ ==  "__main__":
                     epochs=args.epochs,
                     prop=args.p,
                     trans_params = trans_results["max"]["params"],
-                    xgb_params =  xgb_results["max"]["params"],
+                    gbm_params =  gbm_results["max"]["params"],
                     corrupt=args.corrupt
                     )
                 print(row[2], missing, imputation)
@@ -550,5 +585,5 @@ if __name__ ==  "__main__":
                     m1.to_pickle("results/openml/{},{:2f},{},{},{},{}.pickle".format(
                     row[2], perc_missing, str(missing), str(imputation), args.test_complete, args.corrupt))
 
-#                 except Exception as e:
-#                     print(e)
+                # except Exception as e:
+                    # print(e)

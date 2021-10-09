@@ -8,6 +8,8 @@ from jax.experimental.optimizers import make_schedule
 from tqdm import tqdm
 from scipy.stats import halfnorm
 import functools
+import time
+from datetime import timedelta
 # from UAT.aux import flatten_params, unflatten_params
 
 def training_loop(
@@ -179,6 +181,7 @@ def training_loop(
         metric_store_master["loss"] = np.inf
         metric_store_master["counter"] = 0
         test_dict = metric_store_master.copy()
+    start_time = time.time()
     for epoch in range(epochs):
         rng, key = random.split(rng, 2)
         if X.shape[0] > batch_size:
@@ -281,12 +284,13 @@ def training_loop(
             break
         pbar2.close()
         pbar1.update(1)
+    elapsed_time = time.time() - start_time
     try:
-        tqdm.write("Final test loss: {}, epoch: {}".format(
-            metrics_ewa_["test_loss"], metrics_ewa_["epoch"]))
+        tqdm.write("Final test loss: {}, epoch: {}, time: {}".format(
+            metrics_ewa_["test_loss"], metrics_ewa_["epoch"], timedelta(minutes=elapsed_time)))
     except:
-        tqdm.write("Final loss: {}, epoch: {}".format(
-            metrics_ewa_["loss"], metrics_ewa_["epoch"]))
+        tqdm.write("Final loss: {}, epoch: {}, time: {}".format(
+            metrics_ewa_["loss"], metrics_ewa_["epoch"], timedelta(minutes=elapsed_time)))
     pbar1.close()
     params = jax.device_get(jax.tree_map(lambda x: x[0], params))
     return params, history, rng
