@@ -246,7 +246,7 @@ def training_loop(
                 grad_dict = weights_on_fn(opt_state, step)
 
             # initialize some training metrics
-            if step == 1:
+            if step <= 1:
                 params_ = jax.device_get(jax.tree_map(lambda x: x[0], params))
                 metrics_ewa = metrics(params_, batch_x.reshape((batch_size,)+xbs[1:]), batch_y.reshape((batch_size,-1)), None)
                 metrics_ewa["step"]=step
@@ -279,9 +279,9 @@ def training_loop(
                 if np.isnan(metrics_ewa_["loss"]):
                     break
                 pbar1.set_postfix(metrics_ewa_)
-                history.append(metrics_ewa_)
-        if np.isnan(metrics_ewa_["loss"]):
-            break
+                history.append(metrics_ewa_) 
+            else:
+                metrics_ewa_ = metrics_ewa.copy()
         pbar2.close()
         pbar1.update(1)
     elapsed_time = time.time() - start_time

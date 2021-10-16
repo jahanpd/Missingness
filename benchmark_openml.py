@@ -146,6 +146,8 @@ def run(
     kfolds = oversampled_Kfold(5, key=int(key), n_repeats=1, resample=resample)
     splits = kfolds.split(X, y)
     count = 0
+    # turn off verbosity for LGB
+    gbm_params['verbosity']=-1
     for train, test in splits:
         key = rng.integers(9999)
 
@@ -471,7 +473,7 @@ if __name__ ==  "__main__":
                 return - loss_loop / len(test_batches)
 
             pbounds={
-                    "d_model":(16,256),
+                    "d_model":(16,128),
                     "batch_size":(8, 128),
                     "lr_param":(100, 10000),
                     "reg":(3, 12)
@@ -554,36 +556,36 @@ if __name__ ==  "__main__":
             if missing == "None":
                 missing = None
             for imputation in args.imputation:
-                # try:
-                # we do not want to impute data if there is None missing and data is not corrupted
-                if imputation != "None" and missing is None and args.corrupt:
-                    continue
-                # if results file already exists then skip
-                sub = [f for f in result_files if result_exists(f, row[2], missing, imputation)]
-                if len(sub) > 0:
-                    continue
+                try:
+                    # we do not want to impute data if there is None missing and data is not corrupted
+                    if imputation != "None" and missing is None and args.corrupt:
+                        continue
+                    # if results file already exists then skip
+                    sub = [f for f in result_files if result_exists(f, row[2], missing, imputation)]
+                    if len(sub) > 0:
+                        continue
 
-                if imputation == "None":
-                    imputation = None
+                    if imputation == "None":
+                        imputation = None
 
-                m1, perc_missing = run(
-                    dataset=row[0],
-                    task=row[1],
-                    missing=missing,
-                    train_complete=args.train_complete,
-                    test_complete=args.test_complete,
-                    imputation=imputation,
-                    epochs=args.epochs,
-                    prop=args.p,
-                    trans_params = trans_results["max"]["params"],
-                    gbm_params =  gbm_results["max"]["params"],
-                    corrupt=args.corrupt
-                    )
-                print(row[2], missing, imputation)
-                print(m1.mean())
-                if args.save:
-                    m1.to_pickle("results/openml/{},{:2f},{},{},{},{}.pickle".format(
-                    row[2], perc_missing, str(missing), str(imputation), args.test_complete, args.corrupt))
+                    m1, perc_missing = run(
+                        dataset=row[0],
+                        task=row[1],
+                        missing=missing,
+                        train_complete=args.train_complete,
+                        test_complete=args.test_complete,
+                        imputation=imputation,
+                        epochs=args.epochs,
+                        prop=args.p,
+                        trans_params = trans_results["max"]["params"],
+                        gbm_params =  gbm_results["max"]["params"],
+                        corrupt=args.corrupt
+                        )
+                    print(row[2], missing, imputation)
+                    print(m1.mean())
+                    if args.save:
+                        m1.to_pickle("results/openml/{},{:2f},{},{},{},{}.pickle".format(
+                        row[2], perc_missing, str(missing), str(imputation), args.test_complete, args.corrupt))
 
-                # except Exception as e:
-                    # print(e)
+                except Exception as e:
+                    print(e)

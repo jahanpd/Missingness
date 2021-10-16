@@ -2,7 +2,7 @@ import pandas as pd
 from os import listdir
 from os.path import isfile, join
 import numpy as np
-
+import itertools
 
 ## tables for latent space experiments
 ed1 = pd.read_csv('results/latent_space/Ensemble_Distances1_None.csv')
@@ -88,6 +88,108 @@ df = pd.DataFrame(result_strs, index=indexes, columns=colnames)
 
 ## tables for performance experiments
 
+datasets = pd.read_csv('./results/openml/corrupted_tasklist.csv')
+name_list_full = datasets.name.values
+
+path = './results/openml/'
+result_files = [f for f in listdir(path) if isfile(join(path, f))]
+
+def file_filter(filename, dsname, missingness, imputation):
+    splt = filename[:-7].split(",")
+    # print(dsname.lower() == splt[0].lower())
+    #print(missingness.lower() == splt[2].lower())
+    # print(imputation.lower() == splt[3].lower())
+    try:
+        return dsname.lower() == splt[0].lower() and missingness.lower() == splt[2].lower() and imputation.lower() == splt[3].lower()
+    except:
+        return False
+
+def file_filter_name(filename):
+    splt = filename[:-7].split(",")
+    return splt[0]
+
+name_list = set([file_filter_name(n) for n in result_files])
+print(name_list)
+
+print("fraction of datasets run: ", len(name_list) / len(name_list_full))
+
+
+keys = itertools.product(["MCAR"], ["None", "Simple", "Iterative", "MiceForest"], ["Transformer", "LightGBM"])
+process_dict = {
+    (" ", " ", "Dataset"):[],
+    (" ", " ", "Metric"):[],
+    ("None", "None", "Transformer"):[],
+    ("None", "None", "LightGBM"):[],
+}
+for key in keys:
+    process_dict[key] = []
+
+key_sub = list(itertools.product(["MCAR"], ["None", "Simple", "Iterative", "MiceForest"]))
+for name in name_list:
+    process_dict[(" ", " ", "Dataset")].append(name)
+    # get metric information
+    try:
+        s = [f for f in result_files if file_filter(f, name, "None", "None")]
+        path = join('./results/openml/', str(s[0]))
+        ds = pd.read_pickle(path)
+        colnames = list(ds)
+        metric = "accuracy" if len(colnames) > 5 else "rmse"
+        process_dict[(" ", " ", "Metric")].append(metric)
+    except:
+        metric = np.nan
+        process_dict[(" ", " ", "Metric")].append(metric)
+        
+    # get baseline data
+    try:
+        s = [f for f in result_files if file_filter(f, name, "None", "None")]
+        path = join('./results/openml/', str(s[0]))
+        ds = pd.read_pickle(path)
+        # print(ds)
+        baseline_trans = np.mean(ds[metric]["full"].values)
+        baseline_gbm = np.mean(ds[metric]["gbmoost"].values)
+        process_dict[("None", "None", "Transformer")].append(baseline_trans)
+        process_dict[("None", "None", "LightGBM")].append(baseline_gbm)
+    except Exception as e:
+        print(e)
+        process_dict[("None", "None", "Transformer")].append(np.nan)
+        process_dict[("None", "None", "LightGBM")].append(np.nan)
+    # get the same as above but for each missingness and imputation pattern
+    for key in key_sub:
+        try:
+            s = [f for f in result_files if file_filter(f, name, key[0], key[1])]
+            path = join('./results/openml/', str(s[0]))
+            ds = pd.read_pickle(path)
+            if metric == "accuracy":
+                trans = (np.mean(ds[metric]["full"].values) - baseline_trans) / baseline_trans
+                gbm = (np.mean(ds[metric]["gbmoost"].values) - baseline_gbm) / baseline_gbm
+            elif metric == "rmse":     
+                trans = -(np.mean(ds[metric]["full"].values) - baseline_trans) / baseline_trans
+                trans = -(np.mean(ds[metric]["gbmoost"].values) - baseline_gbm) / baseline_gbm
+            process_dict[(key[0], key[1], "Transformer")].append(trans)
+            process_dict[(key[0], key[1], "LightGBM")].append(gbm)
+        except Exception as e:
+            print(e)
+            process_dict[(key[0], key[1], "Transformer")].append(np.nan)
+            process_dict[(key[0], key[1], "LightGBM")].append(np.nan)
+
+final_results = pd.DataFrame(process_dict)
+final_results.to_pickle('./results/openml/openml_results.pickle')
+print(pd.DataFrame(process_dict))
+asd
+
+
+test_ = pd.read_pickle('/home/jahan/missing/results/openml/abalone,0.000000,None,None,True,True.pickle')
+print(test_.mean())
+test_ = pd.read_pickle('/home/jahan/missing/results/openml/abalone,0.642724,MCAR,None,True,True.pickle')
+print(test_.mean())
+test_ = pd.read_pickle('/home/jahan/missing/results/openml/abalone,0.000000,MCAR,simple,True,True.pickle')
+print(test_.mean())
+test_ = pd.read_pickle('/home/jahan/missing/results/openml/abalone,0.000000,MCAR,iterative,True,True.pickle')
+print(test_.mean())
+test_ = pd.read_pickle('/home/jahan/missing/results/openml/abalone,0.000000,MCAR,miceforest,True,True.pickle')
+print(test_.mean())
+asd
+
 def make_table(missingness, columns, indexes, imputation_list, path="results/openml"):
     result_files = [f for f in listdir(path) if isfile(join(path, f))]
     index_success = []
@@ -96,22 +198,22 @@ def make_table(missingness, columns, indexes, imputation_list, path="results/ope
         out = []
         try:
             # convenience function for filter of filenames
-            def result_filter(filename, ds, rpts, mis, imp):
+            def result_filter(filename, ds, mis, imp):
                 splt = filename[:-7].split(",")
                 try:
-                    return ds == splt[0] and rpts == int(splt[1]) and str(mis) == splt[2] and str(imp) == splt[3].lower()
+                    return ds == splt[0]  and str(mis) == splt[2] and str(imp) == splt[3].lower()
                 except:
                     return False
             full = np.nan
             dropped = np.nan
-            xgb = np.nan
-            xgbdrop = np.nan
+            gbm = np.nan
+            gbmdrop = np.nan
             for cidx in columns.values:
             # for imp in imputation_list:
                 if cidx[0] == "Transformer":
-                    xgboost = False
+                    gbmoost = False
                 else:
-                    xgboost = True
+                    gbmoost = True
                 if cidx[2] == "Dropped":
                     impn = "None"
                 else:
@@ -119,7 +221,7 @@ def make_table(missingness, columns, indexes, imputation_list, path="results/ope
 
                 try:
                     # print(result_files)
-                    fs = [f for f in result_files if result_filter(f, idx[0], 30, missingness, impn.lower())]
+                    fs = [f for f in result_files if result_filter(f, idx[0],  missingness, impn.lower())]
                     # print("SUBSET", fs)
                     data = pd.read_pickle(join(path, fs[0]))
                     # print(data.mean())
@@ -128,10 +230,10 @@ def make_table(missingness, columns, indexes, imputation_list, path="results/ope
                         # print("MADE IT")
                         full = data[idx[1].lower()]["full"].values
                         dropped = data[idx[1].lower()]["drop"].values
-                        xgb = data[idx[1].lower()]["xgboost"].values
-                        xgbdrop = data[idx[1].lower()]["xgboost_drop"].values
-                        if xgboost:
-                            temp = np.mean(xgb[~np.isnan(np.array([float(i) for i in xgb]))])
+                        gbm = data[idx[1].lower()]["gbmoost"].values
+                        gbmdrop = data[idx[1].lower()]["gbmoost_drop"].values
+                        if gbmoost:
+                            temp = np.mean(gbm[~np.isnan(np.array([float(i) for i in gbm]))])
                         else:
                             temp = np.mean(full[~np.isnan(np.array([float(i) for i in full]))])
                         if temp < 0.01 or np.abs(1 - temp) < 0.01:
@@ -140,8 +242,8 @@ def make_table(missingness, columns, indexes, imputation_list, path="results/ope
                             val = "{:.2f}".format(temp)
                         out.append(val)
                     elif cidx[2] == "Dropped":
-                        if xgboost:
-                            temp = np.mean(xgbdrop[~np.isnan(np.array([float(i) for i in xgbdrop]))])
+                        if gbmoost:
+                            temp = np.mean(gbmdrop[~np.isnan(np.array([float(i) for i in gbmdrop]))])
                         else:
                             temp = np.mean(dropped[~np.isnan(np.array([float(i) for i in dropped]))])
                         if temp < 0.01 or np.abs(1 - temp) < 0.01:
@@ -150,8 +252,8 @@ def make_table(missingness, columns, indexes, imputation_list, path="results/ope
                             val = "{:.2f}".format(temp)
                         out.append(val)
                     else:
-                        if xgboost:
-                            name = "xgboost"
+                        if gbmoost:
+                            name = "gbmoost"
                         else:
                             name = "full"
                         ser = data[idx[1].lower()][name].values
@@ -205,7 +307,7 @@ print(colmulti)
 # print(mnar.to_latex(multirow=True))
 
 ## unknown missingness pattern
-datasets = pd.read_csv("results/openml/noncorrupted_tasklist.csv")
+datasets = pd.read_csv("results/openml/corrupted_tasklist.csv")
 datasets_cat = datasets.name.values[datasets.task_type.values == "Supervised Classification"]
 datasets_reg = datasets.name.values[datasets.task_type.values == "Supervised Regression"]
 # datasets_cat = ["sick", "hypothyroid", "ipums_la_99-small"]
