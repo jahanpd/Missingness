@@ -69,7 +69,7 @@ def create_make_model(features, rows, task, key):
         max_steps = 1e5
         epochs = int(max_steps // steps_per_epoch)
         start_steps = steps_per_epoch * 5 # wait at least 5 epochs before early stopping
-        stop_steps_ = 100
+        stop_steps_ = 200
   
         early_stopping = create_early_stopping(start_steps, stop_steps_, metric_name="loss", tol=1e-8)
         training_kwargs_uat = dict(
@@ -226,7 +226,7 @@ def run(
         print("training gbmoost for {} epochs".format(num_round))
         for k in ["max_depth", "max_bin"]:
             gbm_params[k] = int(gbm_params[k])
-        bst = lgb.train(gbm_params, dtrain, num_round, valid_sets=[dvalid], early_stopping_rounds=50)
+        bst = lgb.train(gbm_params, dtrain, num_round, valid_sets=[dvalid], early_stopping_rounds=50, verbose_eval=100)
         output_gbm = bst.predict(X_test)
 
         # 1. there is no point dropping if the training set is complete
@@ -234,7 +234,7 @@ def run(
         # 3. there is no point dropping if we have imputed the training set
         # 4a. if we are corrupting we want to drop when missing is not none OR
         # 4b. if we are not corrupting we want to drop when missing is none
-        if (not train_complete) and (not empty) and (imputation is None) and ((missing is not None and corrupt) or (missing is None and not corrupt)):
+        if (not train_complete) and (not empty) and (imputation is None) and ((missing is not None and corrupt) or (missing is None and not corrupt)) and False:
             if X_train_drop.shape[0] < trans_params["batch_size"]:
                 new_bs = 2
                 while new_bs <= X_train_drop.shape[0] - new_bs:
@@ -258,7 +258,7 @@ def run(
             num_round = 1000
             print("training gbmoost for {} epochs".format(num_round))
             bst_drop = lgb.train(
-                    gbm_params, dtrain_drop, num_round, valid_sets=[dvalid], early_stopping_rounds=50)
+                    gbm_params, dtrain_drop, num_round, valid_sets=[dvalid], early_stopping_rounds=50, verbose_eval=100)
             output_gbm_drop = bst_drop.predict(X_test_drop)
         else:
             empty = True # in order to set dropped metrics to NA
@@ -556,36 +556,36 @@ if __name__ ==  "__main__":
             if missing == "None":
                 missing = None
             for imputation in args.imputation:
-                try:
-                    # we do not want to impute data if there is None missing and data is not corrupted
-                    if imputation != "None" and missing is None and args.corrupt:
-                        continue
-                    # if results file already exists then skip
-                    sub = [f for f in result_files if result_exists(f, row[2], missing, imputation)]
-                    if len(sub) > 0:
-                        continue
+                # try:
+                # we do not want to impute data if there is None missing and data is not corrupted
+                if imputation != "None" and missing is None and args.corrupt:
+                    continue
+                # if results file already exists then skip
+                sub = [f for f in result_files if result_exists(f, row[2], missing, imputation)]
+                if len(sub) > 0:
+                    continue
 
-                    if imputation == "None":
-                        imputation = None
+                if imputation == "None":
+                    imputation = None
 
-                    m1, perc_missing = run(
-                        dataset=row[0],
-                        task=row[1],
-                        missing=missing,
-                        train_complete=args.train_complete,
-                        test_complete=args.test_complete,
-                        imputation=imputation,
-                        epochs=args.epochs,
-                        prop=args.p,
-                        trans_params = trans_results["max"]["params"],
-                        gbm_params =  gbm_results["max"]["params"],
-                        corrupt=args.corrupt
-                        )
-                    print(row[2], missing, imputation)
-                    print(m1.mean())
-                    if args.save:
-                        m1.to_pickle("results/openml/{},{:2f},{},{},{},{}.pickle".format(
-                        row[2], perc_missing, str(missing), str(imputation), args.test_complete, args.corrupt))
+                m1, perc_missing = run(
+                    dataset=row[0],
+                    task=row[1],
+                    missing=missing,
+                    train_complete=args.train_complete,
+                    test_complete=args.test_complete,
+                    imputation=imputation,
+                    epochs=args.epochs,
+                    prop=args.p,
+                    trans_params = trans_results["max"]["params"],
+                    gbm_params =  gbm_results["max"]["params"],
+                    corrupt=args.corrupt
+                    )
+                print(row[2], missing, imputation)
+                print(m1.mean())
+                if args.save:
+                    m1.to_pickle("results/openml/{},{:2f},{},{},{},{}.pickle".format(
+                    row[2], perc_missing, str(missing), str(imputation), args.test_complete, args.corrupt))
 
-                except Exception as e:
-                    print(e)
+                # except Exception as e:
+                #     print(e)

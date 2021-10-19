@@ -114,7 +114,7 @@ print(name_list)
 print("fraction of datasets run: ", len(name_list) / len(name_list_full))
 
 
-keys = itertools.product(["MCAR"], ["None", "Simple", "Iterative", "MiceForest"], ["Transformer", "LightGBM"])
+keys = itertools.product(["MCAR", "MNAR"], ["None", "Simple", "Iterative", "MiceForest"], ["Transformer", "LightGBM"])
 process_dict = {
     (" ", " ", "Dataset"):[],
     (" ", " ", "Metric"):[],
@@ -124,7 +124,7 @@ process_dict = {
 for key in keys:
     process_dict[key] = []
 
-key_sub = list(itertools.product(["MCAR"], ["None", "Simple", "Iterative", "MiceForest"]))
+key_sub = list(itertools.product(["MCAR", "MNAR"], ["None", "Simple", "Iterative", "MiceForest"]))
 for name in name_list:
     process_dict[(" ", " ", "Dataset")].append(name)
     # get metric information
@@ -163,8 +163,8 @@ for name in name_list:
                 trans = (np.mean(ds[metric]["full"].values) - baseline_trans) / baseline_trans
                 gbm = (np.mean(ds[metric]["gbmoost"].values) - baseline_gbm) / baseline_gbm
             elif metric == "rmse":     
-                trans = -(np.mean(ds[metric]["full"].values) - baseline_trans) / baseline_trans
-                trans = -(np.mean(ds[metric]["gbmoost"].values) - baseline_gbm) / baseline_gbm
+                trans = (np.mean(ds[metric]["full"].values) - baseline_trans) / baseline_trans
+                trans = (np.mean(ds[metric]["gbmoost"].values) - baseline_gbm) / baseline_gbm
             process_dict[(key[0], key[1], "Transformer")].append(trans)
             process_dict[(key[0], key[1], "LightGBM")].append(gbm)
         except Exception as e:
@@ -174,7 +174,7 @@ for name in name_list:
 
 final_results = pd.DataFrame(process_dict)
 final_results.to_pickle('./results/openml/openml_results.pickle')
-print(pd.DataFrame(process_dict))
+print(final_results)
 asd
 
 

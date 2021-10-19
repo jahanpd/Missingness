@@ -8,6 +8,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.experimental import enable_iterative_imputer
 from sklearn.impute import SimpleImputer, IterativeImputer
 from sklearn.preprocessing import StandardScaler
+from sklearn.feature_selection import mutual_info_classif, mutual_info_regression
 import miceforest as mf
 # import tensorflow_datasets
 import os
@@ -454,6 +455,21 @@ def openml_ds(
     ):
     rng = np.random.default_rng(rng_key)
 
+    # drop data proportional to mutual information
+    if task == 'Supervised Regression':
+        mi = mutual_info_regression(
+            X = X_train,
+            y = y_train,
+            discrete_features=np.array(cat_bin)==1
+        )
+    if task == 'Supervised Classification':
+        mi = mutual_info_classif(
+            X = X_train,
+            y = y_train,
+            discrete_features=np.array(cat_bin)==1
+        )
+    mi = (mi / mi.max()) * 0.9
+
     key = rng.integers(9999)
     if missing is None:
         train_complete = True
@@ -473,11 +489,10 @@ def openml_ds(
 
     # create missingness mask
     cols = X_train.shape[1]
-    if missing == "MCAR":
-        p = 1 - (prop)**(1/cols)
+    if missing == "MCAR": 
         cols_miss = np.minimum(cols, cols_miss) # clip cols missing 
         rand_arr = rng.uniform(0, 1, (X.shape[0], cols_miss))
-        nan_arr = np.where(rand_arr < p, np.nan, 1.0)
+        nan_arr = np.where(rand_arr < mi, np.nan, 1.0)
         X[:, -cols_miss:] *= nan_arr
 
     if missing == "MAR":
@@ -496,17 +511,15 @@ def openml_ds(
         X[:, -cols_miss:] *= nan_arr[:, -cols_miss:]  # dependency is shifted to the left, therefore MAR
 
     if missing == "MNAR":
-        p = 1 - (prop)**(1/cols)
         cols_miss = np.minimum(cols, cols_miss) # clip cols missing 
-        q = rng.uniform(0.3,0.7,(cols,))
         corrections = []
         for col in range(cols):
-            correction = X[:,col] > np.quantile(X[:,col], q[col], keepdims=True) # dependency on each x
+            correction = X[:,col] > np.quantile(X[:,col], np.maximum(mi[col], 0.5), keepdims=True) # dependency on each x
             corrections.append(correction)
         corrections = np.concatenate(corrections)
         corrections = np.where(corrections, 0.0, 1.0).reshape((-1,cols))
         rand_arr = rng.uniform(0,1,(X.shape[0], cols)) * corrections
-        nan_arr = np.where(rand_arr > (1-p), np.nan, 1.0)
+        nan_arr = np.where(rand_arr > (1-(mi*1.1)), np.nan, 1.0)
         X[:, -cols_miss:] *= nan_arr[:, -cols_miss:]  # dependency is not shifted to the left, therefore MNAR
     
     # generate train, validate, test datasets and impute training 
