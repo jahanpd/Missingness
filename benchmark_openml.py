@@ -66,7 +66,7 @@ def create_make_model(features, rows, task, key):
                 b_init = jax.nn.initializers.normal(1e-5),
                 )
         steps_per_epoch = rows // batch_size_base2
-        max_steps = 1e5
+        max_steps = 1e8
         epochs = int(max_steps // steps_per_epoch)
         start_steps = steps_per_epoch * 5 # wait at least 5 epochs before early stopping
         stop_steps_ = 200
@@ -384,17 +384,18 @@ if __name__ ==  "__main__":
     rng = np.random.default_rng(1234)
     key = rng.integers(9999)
     ros = RandomOverSampler(random_state=key)
+    class_filter = np.array([x == "Supervised Classification" for x in data_list.task_type])
     if args.dataset is not None:
         selection = np.array(args.dataset)
     else:
-        selection = np.arange(len(data_list))
+        selection = np.arange(len(data_list))[class_filter]
         if args.inverse:
             selection = np.flip(selection)
 
     for row in data_list[['did', 'task_type', 'name']].values[selection,:]:
         # BAYESIAN HYPERPARAMETER  SEARCH
         # will search if cannot load params from file
-        print(row[2])
+        print(row[1], row[2])
         key = rng.integers(9999)
         X, y, classes, cat_bin = data.prepOpenML(row[0], row[1])
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=key)

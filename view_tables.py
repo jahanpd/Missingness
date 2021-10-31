@@ -108,9 +108,8 @@ def file_filter_name(filename):
     splt = filename[:-7].split(",")
     return splt[0]
 
-name_list = set([file_filter_name(n) for n in result_files])
+name_list = set([file_filter_name(n) for n in result_files if 'True' in n])
 print(name_list)
-
 print("fraction of datasets run: ", len(name_list) / len(name_list_full))
 
 
@@ -159,12 +158,12 @@ for name in name_list:
             s = [f for f in result_files if file_filter(f, name, key[0], key[1])]
             path = join('./results/openml/', str(s[0]))
             ds = pd.read_pickle(path)
-            if metric == "accuracy":
+            if metric in ["accuracy", "NLL"]:
                 trans = (np.mean(ds[metric]["full"].values) - baseline_trans) / baseline_trans
                 gbm = (np.mean(ds[metric]["gbmoost"].values) - baseline_gbm) / baseline_gbm
             elif metric == "rmse":     
                 trans = (np.mean(ds[metric]["full"].values) - baseline_trans) / baseline_trans
-                trans = (np.mean(ds[metric]["gbmoost"].values) - baseline_gbm) / baseline_gbm
+                gbm = (np.mean(ds[metric]["gbmoost"].values) - baseline_gbm) / baseline_gbm
             process_dict[(key[0], key[1], "Transformer")].append(trans)
             process_dict[(key[0], key[1], "LightGBM")].append(gbm)
         except Exception as e:
@@ -172,9 +171,14 @@ for name in name_list:
             process_dict[(key[0], key[1], "Transformer")].append(np.nan)
             process_dict[(key[0], key[1], "LightGBM")].append(np.nan)
 
+print(process_dict)
+for key in process_dict.keys():
+    print(key, len(process_dict[key]))
 final_results = pd.DataFrame(process_dict)
 final_results.to_pickle('./results/openml/openml_results.pickle')
 print(final_results)
+print("win ratio baseline: {}".format(np.sum(final_results["None"]['None']['Transformer'].values < final_results["None"]['None']['LightGBM'].values) / len(final_results)))
+print("win ratio for MNAR: {}".format(np.sum(final_results["MNAR"]['None']['Transformer'].values < final_results["MNAR"]['None']['LightGBM'].values) / len(final_results)))
 asd
 
 

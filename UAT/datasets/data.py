@@ -492,7 +492,7 @@ def openml_ds(
     if missing == "MCAR": 
         cols_miss = np.minimum(cols, cols_miss) # clip cols missing 
         rand_arr = rng.uniform(0, 1, (X.shape[0], cols_miss))
-        nan_arr = np.where(rand_arr < mi, np.nan, 1.0)
+        nan_arr = np.where(rand_arr < 0.6, np.nan, 1.0)
         X[:, -cols_miss:] *= nan_arr
 
     if missing == "MAR":
@@ -512,14 +512,13 @@ def openml_ds(
 
     if missing == "MNAR":
         cols_miss = np.minimum(cols, cols_miss) # clip cols missing 
-        corrections = []
-        for col in range(cols):
-            correction = X[:,col] > np.quantile(X[:,col], np.maximum(mi[col], 0.5), keepdims=True) # dependency on each x
-            corrections.append(correction)
-        corrections = np.concatenate(corrections)
-        corrections = np.where(corrections, 0.0, 1.0).reshape((-1,cols))
-        rand_arr = rng.uniform(0,1,(X.shape[0], cols)) * corrections
-        nan_arr = np.where(rand_arr > (1-(mi*1.1)), np.nan, 1.0)
+        corrections = X <= np.quantile(X, 0.8)
+        rand_arr = rng.uniform(0,1,(X.shape[0], cols))
+        set_nan = (rand_arr > (1-0.75)) & corrections
+        nan_arr = np.where(set_nan, np.nan, 1.0)
+        print("total corrections: ", np.sum(corrections)/ np.size(X))
+        print("total rand: ", np.sum((rand_arr > (1-0.75) ))/ np.size(X))
+        print("total missing: ", np.sum(set_nan)/np.size(X))
         X[:, -cols_miss:] *= nan_arr[:, -cols_miss:]  # dependency is not shifted to the left, therefore MNAR
     
     # generate train, validate, test datasets and impute training 
