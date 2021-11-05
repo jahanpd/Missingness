@@ -177,8 +177,9 @@ for key in process_dict.keys():
 final_results = pd.DataFrame(process_dict)
 final_results.to_pickle('./results/openml/openml_results.pickle')
 print(final_results)
-print("win ratio baseline: {}".format(np.sum(final_results["None"]['None']['Transformer'].values < final_results["None"]['None']['LightGBM'].values) / len(final_results)))
-print("win ratio for MNAR: {}".format(np.sum(final_results["MNAR"]['None']['Transformer'].values < final_results["MNAR"]['None']['LightGBM'].values) / len(final_results)))
+print("win ratio baseline: {}".format(np.sum(final_results["None"]['None']['Transformer'].values > final_results["None"]['None']['LightGBM'].values) / len(final_results['None'].dropna())))
+print("win ratio for MNAR: {}".format(np.sum(final_results["MNAR"]['None']['Transformer'].values > final_results["MNAR"]['None']['LightGBM'].values) / len(final_results['MNAR'].dropna())))
+print("win ratio for MCAR: {}".format(np.sum(final_results["MCAR"]['None']['Transformer'].values > final_results["MCAR"]['None']['LightGBM'].values) / len(final_results['MCAR'].dropna())))
 asd
 
 

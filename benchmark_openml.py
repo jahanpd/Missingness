@@ -66,10 +66,10 @@ def create_make_model(features, rows, task, key):
                 b_init = jax.nn.initializers.normal(1e-5),
                 )
         steps_per_epoch = rows // batch_size_base2
-        max_steps = 1e8
+        max_steps = 1e7
         epochs = int(max_steps // steps_per_epoch)
-        start_steps = steps_per_epoch * 5 # wait at least 5 epochs before early stopping
-        stop_steps_ = 200
+        start_steps = 0 # wait at least 5 epochs before early stopping
+        stop_steps_ = 10000
   
         early_stopping = create_early_stopping(start_steps, stop_steps_, metric_name="loss", tol=1e-8)
         training_kwargs_uat = dict(
