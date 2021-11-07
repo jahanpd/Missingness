@@ -50,7 +50,7 @@ def cross_entropy(
                         + (1-labels) * jnp.log(1 - probs + 1e-7)).sum()
 
             ce = cross_entropy(probs, one_hot).mean()
-            norm_params = [params[key] for key in params.keys() if key not in ["logits"]] 
+            norm_params = [params[key] for key in params.keys() if key in ["last_layer", "net2"]] 
             l2 = l2_norm(norm_params)
             entropy = p_drop * jnp.log(p_drop + 1e-7)
             entropy += (1.0 - p_drop) * jnp.log(1.0 - p_drop + 1e-7)

@@ -31,6 +31,7 @@ def training_loop(
     start_score=100, # epochs when to start 
     early_stopping=None, # or callable
     output_freq=5,
+    early_stop=True # if makes it to end of training cycle, return early stop. Also shuts down early stopping for HP optim
     ):
     devices = jax.local_device_count()
     assert batch_size % devices == 0, "batch size must be divisible by number of devices"
@@ -62,6 +63,15 @@ def training_loop(
             optim_kwargs["step_size"] = step_size
         
         optim_init, optim_update, optim_params = optimizers.sgd(**optim_kwargs)
+    
+    elif optim == "momentum":
+        tqdm.write("optimizer: momentum, lr: {}, batch_size={}".format(print_step(1), batch_size))
+        if optim_kwargs is None:
+            optim_kwargs = dict(step_size=step_size)
+        else:
+            optim_kwargs["step_size"] = step_size
+        
+        optim_init, optim_update, optim_params = optimizers.momentum(**optim_kwargs)
     
     elif optim == "adascore":
         if optim_kwargs is None:
@@ -182,6 +192,8 @@ def training_loop(
         metric_store_master["counter"] = 0
         test_dict = metric_store_master.copy()
     start_time = time.time()
+    params_store = None
+    metric_store = None
     for epoch in range(epochs):
         rng, key = random.split(rng, 2)
         if X.shape[0] > batch_size:
@@ -223,7 +235,7 @@ def training_loop(
                 # early stopping is a function that returns a bool, params_store, metric_store
                 stop, params_store, metric_store = early_stopping(
                     step, params_, params_store, test_dict, metric_store)
-                if stop:
+                if stop and early_stop:
                     tqdm.write("Final test loss: {}, epoch: {}".format(
                         metric_store["loss"], metrics_ewa_["epoch"]))
                     return params_store, history, rng
@@ -284,14 +296,19 @@ def training_loop(
                 metrics_ewa_ = metrics_ewa.copy()
         pbar2.close()
         pbar1.update(1)
+        elapsed_time = time.time() - start_time
+        if (elapsed_time / 60) > 11.5:
+            break
+        
     elapsed_time = time.time() - start_time
-    try:
-        tqdm.write("Final test loss: {}, epoch: {}, time: {}".format(
-            metrics_ewa_["test_loss"], metrics_ewa_["epoch"], timedelta(minutes=elapsed_time)))
-    except:
-        tqdm.write("Final loss: {}, epoch: {}, time: {}".format(
-            metrics_ewa_["loss"], metrics_ewa_["epoch"], timedelta(minutes=elapsed_time)))
+
+    if params_store is not None and early_stop:
+        params = params_store
+    else:
+        params = jax.device_get(jax.tree_map(lambda x: x[0], params))
+    tqdm.write("Final test loss: {}, epoch: {}, time: {}".format(
+        metric_store["loss"], epoch, timedelta(minutes=elapsed_time)))
+    
     pbar1.close()
-    params = jax.device_get(jax.tree_map(lambda x: x[0], params))
     return params, history, rng
 

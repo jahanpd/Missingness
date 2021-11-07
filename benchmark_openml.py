@@ -18,7 +18,8 @@ import UAT.datasets as data
 from UAT import UAT, create_early_stopping
 from UAT import binary_cross_entropy, cross_entropy, mse
 from UAT.aux import oversampled_Kfold
-from UAT.training.lr_schedule import attention_lr
+from UAT.training.lr_schedule import attention_lr, linear_increase
+from optax import linear_onecycle_schedule
 # import xgboost as xgb
 import lightgbm as lgb
 from tqdm import tqdm
@@ -38,12 +39,19 @@ def create_make_model(features, rows, task, key):
     def make_model(
             d_model,
             batch_size,
-            lr_param,
             reg,
             X_valid,
-            y_valid
+            y_valid,
+            peak_steps=2000,
+            min_steps=3000,
+            max_steps=4e3,
+            lr_max=None,
+            early_stop=True,
+            b2=0.8
         ):
-        print("dims: {}, lr_param: {}, reg: {}".format(d_model, lr_param, reg))
+        print("dims: {}, reg: {}, lr_max: {}, peak_steps: {}, min_steps: {}".format(
+            d_model, 10**-reg, np.exp(lr_max), peak_steps, min_steps))
+        batch_size = 128
         batch_size_base2 = 2 ** int(np.round(np.log2(batch_size)))
         model_kwargs_uat = dict(
                 features=features,
@@ -62,23 +70,37 @@ def create_make_model(features, rows, task, key):
                 net_activation=jax.nn.leaky_relu,
                 last_layer_size=32,
                 out_size=classes,
-                W_init = jax.nn.initializers.glorot_uniform(),
-                b_init = jax.nn.initializers.normal(1e-5),
+                W_init = jax.nn.initializers.lecun_normal(),
+                b_init = jax.nn.initializers.normal(1e-2),
                 )
         steps_per_epoch = rows // batch_size_base2
-        max_steps = 1e7
         epochs = int(max_steps // steps_per_epoch)
         start_steps = 0 # wait at least 5 epochs before early stopping
-        stop_steps_ = 10000
-  
+        stop_steps_ = 5e2
+
+        # definint learning rate schedule
+        if lr_max is None:
+            schedule = linear_increase(max_steps, 0.001, 3)
+        else:
+            schedule = linear_onecycle_schedule(
+                transition_steps=max_steps,
+                peak_value=np.exp(lr_max),
+                pct_start=peak_steps / max_steps,
+                pct_final=min_steps / max_steps,
+                div_factor=10,
+                final_div_factor=10000
+            )
+        
         early_stopping = create_early_stopping(start_steps, stop_steps_, metric_name="loss", tol=1e-8)
         training_kwargs_uat = dict(
                     optim="adam",
                     frequency=20,
                     batch_size=batch_size_base2,
-                    lr=attention_lr(lr_param, 1000),
+                    lr=schedule,
                     epochs=epochs,
-                    early_stopping=early_stopping
+                    early_stopping=early_stopping,
+                    optim_kwargs=dict(b1=0.1, b2=b2, eps=1e-8),
+                    early_stop=early_stop
                 )
         if task == "Supervised Classification":
             loss_fun = cross_entropy(classes, l2_reg=10.0**-reg, dropout_reg=1e-5) 
@@ -175,7 +197,7 @@ def run(
         make_model = create_make_model(X_train.shape[1], X_train.shape[0], task, key)
         print(trans_params)
         model, batch_size_base2, loss_fun = make_model(
-                trans_params["d_model"], trans_params["batch_size"], trans_params["lr_param"], trans_params["reg"], X_valid, y_valid)
+                X_valid=X_valid, y_valid=y_valid, **trans_params)
                 
         # equalise training classes if categorical
         if task == "Supervised Classification":
@@ -191,7 +213,7 @@ def run(
             print("assertion is ", np.all(~np.isnan(X_train)))
             assert np.all(~np.isnan(X_train))
 
-       # create dropped dataset baseline and implement missingness strategy
+        # create dropped dataset baseline and implement missingness strategy
         def drop_nans(xarray, yarray):
             row_mask = ~np.any(np.isnan(xarray), axis=1)
             xdrop = xarray[row_mask, :]
@@ -242,7 +264,7 @@ def run(
             else:
                 new_bs = trans_params["batch_size"]
             model_drop, batch_size_base2, loss_fun = make_model(
-                trans_params["d_model"], new_bs, trans_params["lr_param"], trans_params["reg"], X_valid, y_valid)
+                X_valid=X_valid, y_valid=y_valid, **train_params)
             model_drop.fit(X_train_drop, y_train_drop)
             # XGBoost comparison
             # build XGBoost model
@@ -363,7 +385,7 @@ if __name__ ==  "__main__":
     parser.add_argument("--test_complete", action='store_false') # default is true
     parser.add_argument("--load_params", action='store_false') # default is true
     parser.add_argument("--save", action='store_true')
-    parser.add_argument("--iters", type=int, default=15)
+    parser.add_argument("--iters", type=int, default=10)
     parser.add_argument("--inverse", action='store_true')
     parser.add_argument("--gbm_gpu", type=int, default=-1)
     args = parser.parse_args()
@@ -449,8 +471,19 @@ if __name__ ==  "__main__":
             # implement bayesian hyperparameter optimization with sequential domain reduction
             key = rng.integers(9999)
             make_model = create_make_model(X_train.shape[1], X_train.shape[0], row[1], key)
-            def black_box(d_model, batch_size, lr_param, reg):
-                model, batch_size_base2, loss_fun = make_model(d_model, batch_size, lr_param, reg, X_valid, y_valid)
+            # find LR range for cyclical training / super convergence
+            search_steps = 4e3
+            # model, batch_size_base2, loss_fun = make_model(128, 128, 12, X_valid, y_valid, search_steps)
+            # model.fit(X_train, y_train)
+            # loss_hx = [h["test_current"] for h in model._history]
+            # lr_hx = [h["lr"] for h in model._history]
+            # lr_max = lr_hx[int(np.argmin(loss_hx) * 0.8)]
+
+            def black_box(d_model, batch_size, reg, lr_max, b2):
+                model, batch_size_base2, loss_fun = make_model(
+                    d_model, batch_size, reg, X_valid, y_valid,
+                    max_steps=search_steps, lr_max=lr_max, early_stop=False, b2=b2
+                    )
                 model.fit(X_train, y_train)
                 # break test into 'batches' to avoid OOM errors
                 test_mod = X_test.shape[0] % batch_size_base2
@@ -470,27 +503,32 @@ if __name__ ==  "__main__":
                     loss = loss_calc(model.params, X_test[np.array(tbatch), ...], y_test[np.array(tbatch)], key_)
                     loss_loop += loss
                     pbar1.update(1)
-                # average metrics over test batches
+                # make nan loss high, and average metrics over test batches
+                if np.isnan(loss_loop) or np.isinf(loss_loop):
+                    loss_loop = 999999
+                print(loss_loop, len(test_batches)),
                 return - loss_loop / len(test_batches)
 
             pbounds={
-                    "d_model":(16,128),
-                    "batch_size":(8, 128),
-                    "lr_param":(100, 10000),
-                    "reg":(3, 12)
+                    "d_model":(127,128),
+                    "batch_size":(127, 128),
+                    "reg":(9, 10),
+                    "lr_max":(np.log(5e-4), np.log(5e-2)),
+                    "b2":(0.0,1.0)
                     }
         
-            bounds_transformer = SequentialDomainReductionTransformer()
+            # bounds_transformer = SequentialDomainReductionTransformer()
             key = rng.integers(9999)
             mutating_optimizer = BayesianOptimization(
                 f=black_box,
                 pbounds=pbounds,
                 verbose=0,
                 random_state=int(key),
-                bounds_transformer=bounds_transformer
+                # bounds_transformer=bounds_transformer
             )
-            mutating_optimizer.probe(params={"d_model":64, "batch_size":64, "lr_param":3000, "reg":6})
-            mutating_optimizer.maximize(init_points=1, n_iter=args.iters)
+            # mutating_optimizer.probe(params={"d_model":128, "batch_size":128, "reg":10, "lr_max":1e-3})
+            kappa = 5  # parameter to control exploitation vs exploration. higher = explore
+            mutating_optimizer.maximize(init_points=5, n_iter=args.iters, acq="ei", xi=1e-2, kappa=kappa)
             print(mutating_optimizer.res)
             print(mutating_optimizer.max)
             trans_results = {"max": mutating_optimizer.max, "all":mutating_optimizer.res}
@@ -532,7 +570,7 @@ if __name__ ==  "__main__":
                 verbose=0,
                 random_state=int(key),
             )
-            mutating_optimizer_gbm.maximize(init_points=5, n_iter=args.iters)
+            mutating_optimizer_gbm.maximize(init_points=5, n_iter=15, acq="ei", xi=1e-1, kappa=kappa)
             print(mutating_optimizer_gbm.res)
             print(mutating_optimizer_gbm.max)
             best_params_gbm = mutating_optimizer_gbm.max
