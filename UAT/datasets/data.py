@@ -468,7 +468,8 @@ def openml_ds(
             y = y_train,
             discrete_features=np.array(cat_bin)==1
         )
-    mi = (mi / mi.max()) * 0.9
+    sort = np.argsort(mi)
+    unsort = np.argsort(sort)
 
     key = rng.integers(9999)
     if missing is None:
@@ -491,35 +492,64 @@ def openml_ds(
     cols = X_train.shape[1]
     if missing == "MCAR": 
         cols_miss = np.minimum(cols, cols_miss) # clip cols missing 
-        rand_arr = rng.uniform(0, 1, (X.shape[0], cols_miss))
-        nan_arr = np.where(rand_arr < 0.6, np.nan, 1.0)
-        X[:, -cols_miss:] *= nan_arr
-
-    if missing == "MAR":
-        p = 1 - (prop)**(1/cols)
-        cols_miss = np.minimum(cols - 1, cols_miss) # clip cols missing 
-        q = rng.uniform(0.3,0.7,(cols-1,))
-        corrections = []
-        for col in range(cols-1):
-            correction = X[:,col] > np.quantile(X[:,col], q[col], keepdims=True) # dependency on each x
-            corrections.append(correction)
-        corrections = np.concatenate(corrections)
-        corrections = np.where(corrections, 0.0, 1.0).reshape((-1,cols - 1))
-        print(corrections.shape, X.shape)
-        rand_arr = rng.uniform(0,1,(X.shape[0], cols - 1)) * corrections
-        nan_arr = np.where(rand_arr > (1-p), np.nan, 1.0)
-        X[:, -cols_miss:] *= nan_arr[:, -cols_miss:]  # dependency is shifted to the left, therefore MAR
+        rand_arr = rng.uniform(0, 1, X.shape)
+        nan_arr = np.where(rand_arr < prop, np.nan, 1.0)
+        X[:, sort[-cols_miss:]] *= nan_arr[:, sort[-cols_miss:]]
 
     if missing == "MNAR":
-        cols_miss = np.minimum(cols, cols_miss) # clip cols missing 
-        corrections = X <= np.quantile(X, 0.8)
-        rand_arr = rng.uniform(0,1,(X.shape[0], cols))
-        set_nan = (rand_arr > (1-0.75)) & corrections
-        nan_arr = np.where(set_nan, np.nan, 1.0)
-        print("total corrections: ", np.sum(corrections)/ np.size(X))
-        print("total rand: ", np.sum((rand_arr > (1-0.75) ))/ np.size(X))
-        print("total missing: ", np.sum(set_nan)/np.size(X))
-        X[:, -cols_miss:] *= nan_arr[:, -cols_miss:]  # dependency is not shifted to the left, therefore MNAR
+        p_master = prop
+        cols_miss = np.minimum(cols, cols_miss) # clip cols missing
+        nan_list = []
+        for i,b in enumerate(cat_bin):
+            # for each column get ~20% that you are keeping for sure
+            # based completely on the value, hence MNAR
+            # aim to delete 60% per column
+            if b == 1: # categorical
+                unique, counts = np.unique(X[:, i], return_counts=True)
+                if len(unique) == 2:
+                    max_val = unique[np.argmax(counts)]
+                    prop = counts.max() / counts.sum()
+                    p = 0.99 if prop < p_master else p_master / prop
+                    rand_arr = rng.uniform(0,1,X[:,i].shape)
+                    rand_arr[X[:, i] != max_val] = 1
+                    set_nan = rand_arr < p
+                    nan_arr = np.where(set_nan, np.nan, 1.0)
+                    nan_list.append(nan_arr)
+                elif len(unique) > 2 :
+                    argsort = np.argsort(counts)
+                    cumsum = np.cumsum(counts[argsort]/counts.sum())
+                    cs_bool = cumsum < 0.8
+                    cs_max = np.max(cumsum[cs_bool])
+                    max_vals = unique[argsort[cs_bool]]
+                    p = 0.99 if cs_max < p_master else p_master / prop
+                    rand_arr = rng.uniform(0,1,X[:,i].shape)
+                    rand_arr[~np.isin(X[:, i], max_vals)] = 1
+                    set_nan = rand_arr < p
+                    nan_arr = np.where(set_nan, np.nan, 1.0)
+                    nan_list.append(nan_arr)
+                else:
+                    rand_arr = rng.uniform(0,1,X[:,i].shape)
+                    set_nan = rand_arr < p_master
+                    nan_arr = np.where(set_nan, np.nan, 1.0)
+                    nan_list.append(nan_arr)
+            else: 
+                q = np.quantile(X[:, i], p_master)
+                ratio = np.sum(X[:,i] <= q) / X.shape[0]
+                if ratio > p_master:
+                    set_nan1 = X[:, i] <= q
+                    rand_arr = rng.uniform(0,1,X[:,i].shape)
+                    set_nan2 = rand_arr < p_master / ratio
+                    set_nan = set_nan1 & set_nan2
+                    nan_arr = np.where(set_nan, np.nan, 1.0)
+                else:
+                    set_nan = X[:, i] <= q
+                    nan_arr = np.where(set_nan, np.nan, 1.0)
+                nan_list.append(nan_arr)
+
+        nan_arr = np.concatenate(nan_list).reshape(len(nan_list), -1).T
+        print("total missing: ", np.sum(np.isnan(nan_arr))/np.size(X))
+        X[:, sort[:cols_miss]] *= nan_arr[:, sort[:cols_miss]]  # dependency is not shifted to the left, therefore MNAR
+        print("complete cols: ", np.sum(np.all(~np.isnan(X), axis=0)))
     
     # generate train, validate, test datasets and impute training 
     key = rng.integers(9999)

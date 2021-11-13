@@ -16,10 +16,10 @@ from sklearn.metrics import f1_score, roc_auc_score
 from imblearn.over_sampling import RandomOverSampler
 import UAT.datasets as data
 from UAT import UAT, create_early_stopping
-from UAT import binary_cross_entropy, cross_entropy, mse
+from UAT import binary_cross_entropy, cross_entropy, mse, brier
 from UAT.aux import oversampled_Kfold
 from UAT.training.lr_schedule import attention_lr, linear_increase
-from optax import linear_onecycle_schedule
+from optax import linear_onecycle_schedule, join_schedules
 # import xgboost as xgb
 import lightgbm as lgb
 from tqdm import tqdm
@@ -37,75 +37,94 @@ devices = jax.local_device_count()
 
 def create_make_model(features, rows, task, key):
     def make_model(
-            d_model,
-            batch_size,
-            reg,
             X_valid,
             y_valid,
-            peak_steps=2000,
-            min_steps=3000,
-            max_steps=4e3,
+            batch_size=8,
+            max_steps=6e3,
             lr_max=None,
+            d_model=128,
             early_stop=True,
-            b2=0.8
+            b2=0.99,
+            reg=8,
+            offset=1000
         ):
-        print("dims: {}, reg: {}, lr_max: {}, peak_steps: {}, min_steps: {}".format(
-            d_model, 10**-reg, np.exp(lr_max), peak_steps, min_steps))
-        batch_size = 128
-        batch_size_base2 = 2 ** int(np.round(np.log2(batch_size)))
+        batch_size_base2 = 2 ** int(np.round(batch_size))
+        steps_per_epoch = max(rows // batch_size_base2, 1)
+        min_epochs = 50
+        if max_steps / steps_per_epoch < min_epochs:
+            max_steps = min_epochs * steps_per_epoch
+        print("lr: {}, d: {}, reg: {}, b2: {}, offset: {}".format(
+            np.exp(lr_max), int(d_model), reg, b2, int(offset)))
         model_kwargs_uat = dict(
                 features=features,
-                d_model=int(np.round(d_model)),
-                embed_hidden_size=64,
+                d_model=int(d_model),
+                embed_hidden_size=32,
                 embed_hidden_layers=2,
                 embed_activation=jax.nn.leaky_relu,
-                encoder_layers=2,
-                encoder_heads=4,
+                encoder_layers=3,
+                encoder_heads=5,
                 enc_activation=jax.nn.leaky_relu,
-                decoder_layers=4,
-                decoder_heads=4,
+                decoder_layers=3,
+                decoder_heads=5,
                 dec_activation=jax.nn.leaky_relu,
-                net_hidden_size=64,
+                net_hidden_size=32,
                 net_hidden_layers=2,
                 net_activation=jax.nn.leaky_relu,
-                last_layer_size=32,
+                last_layer_size=16,
                 out_size=classes,
                 W_init = jax.nn.initializers.lecun_normal(),
                 b_init = jax.nn.initializers.normal(1e-2),
                 )
-        steps_per_epoch = rows // batch_size_base2
         epochs = int(max_steps // steps_per_epoch)
         start_steps = 0 # wait at least 5 epochs before early stopping
-        stop_steps_ = 5e2
+        stop_steps_ = max_steps / 20
 
         # definint learning rate schedule
-        if lr_max is None:
-            schedule = linear_increase(max_steps, 0.001, 3)
-        else:
-            schedule = linear_onecycle_schedule(
-                transition_steps=max_steps,
-                peak_value=np.exp(lr_max),
-                pct_start=peak_steps / max_steps,
-                pct_final=min_steps / max_steps,
-                div_factor=10,
-                final_div_factor=10000
-            )
-        
+        m = max_steps // 2
+        n_cycles = 3
+        warmup = linear_onecycle_schedule(
+            transition_steps=max_steps // 10,
+            peak_value=np.exp(lr_max) / 10, 
+            # peak_value=1e-4,
+            pct_start= 0.5,
+            pct_final=1,
+            div_factor=1000,
+            final_div_factor=100
+        )
+        cycles = [linear_onecycle_schedule(
+            transition_steps=max_steps // n_cycles,
+            peak_value=np.exp(lr_max), 
+            # peak_value=1e-4,
+            pct_start= 0.5,
+            pct_final=1,
+            div_factor=100,
+            final_div_factor=100
+        ) for _ in range(n_cycles)]
+        schedule=join_schedules(
+            [warmup] + cycles,
+            [max_steps // 10] + [max_steps // 3]*3
+        )
+        optim_kwargs=dict(
+            b1=0.9, b2=0.99, gamma=1e-5,
+            eps=1e-10, weight_decay=10**-reg,
+            offset=int(offset), m=m) # , k=50)
         early_stopping = create_early_stopping(start_steps, stop_steps_, metric_name="loss", tol=1e-8)
         training_kwargs_uat = dict(
-                    optim="adam",
+                    optim="adabound",
                     frequency=20,
                     batch_size=batch_size_base2,
                     lr=schedule,
+                    # lr=5e-3,
                     epochs=epochs,
                     early_stopping=early_stopping,
-                    optim_kwargs=dict(b1=0.1, b2=b2, eps=1e-8),
+                    optim_kwargs=optim_kwargs,
                     early_stop=early_stop
                 )
         if task == "Supervised Classification":
-            loss_fun = cross_entropy(classes, l2_reg=10.0**-reg, dropout_reg=1e-5) 
+            loss_fun = cross_entropy(classes, l2_reg=0, dropout_reg=1e-7)
+            # loss_fun = brier(l2_reg=0.0, dropout_reg=1e-7)
         elif task == "Supervised Regression":
-            loss_fun = mse(l2_reg=10.0**-reg, dropout_reg=1e-5)
+            loss_fun = mse(l2_reg=0.0, dropout_reg=1e-7)
         training_kwargs_uat["X_test"] = X_valid
         training_kwargs_uat["y_test"] = y_valid 
         model = UAT(
@@ -165,7 +184,7 @@ def run(
     # resample argument will randomly oversample training set
     X, y, classes, cat_bin = data.prepOpenML(dataset, task)
     resample = True if classes > 1 else False
-    kfolds = oversampled_Kfold(5, key=int(key), n_repeats=1, resample=resample)
+    kfolds = oversampled_Kfold(5, key=int(key), n_repeats=2, resample=resample)
     splits = kfolds.split(X, y)
     count = 0
     # turn off verbosity for LGB
@@ -187,17 +206,22 @@ def run(
                 test_complete=test_complete,
                 split=0.2,
                 rng_key=key,
-                prop=prop,
-                corrupt=corrupt
+                prop=0.6,
+                corrupt=corrupt,
+                cols_miss=int(X.shape[1] * 0.8)
             )
+        print(diagnostics)
         count += 1
         print("key: {}, k: {}/{}, dataset: {}, missing: {}, impute: {}".format(key, count, len(splits), dataset, missing, imputation))
         # import dataset
-        key = rng.integers(9999)
+        key = rng.integers(9999) 
+
         make_model = create_make_model(X_train.shape[1], X_train.shape[0], task, key)
         print(trans_params)
         model, batch_size_base2, loss_fun = make_model(
-                X_valid=X_valid, y_valid=y_valid, **trans_params)
+                X_valid=X_valid, y_valid=y_valid,
+                **trans_params
+        )
                 
         # equalise training classes if categorical
         if task == "Supervised Classification":
@@ -385,7 +409,7 @@ if __name__ ==  "__main__":
     parser.add_argument("--test_complete", action='store_false') # default is true
     parser.add_argument("--load_params", action='store_false') # default is true
     parser.add_argument("--save", action='store_true')
-    parser.add_argument("--iters", type=int, default=10)
+    parser.add_argument("--iters", type=int, default=30)
     parser.add_argument("--inverse", action='store_true')
     parser.add_argument("--gbm_gpu", type=int, default=-1)
     args = parser.parse_args()
@@ -401,8 +425,8 @@ if __name__ ==  "__main__":
         data_list.to_csv("results/openml/noncorrupted_tasklist.csv")
         missing_list = ["None"]
 
-    data_list = data_list.reset_index()
-    print(data_list)
+    data_list = data_list.reset_index().sort_values(by=['NumberOfInstances'])
+
     rng = np.random.default_rng(1234)
     key = rng.integers(9999)
     ros = RandomOverSampler(random_state=key)
@@ -412,8 +436,12 @@ if __name__ ==  "__main__":
     else:
         selection = np.arange(len(data_list))[class_filter]
         if args.inverse:
-            selection = np.flip(selection)
+            selection = np.flip(selection)[15:]
 
+    print(
+        data_list[
+            ['name', 'NumberOfInstances', 'NumberOfFeatures', 'NumberOfClasses', 'NumberOfNumericFeatures', 'NumberOfSymbolicFeatures']
+            ].loc[data_list.index[selection]])
     for row in data_list[['did', 'task_type', 'name']].values[selection,:]:
         # BAYESIAN HYPERPARAMETER  SEARCH
         # will search if cannot load params from file
@@ -446,7 +474,7 @@ if __name__ ==  "__main__":
         else:
             objective = 'regression'
             resample=False
-        ## set up transformer model grid search
+        ## set up transformer model hp search
         path = "results/openml/hyperparams"
         filenames = [join(path, f) for f in listdir(path) if isfile(join(path, f))]
         subset = [f for f in filenames if row[2] in f]
@@ -479,42 +507,49 @@ if __name__ ==  "__main__":
             # lr_hx = [h["lr"] for h in model._history]
             # lr_max = lr_hx[int(np.argmin(loss_hx) * 0.8)]
 
-            def black_box(d_model, batch_size, reg, lr_max, b2):
+            def black_box(lr_max, reg=5, d_model=64, batch_size=6, b2=0.99, offset=1000):
                 model, batch_size_base2, loss_fun = make_model(
-                    d_model, batch_size, reg, X_valid, y_valid,
-                    max_steps=search_steps, lr_max=lr_max, early_stop=False, b2=b2
+                    X_valid, y_valid, reg=reg, lr_max=lr_max, d_model=d_model, batch_size=batch_size, b2=b2,
+                    offset=offset,
+                    early_stop=True
                     )
                 model.fit(X_train, y_train)
                 # break test into 'batches' to avoid OOM errors
-                test_mod = X_test.shape[0] % batch_size_base2
+                test_mod = X_test.shape[0] % batch_size_base2 if batch_size_base2 < X_test.shape[0] else 0
                 test_rows = np.arange(X_test.shape[0] - test_mod)
                 test_batches = np.split(test_rows,
                             np.maximum(1, X_test.shape[0] // batch_size_base2))
 
                 loss_loop = 0
+                acc_loop = 0
                 pbar1 = tqdm(total=len(test_batches), position=0, leave=False)
                 @jax.jit
                 def loss_calc(params, x_batch, y_batch, rng):
                     out = model.apply_fun(params, x_batch, rng, False)
                     loss, _ = loss_fun(params, out, y_batch)
-                    return loss
+                    class_o = np.argmax(jnp.squeeze(out[0]), axis=1)
+                    correct_o = class_o == y_batch
+                    acc = np.sum(correct_o) / y_batch.shape[0]
+                    return loss, acc
                 for tbatch in test_batches:
                     key_ = jnp.ones((X_test[np.array(tbatch), ...].shape[0], 2))
-                    loss = loss_calc(model.params, X_test[np.array(tbatch), ...], y_test[np.array(tbatch)], key_)
+                    loss, acc = loss_calc(model.params, X_test[np.array(tbatch), ...], y_test[np.array(tbatch)], key_)
                     loss_loop += loss
+                    acc_loop += acc
                     pbar1.update(1)
                 # make nan loss high, and average metrics over test batches
                 if np.isnan(loss_loop) or np.isinf(loss_loop):
                     loss_loop = 999999
-                print(loss_loop, len(test_batches)),
-                return - loss_loop / len(test_batches)
+                print(loss_loop/len(test_batches), acc_loop/len(test_batches)),
+                # return - loss_loop / len(test_batches)
+                return 1 / (loss_loop / len(test_batches))
 
             pbounds={
-                    "d_model":(127,128),
-                    "batch_size":(127, 128),
-                    "reg":(9, 10),
-                    "lr_max":(np.log(5e-4), np.log(5e-2)),
-                    "b2":(0.0,1.0)
+                    "lr_max":(np.log(5e-4), np.log(1e-2)),
+                    # "d_model":(64, 128),
+                    "reg":(2,10),
+                    "batch_size":(4, 9),
+                    "offset":(300, 2000)
                     }
         
             # bounds_transformer = SequentialDomainReductionTransformer()
@@ -527,8 +562,9 @@ if __name__ ==  "__main__":
                 # bounds_transformer=bounds_transformer
             )
             # mutating_optimizer.probe(params={"d_model":128, "batch_size":128, "reg":10, "lr_max":1e-3})
-            kappa = 5  # parameter to control exploitation vs exploration. higher = explore
-            mutating_optimizer.maximize(init_points=5, n_iter=args.iters, acq="ei", xi=1e-2, kappa=kappa)
+            kappa = 10  # parameter to control exploitation vs exploration. higher = explore
+            xi =1e-1
+            mutating_optimizer.maximize(init_points=5, n_iter=args.iters, acq="ei", xi=xi, kappa=kappa)
             print(mutating_optimizer.res)
             print(mutating_optimizer.max)
             trans_results = {"max": mutating_optimizer.max, "all":mutating_optimizer.res}
@@ -570,7 +606,7 @@ if __name__ ==  "__main__":
                 verbose=0,
                 random_state=int(key),
             )
-            mutating_optimizer_gbm.maximize(init_points=5, n_iter=15, acq="ei", xi=1e-1, kappa=kappa)
+            mutating_optimizer_gbm.maximize(init_points=5, n_iter=args.iters, acq="ei", xi=xi, kappa=kappa)
             print(mutating_optimizer_gbm.res)
             print(mutating_optimizer_gbm.max)
             best_params_gbm = mutating_optimizer_gbm.max

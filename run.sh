@@ -32,7 +32,7 @@ repeats=30
 
 # python benchmark_openml.py --repeats $repeats --missing None MCAR MAR MNAR --imputation None simple iterative miceforest --corrupt --save
 export CUDA_VISIBLE_DEVICES=0
-python benchmark_openml.py --missing None MCAR MNAR --imputation None simple iterative miceforest --save --inverse --corrupt
+python benchmark_openml.py --missing None MNAR MCAR --imputation None simple iterative miceforest --save --inverse --corrupt
 #python benchmark_openml.py --repeats $repeats --missing None MCAR MAR MNAR --imputation None simple iterative miceforest --save --dataset 17
 #python benchmark_openml.py --repeats $repeats --missing None MCAR MAR MNAR --imputation None simple iterative miceforest --save --dataset 18
 #python benchmark_openml.py --repeats $repeats --missing None MCAR MAR MNAR --imputation None simple iterative miceforest --save --dataset 16

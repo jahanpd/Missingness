@@ -119,6 +119,35 @@ def mse(
             return loss, loss_dict
     return loss_fun
 
+def brier(
+    l2_reg=1e-2,
+    dropout_reg=1e-4
+    ):
+    def loss_fun(params, output, labels):
+            logits = output[0]
+            probs = jax.nn.softmax(logits)
+            p_drop = jax.nn.sigmoid(params["logits"])
+            @jax.vmap
+            def mean_squared_error(est, true):
+                return jnp.square(est - true)
+
+            error = mean_squared_error(probs, labels).mean()
+            norm_params = [params[key] for key in params.keys() if key not in ["logits"]] 
+            l2 = l2_norm(norm_params)
+            entropy = p_drop * jnp.log(p_drop + 1e-7)
+            entropy += (1.0 - p_drop) * jnp.log(1.0 - p_drop + 1e-7)
+            entropy = entropy.mean()
+            loss = error + l2_reg*l2 + dropout_reg*entropy
+
+            loss_dict = {
+                "loss":error,
+                "l2":l2,
+                "ent":entropy
+                }
+
+            return loss, loss_dict
+    return loss_fun
+
 def mse_(
     l2_reg=1e-2,
     ):

@@ -1,4 +1,5 @@
-from UAT.optimizers.optimizer import adabelief, adascore
+from UAT.optimizers.optimizer import adabound
+import optax
 import numpy as np
 import jax.numpy as jnp
 import jax
@@ -40,7 +41,14 @@ def training_loop(
     params_ = params
     params = jax.tree_map(lambda x: jnp.array([x] * devices), params)
     in_ax1 = jax.tree_map(lambda x: 0, params)
-
+    if optim_kwargs is not None:
+        if 'k' in optim_kwargs.keys() and 'm' in optim_kwargs.keys():
+            print("swa implemented")
+            swa = True
+        else:
+            swa = False
+    else:
+        swa = False
     
     def loss(params, x_batch, y_batch, rng):
         out = model_fun(params, x_batch, rng, True)
@@ -72,37 +80,43 @@ def training_loop(
             optim_kwargs["step_size"] = step_size
         
         optim_init, optim_update, optim_params = optimizers.momentum(**optim_kwargs)
-    
-    elif optim == "adascore":
+
+    elif optim == "lamb":
+        tqdm.write("optimizer: lamb, lr: {}, batch_size={}".format(print_step(1), batch_size))
         if optim_kwargs is None:
             optim_kwargs = dict(
-                step_size=step_size, batch_size=batch_size, N = X.shape[0], start_score=start_score, b1=0.9, b2=0.999, eps=1e-8
+                learning_rate=step_size, b1=0.9, b2=0.99, eps=1e-8, weight_decay=1e-7
             )
         else:
-            optim_kwargs["step_size"] = step_size
-            optim_kwargs["start_score"] = start_score
-            optim_kwargs["batch_size"] = batch_size
-            optim_kwargs["N"] = X.shape[0]
-
-        optim_init, optim_update, optim_params, get_other = adascore(**optim_kwargs)
-        tqdm.write("optimizer: adascore, lr: {}, start score: {}, batch_size={}".format(print_step(1), start_score, batch_size))
-        jit_other = jax.jit(get_other)
-
-        # this function is for determining proportion of weights 'on'
-        def weights_on_fn(opt_state, step):
-            m, v, vn, p = jit_other(opt_state)
-            # p, _ = flatten_params(p)
-            # v, _ = flatten_params(v)
-            # vn, _ = flatten_params(vn)
-            # get ratio of dzdx > dzdy
-
-            out_dict = {
-                # "avg_vn":np.mean(vn),
-                # "avg_v":np.mean(v),
-                # "avg_p":np.mean(p),
-            }
-            return out_dict
+            optim_kwargs["learning_rate"] = step_size
+        optobj = optax.lamb(**optim_kwargs)
+        optim_init = optobj.init
+        optim_update = optobj.update
     
+    elif optim == "fromage":
+        tqdm.write("optimizer: fromage, lr: {}, batch_size={}".format(print_step(1), batch_size))
+        if optim_kwargs is None:
+            optim_kwargs = dict(
+                learning_rate=step_size,
+            )
+        else:
+            optim_kwargs["learning_rate"] = step_size
+        optobj = optax.fromage(**optim_kwargs)
+        optim_init = optobj.init
+        optim_update = optobj.update
+    
+    elif optim == "yogi":
+        tqdm.write("optimizer: fromage, lr: {}, batch_size={}".format(print_step(1), batch_size))
+        if optim_kwargs is None:
+            optim_kwargs = dict(
+                learning_rate=step_size, b1=0.9, b2=0.99, eps=1e-8
+            )
+        else:
+            optim_kwargs["learning_rate"] = step_size
+        optobj = optax.yogi(**optim_kwargs)
+        optim_init = optobj.init
+        optim_update = optobj.update
+
     elif optim == "adam":
         tqdm.write("optimizer: adam, lr: {}, batch_size={}".format(print_step(1), batch_size))
         if optim_kwargs is None:
@@ -114,20 +128,20 @@ def training_loop(
 
         optim_init, optim_update, optim_params = optimizers.adam(**optim_kwargs)
     
-    elif optim == "adabelief":
-        tqdm.write("optimizer: adabelief, lr: {}, batch_size={}".format(print_step(1), batch_size))
+    elif optim == "adabound":
+        tqdm.write("optimizer: adabound, lr: {}, batch_size={}".format(print_step(1), batch_size))
         if optim_kwargs is None:
             optim_kwargs = dict(
-                step_size=step_size, b1=0.9, b2=0.99, eps=1e-8
+                step_size=step_size, b1=0.9, b2=0.995, eps=1e-8
             )
         else:
             optim_kwargs["step_size"] = step_size
-        optim_init, optim_update, optim_params = adabelief(**optim_kwargs)
+        optim_init, optim_update, optim_params = adabound(**optim_kwargs)
 
     opt_state = optim_init(params)
-    in_ax2 = jax.tree_map(lambda x: 0, opt_state)
-    
-    if optim == "adascore":
+    opt_state = jax.tree_map(lambda x: x if len(x.shape) > 0 else x.reshape((1)), opt_state)
+    in_ax2 = jax.tree_map(lambda x: 0 if len(x.shape) > 0 else None, opt_state)
+    if optim in ["lamb", "fromage", "yogi"]:
         @functools.partial(
             jax.pmap,
             axis_name='num_devices',
@@ -138,13 +152,9 @@ def training_loop(
             """ Compute the gradient for a batch and update the parameters """
             grads = jax.grad(loss)(params, x_batch, y_batch, rng)
             grads = jax.lax.pmean(grads, axis_name='num_devices')
-            g0 = jax.grad(loss)(params, x_batch[:1,...], y_batch[:1], rng)
-            g0 = jax.lax.pmean(g0, axis_name='num_devices')
-            keys = random.split(rng[0,...], len(params_flat))
-            uniform = [random.uniform(key, x.shape) for key, x in zip(keys, params_flat)]
-            uniform = jax.tree_util.tree_unflatten(params_build, uniform)
-            opt_state = optim_update(step, grads, g0, uniform, opt_state)
-            return optim_params(opt_state), opt_state
+            updates, opt_state = optim_update(grads, opt_state, params)
+            params = optax.apply_updates(params, updates)
+            return params, opt_state
     else:
         @functools.partial(
             jax.pmap,
@@ -166,23 +176,18 @@ def training_loop(
     pbar1 = tqdm(total=epochs, position=0, leave=False)
     step = 0
 
-    if optim == "adascore":
-        grad_dict = weights_on_fn(opt_state, step+1)
-    else:
-        grad_dict = {}
-    
     # set up test batches to avoid OOM errors on test set computation if test set is large
     rng, key = random.split(rng, 2)
-    test_mod = X_test.shape[0] % (batch_size)
+    test_batch_size = 128 
+    test_mod = X_test.shape[0] % (test_batch_size) if test_batch_size < X_test.shape[0] else 0
     test_rows = random.permutation(key, X_test.shape[0] - test_mod)
-    
-    if batch_size >= X_test.shape[0]:
+    if test_batch_size < X_test.shape[0]:
         test_batches = np.split(test_rows,
-                        X_test.shape[0] // (batch_size))
+                        X_test.shape[0] // (test_batch_size))
     else:
-        test_batches = [test_rows]
+        test_batches = np.split(test_rows, 1)
     # large_test = True if len(test_batches) > 10 else False
-
+    
     perform_test = ((X_test is not None) and (y_test is not None)) and early_stopping is not None
     if perform_test:
         temp_row = np.minimum(20, X_test.shape[0])
@@ -194,6 +199,8 @@ def training_loop(
     start_time = time.time()
     params_store = None
     metric_store = None
+    swa_params = jax.tree_map(lambda x: jnp.zeros_like(x[0]), params)
+    swa_count = 0
     for epoch in range(epochs):
         rng, key = random.split(rng, 2)
         if X.shape[0] > batch_size:
@@ -214,7 +221,11 @@ def training_loop(
         for i, b in enumerate(batches):
         # evaluate test set performance OR early stopping test
             if perform_test and step % frequency == 0:
-                params_ = jax.device_get(jax.tree_map(lambda x: x[0], params))
+                if swa_count > 0:
+                    params_ = jax.device_get(jax.tree_map(lambda x: x / swa_count, swa_params))
+                else:
+                    params_ = jax.device_get(jax.tree_map(lambda x: x[0], params))
+                
                 if step == 0:
                     params_store = params_.copy()
                     metric_store = metric_store_master.copy()
@@ -229,8 +240,6 @@ def training_loop(
                     # average metrics over test batches
                     for key, value in test_dict.items():
                         test_dict[key] = value / np.minimum(10, len(test_batches))
-                for k, v in grad_dict.items():
-                    test_dict[k] = v
                 # test for early stopping
                 # early stopping is a function that returns a bool, params_store, metric_store
                 stop, params_store, metric_store = early_stopping(
@@ -252,10 +261,11 @@ def training_loop(
 
             # parallelized step function
             params, opt_state = take_step(
-               step, params, batch_x, batch_y, key, opt_state)
-
-            if step % output_freq == 0 and optim == "adascore":
-                grad_dict = weights_on_fn(opt_state, step)
+                int(step), params, batch_x, batch_y, key, opt_state)
+            if swa:
+                if step > optim_kwargs['m'] and step % optim_kwargs['k'] == 0:
+                    swa_params = jax.tree_multimap(lambda x, y: x + y[0], swa_params, params)
+                    swa_count += 1
 
             # initialize some training metrics
             if step <= 1:
@@ -280,18 +290,14 @@ def training_loop(
                     metrics_ewa_["test_loss"] = metric_store["loss"] if "loss" in metric_store.keys() else np.nan
                     metrics_ewa_["test_current"] = test_dict["loss"] if "loss" in test_dict.keys() else np.nan
                     metrics_ewa_["test_counter"] = metric_store["counter"] if "counter" in metric_store.keys() else np.nan
-                if optim == "adascore":
-                    metrics_ewa_["avg_vn"] = grad_dict["avg_vn"]
-                    metrics_ewa_["avg_v"] = grad_dict["avg_v"]
-                    metrics_ewa_["avg_p"] = grad_dict["avg_p"]
 
                 # enforce dtype float for dict object while saving
                 for k in metrics_ewa_.keys():
                     metrics_ewa_[k] = float(metrics_ewa_[k])
-                if np.isnan(metrics_ewa_["loss"]):
-                    break
                 pbar1.set_postfix(metrics_ewa_)
                 history.append(metrics_ewa_) 
+                if np.isnan(metrics_ewa_["loss"]):
+                    break
             else:
                 metrics_ewa_ = metrics_ewa.copy()
         pbar2.close()
@@ -304,6 +310,8 @@ def training_loop(
 
     if params_store is not None and early_stop:
         params = params_store
+    elif swa:
+        params = jax.device_get(jax.tree_map(lambda x: x / swa_count, swa_params))
     else:
         params = jax.device_get(jax.tree_map(lambda x: x[0], params))
     tqdm.write("Final test loss: {}, epoch: {}, time: {}".format(
