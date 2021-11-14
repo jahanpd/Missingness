@@ -1,4 +1,4 @@
-from UAT.optimizers.optimizer import adabound
+from UAT.optimizers.optimizer import adabound, adaclipped, adabelief
 import optax
 import numpy as np
 import jax.numpy as jnp
@@ -117,6 +117,17 @@ def training_loop(
         optim_init = optobj.init
         optim_update = optobj.update
 
+    elif optim == "adabelief":
+        tqdm.write("optimizer: adabeleif, lr: {}, batch_size={}".format(print_step(1), batch_size))
+        if optim_kwargs is None:
+            optim_kwargs = dict(
+                step_size=step_size, b1=0.9, b2=0.99, eps=1e-8
+            )
+        else:
+            optim_kwargs["step_size"] = step_size
+
+        optim_init, optim_update, optim_params = adabelief(**optim_kwargs)
+
     elif optim == "adam":
         tqdm.write("optimizer: adam, lr: {}, batch_size={}".format(print_step(1), batch_size))
         if optim_kwargs is None:
@@ -137,7 +148,17 @@ def training_loop(
         else:
             optim_kwargs["step_size"] = step_size
         optim_init, optim_update, optim_params = adabound(**optim_kwargs)
-
+    
+    elif optim == "adaclipped":
+        tqdm.write("optimizer: adabound, lr: {}, batch_size={}".format(print_step(1), batch_size))
+        if optim_kwargs is None:
+            optim_kwargs = dict(
+                step_size=step_size, lower_bound=0.01, b1=0.9, b2=0.995, eps=1e-8
+            )
+        else:
+            optim_kwargs["step_size"] = step_size
+        optim_init, optim_update, optim_params = adaclipped(**optim_kwargs)
+    
     opt_state = optim_init(params)
     opt_state = jax.tree_map(lambda x: x if len(x.shape) > 0 else x.reshape((1)), opt_state)
     in_ax2 = jax.tree_map(lambda x: 0 if len(x.shape) > 0 else None, opt_state)
@@ -246,7 +267,7 @@ def training_loop(
                     step, params_, params_store, test_dict, metric_store)
                 if stop and early_stop:
                     tqdm.write("Final test loss: {}, epoch: {}".format(
-                        metric_store["loss"], metrics_ewa_["epoch"]))
+                        metric_store["loss"], epoch))
                     return params_store, history, rng
                 
             step += 1

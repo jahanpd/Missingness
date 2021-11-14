@@ -40,8 +40,9 @@ def create_make_model(features, rows, task, key):
             X_valid,
             y_valid,
             batch_size=8,
-            max_steps=6e3,
+            max_steps=3e3,
             lr_max=None,
+            lower_bound_max=np.log(0.1),
             d_model=128,
             early_stop=True,
             b2=0.99,
@@ -50,11 +51,11 @@ def create_make_model(features, rows, task, key):
         ):
         batch_size_base2 = 2 ** int(np.round(batch_size))
         steps_per_epoch = max(rows // batch_size_base2, 1)
-        min_epochs = 50
+        min_epochs = 20
         if max_steps / steps_per_epoch < min_epochs:
             max_steps = min_epochs * steps_per_epoch
-        print("lr: {}, d: {}, reg: {}, b2: {}, offset: {}".format(
-            np.exp(lr_max), int(d_model), reg, b2, int(offset)))
+        print("lr: {}, d: {}, reg: {}, b2: {}, lb_max: {}".format(
+            np.exp(lr_max), int(d_model), reg, b2, np.exp(lower_bound_max)))
         model_kwargs_uat = dict(
                 features=features,
                 d_model=int(d_model),
@@ -77,43 +78,41 @@ def create_make_model(features, rows, task, key):
                 )
         epochs = int(max_steps // steps_per_epoch)
         start_steps = 0 # wait at least 5 epochs before early stopping
-        stop_steps_ = max_steps / 20
+        stop_steps_ = max_steps
 
         # definint learning rate schedule
         m = max_steps // 2
         n_cycles = 3
         warmup = linear_onecycle_schedule(
-            transition_steps=max_steps // 10,
-            peak_value=np.exp(lr_max) / 10, 
-            # peak_value=1e-4,
-            pct_start= 0.5,
-            pct_final=1,
-            div_factor=1000,
-            final_div_factor=100
-        )
-        cycles = [linear_onecycle_schedule(
-            transition_steps=max_steps // n_cycles,
+            transition_steps=max_steps,
             peak_value=np.exp(lr_max), 
-            # peak_value=1e-4,
-            pct_start= 0.5,
-            pct_final=1,
-            div_factor=100,
-            final_div_factor=100
-        ) for _ in range(n_cycles)]
-        schedule=join_schedules(
-            [warmup] + cycles,
-            [max_steps // 10] + [max_steps // 3]*3
+            # peak_value=5e-4,
+            pct_start= 100 / max_steps,
+            pct_final=0.8,
+            div_factor=10000,
+            final_div_factor=10
         )
+        lower_bound = linear_onecycle_schedule(
+            transition_steps=max_steps,
+            peak_value=np.exp(lower_bound_max), 
+            # peak_value=1e-1,
+            pct_start= 0.4,
+            pct_final=0.8,
+            div_factor=4,
+            final_div_factor=10000
+        ) 
         optim_kwargs=dict(
-            b1=0.9, b2=0.99, gamma=1e-5,
+            # lower_bound=lower_bound,
+            b1=0.9, b2=0.8,
+            # gamma=1e-5,
             eps=1e-10, weight_decay=10**-reg,
-            offset=int(offset), m=m) # , k=50)
+        )
         early_stopping = create_early_stopping(start_steps, stop_steps_, metric_name="loss", tol=1e-8)
         training_kwargs_uat = dict(
-                    optim="adabound",
-                    frequency=20,
+                    optim="adabelief",
+                    frequency=min(steps_per_epoch, 5),
                     batch_size=batch_size_base2,
-                    lr=schedule,
+                    lr=warmup,
                     # lr=5e-3,
                     epochs=epochs,
                     early_stopping=early_stopping,
@@ -507,10 +506,11 @@ if __name__ ==  "__main__":
             # lr_hx = [h["lr"] for h in model._history]
             # lr_max = lr_hx[int(np.argmin(loss_hx) * 0.8)]
 
-            def black_box(lr_max, reg=5, d_model=64, batch_size=6, b2=0.99, offset=1000):
+            def black_box(lr_max, lower_bound_max=np.log(0.1), reg=5, d_model=64, batch_size=6, b2=0.99, offset=1000):
                 model, batch_size_base2, loss_fun = make_model(
                     X_valid, y_valid, reg=reg, lr_max=lr_max, d_model=d_model, batch_size=batch_size, b2=b2,
                     offset=offset,
+                    lower_bound_max=lower_bound_max,
                     early_stop=True
                     )
                 model.fit(X_train, y_train)
@@ -540,16 +540,20 @@ if __name__ ==  "__main__":
                 # make nan loss high, and average metrics over test batches
                 if np.isnan(loss_loop) or np.isinf(loss_loop):
                     loss_loop = 999999
-                print(loss_loop/len(test_batches), acc_loop/len(test_batches)),
+                print(
+                    loss_loop/len(test_batches), 
+                    acc_loop/len(test_batches),
+                    np.sum(y_test) / y_test.shape[0]
+                    ),
                 # return - loss_loop / len(test_batches)
                 return 1 / (loss_loop / len(test_batches))
 
             pbounds={
-                    "lr_max":(np.log(5e-4), np.log(1e-2)),
-                    # "d_model":(64, 128),
+                    "lr_max":(np.log(1e-4), np.log(5e-3)),
+                    "d_model":(8, 128),
                     "reg":(2,10),
-                    "batch_size":(4, 9),
-                    "offset":(300, 2000)
+                    "batch_size":(6, 9),
+                    # "lower_bound_max":(np.log(1e-6), np.log(1e-2)),
                     }
         
             # bounds_transformer = SequentialDomainReductionTransformer()
