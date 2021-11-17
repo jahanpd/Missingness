@@ -19,7 +19,7 @@ from UAT import UAT, create_early_stopping
 from UAT import binary_cross_entropy, cross_entropy, mse, brier
 from UAT.aux import oversampled_Kfold
 from UAT.training.lr_schedule import attention_lr, linear_increase
-from optax import linear_onecycle_schedule, join_schedules
+from optax import linear_onecycle_schedule, join_schedules, piecewise_constant_schedule, linear_schedule
 # import xgboost as xgb
 import lightgbm as lgb
 from tqdm import tqdm
@@ -39,81 +39,75 @@ def create_make_model(features, rows, task, key):
     def make_model(
             X_valid,
             y_valid,
-            batch_size=8,
-            max_steps=3e3,
+            batch_size=5,
+            max_steps=4e3,
             lr_max=None,
-            lower_bound_max=np.log(0.1),
             d_model=128,
             early_stop=True,
             b2=0.99,
-            reg=8,
-            offset=1000
+            reg=5,
         ):
         batch_size_base2 = 2 ** int(np.round(batch_size))
         steps_per_epoch = max(rows // batch_size_base2, 1)
-        min_epochs = 20
+        epochs = max_steps // steps_per_epoch
+        min_epochs = 80
         if max_steps / steps_per_epoch < min_epochs:
             max_steps = min_epochs * steps_per_epoch
-        print("lr: {}, d: {}, reg: {}, b2: {}, lb_max: {}".format(
-            np.exp(lr_max), int(d_model), reg, b2, np.exp(lower_bound_max)))
+        print("lr: {}, d: {}, reg: {}, b2: {}".format(
+            np.exp(lr_max), int(d_model), reg, b2))
         model_kwargs_uat = dict(
                 features=features,
                 d_model=int(d_model),
-                embed_hidden_size=32,
+                embed_hidden_size=64,
                 embed_hidden_layers=2,
                 embed_activation=jax.nn.leaky_relu,
                 encoder_layers=3,
-                encoder_heads=5,
+                encoder_heads=8,
                 enc_activation=jax.nn.leaky_relu,
-                decoder_layers=3,
-                decoder_heads=5,
+                decoder_layers=5,
+                decoder_heads=8,
                 dec_activation=jax.nn.leaky_relu,
-                net_hidden_size=32,
+                net_hidden_size=64,
                 net_hidden_layers=2,
                 net_activation=jax.nn.leaky_relu,
-                last_layer_size=16,
+                last_layer_size=32,
                 out_size=classes,
                 W_init = jax.nn.initializers.lecun_normal(),
                 b_init = jax.nn.initializers.normal(1e-2),
                 )
         epochs = int(max_steps // steps_per_epoch)
         start_steps = 0 # wait at least 5 epochs before early stopping
-        stop_steps_ = max_steps
+        stop_steps_ = steps_per_epoch * (epochs // 4) / min(steps_per_epoch, 15)
 
         # definint learning rate schedule
         m = max_steps // 2
         n_cycles = 3
-        warmup = linear_onecycle_schedule(
-            transition_steps=max_steps,
-            peak_value=np.exp(lr_max), 
-            # peak_value=5e-4,
-            pct_start= 100 / max_steps,
-            pct_final=0.8,
-            div_factor=10000,
-            final_div_factor=10
+        decay = piecewise_constant_schedule(
+            np.exp(lr_max),
+            boundaries_and_scales={
+                int(epochs * 0.5 * steps_per_epoch):0.1,
+                int(epochs * 0.75 * steps_per_epoch):1.0,
+            })
+        warmup = linear_schedule(
+            init_value=1e-8,
+            end_value=np.exp(lr_max), 
+            transition_steps=100
         )
-        lower_bound = linear_onecycle_schedule(
-            transition_steps=max_steps,
-            peak_value=np.exp(lower_bound_max), 
-            # peak_value=1e-1,
-            pct_start= 0.4,
-            pct_final=0.8,
-            div_factor=4,
-            final_div_factor=10000
-        ) 
+        schedule=join_schedules(
+            [warmup, decay],
+            [50]
+        )
         optim_kwargs=dict(
-            # lower_bound=lower_bound,
             b1=0.9, b2=0.8,
-            # gamma=1e-5,
-            eps=1e-10, weight_decay=10**-reg,
+            eps=1e-8, weight_decay=10**-reg,
         )
         early_stopping = create_early_stopping(start_steps, stop_steps_, metric_name="loss", tol=1e-8)
         training_kwargs_uat = dict(
                     optim="adabelief",
-                    frequency=min(steps_per_epoch, 5),
+                    frequency=min(steps_per_epoch, 15),
                     batch_size=batch_size_base2,
-                    lr=warmup,
-                    # lr=5e-3,
+                    # lr=warmup,
+                    lr=schedule,
                     epochs=epochs,
                     early_stopping=early_stopping,
                     optim_kwargs=optim_kwargs,
@@ -408,7 +402,7 @@ if __name__ ==  "__main__":
     parser.add_argument("--test_complete", action='store_false') # default is true
     parser.add_argument("--load_params", action='store_false') # default is true
     parser.add_argument("--save", action='store_true')
-    parser.add_argument("--iters", type=int, default=30)
+    parser.add_argument("--iters", type=int, default=20)
     parser.add_argument("--inverse", action='store_true')
     parser.add_argument("--gbm_gpu", type=int, default=-1)
     args = parser.parse_args()
@@ -506,11 +500,9 @@ if __name__ ==  "__main__":
             # lr_hx = [h["lr"] for h in model._history]
             # lr_max = lr_hx[int(np.argmin(loss_hx) * 0.8)]
 
-            def black_box(lr_max, lower_bound_max=np.log(0.1), reg=5, d_model=64, batch_size=6, b2=0.99, offset=1000):
+            def black_box(lr_max=np.log(5e-3), reg=6, d_model=32, batch_size=5, b2=0.99):
                 model, batch_size_base2, loss_fun = make_model(
                     X_valid, y_valid, reg=reg, lr_max=lr_max, d_model=d_model, batch_size=batch_size, b2=b2,
-                    offset=offset,
-                    lower_bound_max=lower_bound_max,
                     early_stop=True
                     )
                 model.fit(X_train, y_train)
@@ -549,11 +541,10 @@ if __name__ ==  "__main__":
                 return 1 / (loss_loop / len(test_batches))
 
             pbounds={
-                    "lr_max":(np.log(1e-4), np.log(5e-3)),
-                    "d_model":(8, 128),
-                    "reg":(2,10),
-                    "batch_size":(6, 9),
-                    # "lower_bound_max":(np.log(1e-6), np.log(1e-2)),
+                    "lr_max":(np.log(1e-5), np.log(5e-3)),
+                    "d_model":(16, 128),
+                    "reg":(2,8),
+                    # "batch_size":(5, 9),
                     }
         
             # bounds_transformer = SequentialDomainReductionTransformer()
@@ -565,7 +556,7 @@ if __name__ ==  "__main__":
                 random_state=int(key),
                 # bounds_transformer=bounds_transformer
             )
-            # mutating_optimizer.probe(params={"d_model":128, "batch_size":128, "reg":10, "lr_max":1e-3})
+            mutating_optimizer.probe(params={"d_model":128, "batch_size":8, "lr_max":np.log(5e-4)})
             kappa = 10  # parameter to control exploitation vs exploration. higher = explore
             xi =1e-1
             mutating_optimizer.maximize(init_points=5, n_iter=args.iters, acq="ei", xi=xi, kappa=kappa)

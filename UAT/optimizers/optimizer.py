@@ -226,9 +226,9 @@ def adaclipped(
   return init, update, get_params
 
 @optimizer
-def swtich(
-  step_size, step_size2,
-  b1=0.9, b2=0.99, offset=1000,
+def swat(
+  step_size,
+  b1=0.9, b2=0.99,
   eps=1e-8, weight_decay=1e-8,
   m=None, k=None
   ):
@@ -254,31 +254,36 @@ def swtich(
   """
 
   step_size = make_schedule(step_size)
-  lower_bound = make_schedule(step_size2)
+  # lower_bound = make_schedule(step_size2)
 
   def init(x0):
     m0 = np.zeros_like(x0)
     v0 = np.zeros_like(x0)
-    return x0, m0, v0,
+    d0 = np.array(0.0)
+    return x0, m0, v0, d0
   
   def update(i, g, state):
-    x, m, v = state
+    x, m, v, d = state
     m = (1 - b1) * g + b1 * m  # First  moment estimate.
     v = (1 - b2) * ((g-m) ** 2) + b2 * v  # Second moment estimate.
-
     mhat = m / (1 - b1 ** (i + 1))  # Bias correction.
     vhat = v / (1 - b2 ** (i + 1))
-    
+    alpha = step_size(i)
+    p = - alpha * (np.sqrt(1 - b2**i) / (1 - b1**i)) * (m / (np.sqrt(v) + eps))
+    den = p.flatten().T @ g.flatten()
+    num = p.flatten().T @ p.flatten()
+    gamma = num / (- den + eps)
+    d = (1-b2) * gamma + b2*d
     step = np.where(
-      i <= offset,
-      mhat * (step_size(i) / (np.sqrt(vhat) + eps)),
-      g * step_size2(i)
+      np.abs(d / (b2**i) - gamma) < eps,
+      g * (d / (b2**i)),
+      mhat * (step_size(i) / (np.sqrt(vhat) + eps))
     )
     x = ((1-weight_decay)*x) - step
-    return x, m, v
+    return x, m, v, d
   
   def get_params(state):
-    x, m, v = state
+    x, m, v, d = state
     return x
   
   return init, update, get_params

@@ -113,73 +113,84 @@ print(name_list)
 print("fraction of datasets run: ", len(name_list) / len(name_list_full))
 
 
-keys = itertools.product(["MCAR", "MNAR"], ["None", "Simple", "Iterative", "MiceForest"], ["Transformer", "LightGBM"])
-process_dict = {
-    (" ", " ", "Dataset"):[],
-    (" ", " ", "Metric"):[],
-    ("None", "None", "Transformer"):[],
-    ("None", "None", "LightGBM"):[],
-}
-for key in keys:
-    process_dict[key] = []
+def table_maker(metric="accuracy"):
+    keys = itertools.product(["MCAR", "MNAR"], ["None", "Simple", "Iterative", "MiceForest"], ["Transformer", "LightGBM"])
+    process_dict = {
+        (" ", " ", "Dataset"):[],
+        (" ", " ", "Metric"):[],
+        ("None", "None", "Transformer"):[],
+        ("None", "None", "LightGBM"):[],
+    }
+    for key in keys:
+        process_dict[key] = []
 
-key_sub = list(itertools.product(["MCAR", "MNAR"], ["None", "Simple", "Iterative", "MiceForest"]))
-for name in name_list:
-    process_dict[(" ", " ", "Dataset")].append(name)
-    # get metric information
-    try:
-        s = [f for f in result_files if file_filter(f, name, "None", "None")]
-        path = join('./results/openml/', str(s[0]))
-        ds = pd.read_pickle(path)
-        colnames = list(ds)
-        metric = "accuracy" if len(colnames) > 5 else "rmse"
-        process_dict[(" ", " ", "Metric")].append(metric)
-    except:
-        metric = np.nan
-        process_dict[(" ", " ", "Metric")].append(metric)
-        
-    # get baseline data
-    try:
-        s = [f for f in result_files if file_filter(f, name, "None", "None")]
-        path = join('./results/openml/', str(s[0]))
-        ds = pd.read_pickle(path)
-        # print(ds)
-        baseline_trans = np.mean(ds[metric]["full"].values)
-        baseline_gbm = np.mean(ds[metric]["gbmoost"].values)
-        process_dict[("None", "None", "Transformer")].append(baseline_trans)
-        process_dict[("None", "None", "LightGBM")].append(baseline_gbm)
-    except Exception as e:
-        print(e)
-        process_dict[("None", "None", "Transformer")].append(np.nan)
-        process_dict[("None", "None", "LightGBM")].append(np.nan)
-    # get the same as above but for each missingness and imputation pattern
-    for key in key_sub:
+    key_sub = list(itertools.product(["MCAR", "MNAR"], ["None", "Simple", "Iterative", "MiceForest"]))
+    for name in name_list:
+        process_dict[(" ", " ", "Dataset")].append(name)
+        # get metric information
         try:
-            s = [f for f in result_files if file_filter(f, name, key[0], key[1])]
+            s = [f for f in result_files if file_filter(f, name, "None", "None")]
             path = join('./results/openml/', str(s[0]))
             ds = pd.read_pickle(path)
-            if metric in ["accuracy", "NLL"]:
-                trans = (np.mean(ds[metric]["full"].values) - baseline_trans) / baseline_trans
-                gbm = (np.mean(ds[metric]["gbmoost"].values) - baseline_gbm) / baseline_gbm
-            elif metric == "rmse":     
-                trans = (np.mean(ds[metric]["full"].values) - baseline_trans) / baseline_trans
-                gbm = (np.mean(ds[metric]["gbmoost"].values) - baseline_gbm) / baseline_gbm
-            process_dict[(key[0], key[1], "Transformer")].append(trans)
-            process_dict[(key[0], key[1], "LightGBM")].append(gbm)
+            colnames = list(ds)
+            process_dict[(" ", " ", "Metric")].append(metric)
+        except:
+            metric = np.nan
+            process_dict[(" ", " ", "Metric")].append(metric)
+            
+        # get baseline data
+        try:
+            s = [f for f in result_files if file_filter(f, name, "None", "None")]
+            path = join('./results/openml/', str(s[0]))
+            ds = pd.read_pickle(path)
+            # print(ds)
+            baseline_trans = np.mean(ds[metric]["full"].values)
+            baseline_gbm = np.mean(ds[metric]["gbmoost"].values)
+            process_dict[("None", "None", "Transformer")].append(baseline_trans)
+            process_dict[("None", "None", "LightGBM")].append(baseline_gbm)
         except Exception as e:
-            print(e)
-            process_dict[(key[0], key[1], "Transformer")].append(np.nan)
-            process_dict[(key[0], key[1], "LightGBM")].append(np.nan)
+            # print(e)
+            process_dict[("None", "None", "Transformer")].append(np.nan)
+            process_dict[("None", "None", "LightGBM")].append(np.nan)
+        # get the same as above but for each missingness and imputation pattern
+        for key in key_sub:
+            try:
+                s = [f for f in result_files if file_filter(f, name, key[0], key[1])]
+                path = join('./results/openml/', str(s[0]))
+                ds = pd.read_pickle(path)
+                if metric in ["accuracy", "nll"]:
+                    trans = (np.mean(ds[metric]["full"].values) - baseline_trans) / baseline_trans
+                    gbm = (np.mean(ds[metric]["gbmoost"].values) - baseline_gbm) / baseline_gbm
+                elif metric == "rmse":     
+                    trans = (np.mean(ds[metric]["full"].values) - baseline_trans) / baseline_trans
+                    gbm = (np.mean(ds[metric]["gbmoost"].values) - baseline_gbm) / baseline_gbm
+                process_dict[(key[0], key[1], "Transformer")].append(trans)
+                process_dict[(key[0], key[1], "LightGBM")].append(gbm)
+            except Exception as e:
+                # print(e)
+                process_dict[(key[0], key[1], "Transformer")].append(np.nan)
+                process_dict[(key[0], key[1], "LightGBM")].append(np.nan)
+    return process_dict
 
+process_dict = table_maker("accuracy")
 print(process_dict)
-for key in process_dict.keys():
-    print(key, len(process_dict[key]))
+# for key in process_dict.keys():
+#     print(key, len(process_dict[key]))
 final_results = pd.DataFrame(process_dict)
 final_results.to_pickle('./results/openml/openml_results.pickle')
 print(final_results)
 print("win ratio baseline: {}".format(np.sum(final_results["None"]['None']['Transformer'].values > final_results["None"]['None']['LightGBM'].values) / len(final_results['None']['None'].dropna())))
 print("win ratio for MNAR: {}".format(np.sum(final_results["MNAR"]['None']['Transformer'].values > final_results["MNAR"]['None']['LightGBM'].values) / len(final_results['MNAR']['None'].dropna())))
 print("win ratio for MCAR: {}".format(np.sum(final_results["MCAR"]['None']['Transformer'].values > final_results["MCAR"]['None']['LightGBM'].values) / len(final_results['MCAR']['None'].dropna())))
+
+process_dict = table_maker("nll")
+print(process_dict)
+final_results = pd.DataFrame(process_dict)
+final_results.to_pickle('./results/openml/openml_results.pickle')
+print(final_results)
+print("win ratio baseline: {}".format(np.sum(final_results["None"]['None']['Transformer'].values < final_results["None"]['None']['LightGBM'].values) / len(final_results['None']['None'].dropna())))
+print("win ratio for MNAR: {}".format(np.sum(final_results["MNAR"]['None']['Transformer'].values < final_results["MNAR"]['None']['LightGBM'].values) / len(final_results['MNAR']['None'].dropna())))
+print("win ratio for MCAR: {}".format(np.sum(final_results["MCAR"]['None']['Transformer'].values < final_results["MCAR"]['None']['LightGBM'].values) / len(final_results['MCAR']['None'].dropna())))
 asd
 
 

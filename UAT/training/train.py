@@ -1,4 +1,4 @@
-from UAT.optimizers.optimizer import adabound, adaclipped, adabelief
+from UAT.optimizers.optimizer import adabound, adaclipped, adabelief, swat
 import optax
 import numpy as np
 import jax.numpy as jnp
@@ -159,6 +159,16 @@ def training_loop(
             optim_kwargs["step_size"] = step_size
         optim_init, optim_update, optim_params = adaclipped(**optim_kwargs)
     
+    elif optim == "swat":
+        tqdm.write("optimizer: switch, lr: {}, batch_size={}".format(print_step(1), batch_size))
+        if optim_kwargs is None:
+            optim_kwargs = dict(
+                step_size=step_size, lower_bound=0.01, b1=0.9, b2=0.995, eps=1e-8
+            )
+        else:
+            optim_kwargs["step_size"] = step_size
+        optim_init, optim_update, optim_params = swat(**optim_kwargs)
+
     opt_state = optim_init(params)
     opt_state = jax.tree_map(lambda x: x if len(x.shape) > 0 else x.reshape((1)), opt_state)
     in_ax2 = jax.tree_map(lambda x: 0 if len(x.shape) > 0 else None, opt_state)
@@ -266,8 +276,9 @@ def training_loop(
                 stop, params_store, metric_store = early_stopping(
                     step, params_, params_store, test_dict, metric_store)
                 if stop and early_stop:
-                    tqdm.write("Final test loss: {}, epoch: {}".format(
-                        metric_store["loss"], epoch))
+                    elapsed_time = time.time() - start_time
+                    tqdm.write("Final test loss: {}, epoch: {}, time: {}".format(
+                        metric_store["loss"], epoch, timedelta(minutes=elapsed_time)))
                     return params_store, history, rng
                 
             step += 1
