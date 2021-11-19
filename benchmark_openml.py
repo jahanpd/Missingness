@@ -8,7 +8,6 @@ import pandas as pd
 from scipy.stats import t
 import jax
 import jax.numpy as jnp
-from jax.experimental.optimizers import exponential_decay
 from sklearn.experimental import enable_iterative_imputer
 from sklearn.impute import SimpleImputer, IterativeImputer
 from sklearn.model_selection import train_test_split
@@ -40,35 +39,33 @@ def create_make_model(features, rows, task, key):
             X_valid,
             y_valid,
             batch_size=5,
-            max_steps=4e3,
+            max_steps=3e3,
             lr_max=None,
             d_model=128,
             early_stop=True,
             b2=0.99,
             reg=5,
         ):
-        batch_size_base2 = 2 ** int(np.round(batch_size))
+        batch_size_base2 = 2 ** int(np.round(np.log2(rows/10)))
         steps_per_epoch = max(rows // batch_size_base2, 1)
         epochs = max_steps // steps_per_epoch
-        min_epochs = 80
-        if max_steps / steps_per_epoch < min_epochs:
-            max_steps = min_epochs * steps_per_epoch
+        freq = 5
         print("lr: {}, d: {}, reg: {}, b2: {}".format(
             np.exp(lr_max), int(d_model), reg, b2))
         model_kwargs_uat = dict(
                 features=features,
                 d_model=int(d_model),
                 embed_hidden_size=64,
-                embed_hidden_layers=2,
+                embed_hidden_layers=5,
                 embed_activation=jax.nn.leaky_relu,
-                encoder_layers=3,
-                encoder_heads=8,
+                encoder_layers=5,
+                encoder_heads=5,
                 enc_activation=jax.nn.leaky_relu,
                 decoder_layers=5,
-                decoder_heads=8,
+                decoder_heads=5,
                 dec_activation=jax.nn.leaky_relu,
                 net_hidden_size=64,
-                net_hidden_layers=2,
+                net_hidden_layers=5,
                 net_activation=jax.nn.leaky_relu,
                 last_layer_size=32,
                 out_size=classes,
@@ -76,8 +73,8 @@ def create_make_model(features, rows, task, key):
                 b_init = jax.nn.initializers.normal(1e-2),
                 )
         epochs = int(max_steps // steps_per_epoch)
-        start_steps = 0 # wait at least 5 epochs before early stopping
-        stop_steps_ = steps_per_epoch * (epochs // 4) / min(steps_per_epoch, 15)
+        start_steps = 2000 # wait at least 5 epochs before early stopping
+        stop_steps_ = steps_per_epoch * (epochs // 1) / min(steps_per_epoch, freq)
 
         # definint learning rate schedule
         m = max_steps // 2
@@ -85,36 +82,39 @@ def create_make_model(features, rows, task, key):
         decay = piecewise_constant_schedule(
             np.exp(lr_max),
             boundaries_and_scales={
-                int(epochs * 0.5 * steps_per_epoch):0.1,
-                int(epochs * 0.75 * steps_per_epoch):1.0,
+                int(epochs * 0.4 * steps_per_epoch):0.2,
+                int(epochs * 0.6 * steps_per_epoch):1.0,
+                int(epochs * 0.8 * steps_per_epoch):1.0,
             })
         warmup = linear_schedule(
             init_value=1e-8,
             end_value=np.exp(lr_max), 
-            transition_steps=100
+            transition_steps=50
         )
         schedule=join_schedules(
             [warmup, decay],
             [50]
         )
         optim_kwargs=dict(
-            b1=0.9, b2=0.8,
-            eps=1e-8, weight_decay=10**-reg,
+            b1=0.9, b2=0.99,
+            eps=1e-9,
+            weight_decay=10**-reg,
         )
         early_stopping = create_early_stopping(start_steps, stop_steps_, metric_name="loss", tol=1e-8)
         training_kwargs_uat = dict(
-                    optim="adabelief",
-                    frequency=min(steps_per_epoch, 15),
+                    optim="adam",
+                    frequency=min(steps_per_epoch, freq),
                     batch_size=batch_size_base2,
-                    # lr=warmup,
                     lr=schedule,
+                    # lr=1e-3,
                     epochs=epochs,
                     early_stopping=early_stopping,
                     optim_kwargs=optim_kwargs,
-                    early_stop=early_stop
+                    early_stop=early_stop,
+                    steps_til_samp=500
                 )
         if task == "Supervised Classification":
-            loss_fun = cross_entropy(classes, l2_reg=0, dropout_reg=1e-7)
+            loss_fun = cross_entropy(classes, l2_reg=1e-7, dropout_reg=1e-7)
             # loss_fun = brier(l2_reg=0.0, dropout_reg=1e-7)
         elif task == "Supervised Regression":
             loss_fun = mse(l2_reg=0.0, dropout_reg=1e-7)
@@ -177,7 +177,7 @@ def run(
     # resample argument will randomly oversample training set
     X, y, classes, cat_bin = data.prepOpenML(dataset, task)
     resample = True if classes > 1 else False
-    kfolds = oversampled_Kfold(5, key=int(key), n_repeats=2, resample=resample)
+    kfolds = oversampled_Kfold(5, key=int(key), n_repeats=1, resample=resample)
     splits = kfolds.split(X, y)
     count = 0
     # turn off verbosity for LGB
@@ -500,7 +500,7 @@ if __name__ ==  "__main__":
             # lr_hx = [h["lr"] for h in model._history]
             # lr_max = lr_hx[int(np.argmin(loss_hx) * 0.8)]
 
-            def black_box(lr_max=np.log(5e-3), reg=6, d_model=32, batch_size=5, b2=0.99):
+            def black_box(lr_max=np.log(5e-3), reg=6, d_model=64, batch_size=6, b2=0.99):
                 model, batch_size_base2, loss_fun = make_model(
                     X_valid, y_valid, reg=reg, lr_max=lr_max, d_model=d_model, batch_size=batch_size, b2=b2,
                     early_stop=True
@@ -541,8 +541,8 @@ if __name__ ==  "__main__":
                 return 1 / (loss_loop / len(test_batches))
 
             pbounds={
-                    "lr_max":(np.log(1e-5), np.log(5e-3)),
-                    "d_model":(16, 128),
+                    "lr_max":(np.log(1e-5), np.log(1e-2)),
+                    # "d_model":(16, 128),
                     "reg":(2,8),
                     # "batch_size":(5, 9),
                     }
@@ -556,7 +556,7 @@ if __name__ ==  "__main__":
                 random_state=int(key),
                 # bounds_transformer=bounds_transformer
             )
-            mutating_optimizer.probe(params={"d_model":128, "batch_size":8, "lr_max":np.log(5e-4)})
+            mutating_optimizer.probe(params={"lr_max":np.log(1e-3), "reg":10})
             kappa = 10  # parameter to control exploitation vs exploration. higher = explore
             xi =1e-1
             mutating_optimizer.maximize(init_points=5, n_iter=args.iters, acq="ei", xi=xi, kappa=kappa)

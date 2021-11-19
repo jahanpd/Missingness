@@ -171,18 +171,18 @@ def NeuralNet(
 
 
 def LayerNorm(epsilon=1e-5, center=True, scale=True, beta_init=zeros, gamma_init=ones):
-    def init_fun(rng):
-        return (0,0)
-    def apply_fun(x):
-        # beta, gamma = params
-        x = jnp.asarray(x, jnp.float32)
-        features = x.shape[-1]
+    def init_fun(rng, elements): 
+        k1, k2 = random.split(rng, 2)
+        beta = beta_init(k1, (elements,))
+        gamma = gamma_init(k2, (elements,))
+        return (beta, gamma)
+    def apply_fun(params, x):
+        beta, gamma = params
         mean = jnp.mean(x, axis=-1, keepdims=True)
-        mean2 = jnp.mean(jax.lax.square(x), axis=-1, keepdims=True)
-        var = mean2 - jax.lax.square(mean)
-        mul = jax.lax.rsqrt(var + epsilon)
-        y = (x - mean) * mul
-        return jnp.asarray(y, jnp.float32)
+        mean2 = jnp.mean(jnp.square(x), axis=-1, keepdims=True)
+        var = mean2 - jnp.square(mean)
+        mul = gamma * jax.lax.rsqrt(var + epsilon)
+        return (x - mean) * mul + beta
     return init_fun, apply_fun
 
 def AttentionLayer(
@@ -203,7 +203,8 @@ def AttentionLayer(
     init_l1, l1 = Dense(dims, dff, W_init=W_init, b_init=b_init)
     init_l2, l2 = Dense(dff, dims, W_init=W_init, b_init=b_init)
     # layer norm
-    init_ln, layernorm = LayerNorm()
+    init_ln1, layernorm1 = LayerNorm()
+    init_ln2, layernorm2 = LayerNorm()
 
     def init_fun(rng):
         params = {}
@@ -219,11 +220,16 @@ def AttentionLayer(
         params["l1"] = init_l1(key)
         rng, key = random.split(rng)
         params["l2"] = init_l2(key)
+        rng, key = random.split(rng)
+        params["ln1"] = init_ln1(key, dims)
+        rng, key = random.split(rng)
+        params["ln2"] = init_ln2(key, dims)
         return params
     
     def apply_fun(params, q, k, v, mask):
         # note params input is from the AttentionBlock init_params construction, not the above
-
+        # q (features, embedding)
+        # q = layernorm(q)
         q_ = jnp.transpose(q_map((params["qw"],params["qb"]), q).reshape((-1, heads, dims)), (1,0,2))
         k_ = jnp.transpose(k_map((params["kw"],params["kb"]), k).reshape((-1, heads, dims)), (1,2,0))
         v_ = jnp.transpose(v_map((params["vw"],params["vb"]), v).reshape((-1, heads, dims)), (1,0,2))
@@ -237,7 +243,7 @@ def AttentionLayer(
 
         # residual connection
         x = x + q
-        # x = layernorm(x)
+        # x = layernorm2((params["ln2b"], params["ln2g"]), x)
         # feedforward network
         x = activation(l1((params["l1w"],params["l1b"]), x))
         x = l2((params["l2w"],params["l2b"]), x)
@@ -268,6 +274,8 @@ def AttentionBlock(
         outw, outb = [], []
         l1w, l1b = [], []
         l2w, l2b = [], []
+        ln1g, ln1b = [], []
+        ln2g, ln2b = [], []
 
         for _ in range(num_layers):
             rng, layer_rng = random.split(rng)
@@ -284,6 +292,10 @@ def AttentionBlock(
             l1b.append(params["l1"][1])
             l2w.append(params["l2"][0])
             l2b.append(params["l2"][1])
+            ln1b.append(params["ln1"][0])
+            ln1g.append(params["ln1"][1])
+            ln2b.append(params["ln2"][0])
+            ln2g.append(params["ln2"][1])
 
         EncoderParams = {
             "qw":jnp.stack(qw, axis=0),
@@ -298,6 +310,10 @@ def AttentionBlock(
             "l1b":jnp.stack(l1b, axis=0),
             "l2w":jnp.stack(l2w, axis=0),
             "l2b":jnp.stack(l2b, axis=0),
+            "ln1b":jnp.stack(ln1b, axis=0),
+            "ln1g":jnp.stack(ln1g, axis=0),
+            "ln2b":jnp.stack(ln2b, axis=0),
+            "ln2g":jnp.stack(ln2g, axis=0),
         }
         return EncoderParams
 

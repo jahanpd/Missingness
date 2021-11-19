@@ -32,29 +32,26 @@ def training_loop(
     start_score=100, # epochs when to start 
     early_stopping=None, # or callable
     output_freq=5,
-    early_stop=True # if makes it to end of training cycle, return early stop. Also shuts down early stopping for HP optim
+    early_stop=True, # if makes it to end of training cycle, return early stop. Also shuts down early stopping for HP optim
+    steps_til_samp=1000,
+    k=None, # parameters for SWA if implemented
+    m=None
     ):
     devices = jax.local_device_count()
     assert batch_size % devices == 0, "batch size must be divisible by number of devices"
     tqdm.write("{} device(s)".format(devices))
-    params_flat, params_build = jax.tree_util.tree_flatten(params)
     params_ = params
     params = jax.tree_map(lambda x: jnp.array([x] * devices), params)
-    in_ax1 = jax.tree_map(lambda x: 0, params)
-    if optim_kwargs is not None:
-        if 'k' in optim_kwargs.keys() and 'm' in optim_kwargs.keys():
-            print("swa implemented")
-            swa = True
-        else:
-            swa = False
+    if k is not None and m is not None:
+        swa = True
     else:
         swa = False
-    
-    def loss(params, x_batch, y_batch, rng):
-        out = model_fun(params, x_batch, rng, True)
+
+    def loss(params, x_batch, y_batch, rng, samp):
+        out = model_fun(params, x_batch, rng, samp)
         loss, _ = loss_fun(params, out, y_batch)
         return loss
-    
+
     @jax.jit
     def metrics(params, x_batch, y_batch, rng):
         out = model_fun(params, x_batch, rng, False)
@@ -63,25 +60,8 @@ def training_loop(
 
     print_step = make_schedule(lr)
     step_size = lr
-    if optim == "sgd":
-        tqdm.write("optimizer: sgd, lr: {}, batch_size={}".format(print_step(1), batch_size))
-        if optim_kwargs is None:
-            optim_kwargs = dict(step_size=step_size)
-        else:
-            optim_kwargs["step_size"] = step_size
-        
-        optim_init, optim_update, optim_params = optimizers.sgd(**optim_kwargs)
-    
-    elif optim == "momentum":
-        tqdm.write("optimizer: momentum, lr: {}, batch_size={}".format(print_step(1), batch_size))
-        if optim_kwargs is None:
-            optim_kwargs = dict(step_size=step_size)
-        else:
-            optim_kwargs["step_size"] = step_size
-        
-        optim_init, optim_update, optim_params = optimizers.momentum(**optim_kwargs)
 
-    elif optim == "lamb":
+    if optim == "lamb":
         tqdm.write("optimizer: lamb, lr: {}, batch_size={}".format(print_step(1), batch_size))
         if optim_kwargs is None:
             optim_kwargs = dict(
@@ -92,7 +72,7 @@ def training_loop(
         optobj = optax.lamb(**optim_kwargs)
         optim_init = optobj.init
         optim_update = optobj.update
-    
+
     elif optim == "fromage":
         tqdm.write("optimizer: fromage, lr: {}, batch_size={}".format(print_step(1), batch_size))
         if optim_kwargs is None:
@@ -104,9 +84,9 @@ def training_loop(
         optobj = optax.fromage(**optim_kwargs)
         optim_init = optobj.init
         optim_update = optobj.update
-    
+
     elif optim == "yogi":
-        tqdm.write("optimizer: fromage, lr: {}, batch_size={}".format(print_step(1), batch_size))
+        tqdm.write("optimizer: yogi, lr: {}, batch_size={}".format(print_step(1), batch_size))
         if optim_kwargs is None:
             optim_kwargs = dict(
                 learning_rate=step_size, b1=0.9, b2=0.99, eps=1e-8
@@ -117,91 +97,41 @@ def training_loop(
         optim_init = optobj.init
         optim_update = optobj.update
 
-    elif optim == "adabelief":
-        tqdm.write("optimizer: adabeleif, lr: {}, batch_size={}".format(print_step(1), batch_size))
-        if optim_kwargs is None:
-            optim_kwargs = dict(
-                step_size=step_size, b1=0.9, b2=0.99, eps=1e-8
-            )
-        else:
-            optim_kwargs["step_size"] = step_size
-
-        optim_init, optim_update, optim_params = adabelief(**optim_kwargs)
-
     elif optim == "adam":
         tqdm.write("optimizer: adam, lr: {}, batch_size={}".format(print_step(1), batch_size))
         if optim_kwargs is None:
             optim_kwargs = dict(
-                step_size=step_size, b1=0.9, b2=0.99, eps=1e-8
+                learning_rate=step_size, b1=0.9, b2=0.99, eps=1e-8
             )
         else:
-            optim_kwargs["step_size"] = step_size
-
-        optim_init, optim_update, optim_params = optimizers.adam(**optim_kwargs)
-    
-    elif optim == "adabound":
-        tqdm.write("optimizer: adabound, lr: {}, batch_size={}".format(print_step(1), batch_size))
-        if optim_kwargs is None:
-            optim_kwargs = dict(
-                step_size=step_size, b1=0.9, b2=0.995, eps=1e-8
-            )
-        else:
-            optim_kwargs["step_size"] = step_size
-        optim_init, optim_update, optim_params = adabound(**optim_kwargs)
-    
-    elif optim == "adaclipped":
-        tqdm.write("optimizer: adabound, lr: {}, batch_size={}".format(print_step(1), batch_size))
-        if optim_kwargs is None:
-            optim_kwargs = dict(
-                step_size=step_size, lower_bound=0.01, b1=0.9, b2=0.995, eps=1e-8
-            )
-        else:
-            optim_kwargs["step_size"] = step_size
-        optim_init, optim_update, optim_params = adaclipped(**optim_kwargs)
-    
-    elif optim == "swat":
-        tqdm.write("optimizer: switch, lr: {}, batch_size={}".format(print_step(1), batch_size))
-        if optim_kwargs is None:
-            optim_kwargs = dict(
-                step_size=step_size, lower_bound=0.01, b1=0.9, b2=0.995, eps=1e-8
-            )
-        else:
-            optim_kwargs["step_size"] = step_size
-        optim_init, optim_update, optim_params = swat(**optim_kwargs)
+            optim_kwargs["learning_rate"] = step_size
+        optobj = optax.adamw(**optim_kwargs)
+        optim_init = optobj.init
+        optim_update = optobj.update
 
     opt_state = optim_init(params)
     opt_state = jax.tree_map(lambda x: x if len(x.shape) > 0 else x.reshape((1)), opt_state)
+    in_ax1 = jax.tree_map(lambda x: 0, params)
     in_ax2 = jax.tree_map(lambda x: 0 if len(x.shape) > 0 else None, opt_state)
-    if optim in ["lamb", "fromage", "yogi"]:
-        @functools.partial(
-            jax.pmap,
-            axis_name='num_devices',
-            in_axes=(None, in_ax1, 0, 0 , 0, in_ax2),
-            out_axes=(in_ax1, in_ax2),
-            )
-        def take_step(step, params, x_batch, y_batch, rng, opt_state):
-            """ Compute the gradient for a batch and update the parameters """
-            grads = jax.grad(loss)(params, x_batch, y_batch, rng)
-            grads = jax.lax.pmean(grads, axis_name='num_devices')
-            updates, opt_state = optim_update(grads, opt_state, params)
-            params = optax.apply_updates(params, updates)
-            return params, opt_state
-    else:
-        @functools.partial(
-            jax.pmap,
-            axis_name='num_devices',
-            in_axes=(None, in_ax1, 0, 0 , 0, in_ax2),
-            out_axes=(in_ax1, in_ax2),
-            )
-        def take_step(step, params, x_batch, y_batch, rng, opt_state):
-            """ Compute the gradient for a batch and update the parameters """        
-            grads = jax.grad(loss)(params, x_batch, y_batch, rng)
-            grads = jax.lax.pmean(grads, axis_name='num_devices')
-            opt_state = optim_update(step, grads, opt_state)
-            return optim_params(opt_state), opt_state
-    
-    if devices == 1:
-        take_step = jax.jit(take_step)
+
+    dist = functools.partial(
+        jax.pmap,
+        axis_name='num_devices',
+        in_axes=(None, in_ax1, 0, 0 , 0, in_ax2, None),
+        out_axes=(in_ax1, in_ax2),
+        static_broadcasted_argnums=(6,)
+    )
+
+    def _take_step(step, params, x_batch, y_batch, rng, opt_state, boolean):
+        """ Compute the gradient for a batch and update the parameters """
+        grads = jax.grad(loss)(params, x_batch, y_batch, rng, boolean)
+        grads = jax.lax.pmean(grads, axis_name='num_devices')
+        updates, opt_state = optim_update(grads, opt_state, params)
+        params = optax.apply_updates(params, updates)
+        return params, opt_state
+
+    take_step = dist(_take_step)
+
     history = []  # store training metrics
 
     pbar1 = tqdm(total=epochs, position=0, leave=False)
@@ -209,7 +139,7 @@ def training_loop(
 
     # set up test batches to avoid OOM errors on test set computation if test set is large
     rng, key = random.split(rng, 2)
-    test_batch_size = 128 
+    test_batch_size = 128
     test_mod = X_test.shape[0] % (test_batch_size) if test_batch_size < X_test.shape[0] else 0
     test_rows = random.permutation(key, X_test.shape[0] - test_mod)
     if test_batch_size < X_test.shape[0]:
@@ -217,8 +147,7 @@ def training_loop(
                         X_test.shape[0] // (test_batch_size))
     else:
         test_batches = np.split(test_rows, 1)
-    # large_test = True if len(test_batches) > 10 else False
-    
+
     perform_test = ((X_test is not None) and (y_test is not None)) and early_stopping is not None
     if perform_test:
         temp_row = np.minimum(20, X_test.shape[0])
@@ -238,25 +167,26 @@ def training_loop(
             batch_dev = batch_size // devices
             mod = X.shape[0] % (batch_size)
             rows = random.permutation(key, X.shape[0] - mod)
-            batches = np.split(rows, 
+            batches = np.split(rows,
                 X.shape[0] // (batch_size))
         else:
             mod = X.shape[0] % devices
             batch_size = X.shape[0] - mod
             batch_dev = batch_size // devices
             rows = random.permutation(key, X.shape[0] - mod)
-            batches = np.split(rows, 
+            batches = np.split(rows,
                 1)
         pbar2 = tqdm(total=len(batches), leave=False)
 
         for i, b in enumerate(batches):
-        # evaluate test set performance OR early stopping test
+            boolean = step > steps_til_samp
+            # evaluate test set performance OR early stopping test
             if perform_test and step % frequency == 0:
                 if swa_count > 0:
                     params_ = jax.device_get(jax.tree_map(lambda x: x / swa_count, swa_params))
                 else:
                     params_ = jax.device_get(jax.tree_map(lambda x: x[0], params))
-                
+
                 if step == 0:
                     params_store = params_.copy()
                     metric_store = metric_store_master.copy()
@@ -280,7 +210,7 @@ def training_loop(
                     tqdm.write("Final test loss: {}, epoch: {}, time: {}".format(
                         metric_store["loss"], epoch, timedelta(minutes=elapsed_time)))
                     return params_store, history, rng
-                
+
             step += 1
             rng, key = random.split(rng, 2)
             key = random.split(key, batch_size).reshape((devices, batch_dev, -1))
@@ -291,11 +221,10 @@ def training_loop(
             batch_y = batch_y.reshape((devices, batch_dev))
 
 
-            # parallelized step function
-            params, opt_state = take_step(
-                int(step), params, batch_x, batch_y, key, opt_state)
+            # parallelized step functions
+            params, opt_state = take_step(step, params, batch_x, batch_y, key, opt_state, boolean)
             if swa:
-                if step > optim_kwargs['m'] and step % optim_kwargs['k'] == 0:
+                if step > m and step % k == 0:
                     swa_params = jax.tree_multimap(lambda x, y: x + y[0], swa_params, params)
                     swa_count += 1
 
@@ -327,7 +256,7 @@ def training_loop(
                 for k in metrics_ewa_.keys():
                     metrics_ewa_[k] = float(metrics_ewa_[k])
                 pbar1.set_postfix(metrics_ewa_)
-                history.append(metrics_ewa_) 
+                history.append(metrics_ewa_)
                 if np.isnan(metrics_ewa_["loss"]):
                     break
             else:
@@ -337,7 +266,7 @@ def training_loop(
         elapsed_time = time.time() - start_time
         if (elapsed_time / 60) > 11.5:
             break
-        
+
     elapsed_time = time.time() - start_time
 
     if params_store is not None and early_stop:
@@ -348,7 +277,7 @@ def training_loop(
         params = jax.device_get(jax.tree_map(lambda x: x[0], params))
     tqdm.write("Final test loss: {}, epoch: {}, time: {}".format(
         metric_store["loss"], epoch, timedelta(minutes=elapsed_time)))
-    
+
     pbar1.close()
     return params, history, rng
 
