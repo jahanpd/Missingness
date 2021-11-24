@@ -19,7 +19,6 @@ from UAT import binary_cross_entropy, cross_entropy, mse, brier
 from UAT.aux import oversampled_Kfold
 from UAT.training.lr_schedule import attention_lr, linear_increase
 from optax import linear_onecycle_schedule, join_schedules, piecewise_constant_schedule, linear_schedule
-# import xgboost as xgb
 import lightgbm as lgb
 from tqdm import tqdm
 import itertools
@@ -30,6 +29,8 @@ from bayes_opt import BayesianOptimization
 from bayes_opt import SequentialDomainReductionTransformer
 
 
+from jax.config import config
+config.update("jax_debug_nans", True)
 
 devices = jax.local_device_count()
 # xgb.set_config(verbosity=0)
@@ -38,8 +39,9 @@ def create_make_model(features, rows, task, key):
     def make_model(
             X_valid,
             y_valid,
+            classes,
             batch_size=5,
-            max_steps=3e3,
+            max_steps=4e3,
             lr_max=None,
             d_model=128,
             early_stop=True,
@@ -55,26 +57,26 @@ def create_make_model(features, rows, task, key):
         model_kwargs_uat = dict(
                 features=features,
                 d_model=int(d_model),
-                embed_hidden_size=64,
-                embed_hidden_layers=5,
-                embed_activation=jax.nn.leaky_relu,
-                encoder_layers=5,
-                encoder_heads=5,
-                enc_activation=jax.nn.leaky_relu,
-                decoder_layers=5,
-                decoder_heads=5,
-                dec_activation=jax.nn.leaky_relu,
-                net_hidden_size=64,
+                embed_hidden_size=128,
+                embed_hidden_layers=2,
+                embed_activation=jax.nn.gelu,
+                encoder_layers=2,
+                encoder_heads=10,
+                enc_activation=jax.nn.gelu,
+                decoder_layers=3,
+                decoder_heads=10,
+                dec_activation=jax.nn.gelu,
+                net_hidden_size=128,
                 net_hidden_layers=5,
-                net_activation=jax.nn.leaky_relu,
+                net_activation=jax.nn.gelu,
                 last_layer_size=32,
                 out_size=classes,
-                W_init = jax.nn.initializers.lecun_normal(),
-                b_init = jax.nn.initializers.normal(1e-2),
+                W_init = jax.nn.initializers.he_uniform(),
+                b_init = jax.nn.initializers.zeros,
                 )
         epochs = int(max_steps // steps_per_epoch)
-        start_steps = 2000 # wait at least 5 epochs before early stopping
-        stop_steps_ = steps_per_epoch * (epochs // 1) / min(steps_per_epoch, freq)
+        start_steps = 3*steps_per_epoch # wait at least 5 epochs before early stopping
+        stop_steps_ = steps_per_epoch * (epochs // 4) / min(steps_per_epoch, freq)
 
         # definint learning rate schedule
         m = max_steps // 2
@@ -87,9 +89,9 @@ def create_make_model(features, rows, task, key):
                 int(epochs * 0.8 * steps_per_epoch):1.0,
             })
         warmup = linear_schedule(
-            init_value=1e-8,
-            end_value=np.exp(lr_max), 
-            transition_steps=50
+            init_value=1e-20,
+            end_value=np.exp(lr_max),
+            transition_steps=100
         )
         schedule=join_schedules(
             [warmup, decay],
@@ -102,29 +104,30 @@ def create_make_model(features, rows, task, key):
         )
         early_stopping = create_early_stopping(start_steps, stop_steps_, metric_name="loss", tol=1e-8)
         training_kwargs_uat = dict(
-                    optim="adam",
+                    optim="adabelief",
                     frequency=min(steps_per_epoch, freq),
                     batch_size=batch_size_base2,
                     lr=schedule,
-                    # lr=1e-3,
+                    #lr=1e-2,
                     epochs=epochs,
                     early_stopping=early_stopping,
                     optim_kwargs=optim_kwargs,
                     early_stop=early_stop,
-                    steps_til_samp=500
+                    steps_til_samp=steps_per_epoch*50
                 )
         if task == "Supervised Classification":
-            loss_fun = cross_entropy(classes, l2_reg=1e-7, dropout_reg=1e-7)
+            loss_fun = cross_entropy(classes, l2_reg=0, dropout_reg=1e-7)
             # loss_fun = brier(l2_reg=0.0, dropout_reg=1e-7)
         elif task == "Supervised Regression":
             loss_fun = mse(l2_reg=0.0, dropout_reg=1e-7)
         training_kwargs_uat["X_test"] = X_valid
-        training_kwargs_uat["y_test"] = y_valid 
+        training_kwargs_uat["y_test"] = y_valid
         model = UAT(
             model_kwargs=model_kwargs_uat,
             training_kwargs=training_kwargs_uat,
             loss_fun=loss_fun,
             rng_key=key,
+            classes=classes,
             )
         return model, batch_size_base2, loss_fun
     return make_model
@@ -144,7 +147,7 @@ def run(
     gbm_params =  None,
     corrupt = False
     ):
-    """ 
+    """
     dataset: int, referring to an OpenML dataset ID
     task: str, one of "Supervised Classification" or "Supervised Regression"
     target: str, colname of target variable
@@ -199,7 +202,7 @@ def run(
                 test_complete=test_complete,
                 split=0.2,
                 rng_key=key,
-                prop=0.6,
+                prop=0.5,
                 corrupt=corrupt,
                 cols_miss=int(X.shape[1] * 0.8)
             )
@@ -212,7 +215,7 @@ def run(
         make_model = create_make_model(X_train.shape[1], X_train.shape[0], task, key)
         print(trans_params)
         model, batch_size_base2, loss_fun = make_model(
-                X_valid=X_valid, y_valid=y_valid,
+                X_valid=X_valid, y_valid=y_valid, classes=classes,
                 **trans_params
         )
                 
@@ -381,10 +384,11 @@ def run(
     metrics.columns = pd.MultiIndex.from_tuples(metrics.columns, names=['metric','dataset'])
     
     # iterate over metrics to determing % change for each metric
-    metrics_list = list(metrics.columns.levels[0])
-    for m in metrics_list:
-        metrics[m, "delta"] = (metrics[m, "full"].values - metrics[m, "drop"].values
-        ) / (metrics[m, "full"].values + metrics[m, "drop"].values) * 100
+    #metrics_list = list(metrics.columns.levels[0])
+    #print(metrics)
+    #for m in metrics_list:
+    #    metrics[m, "delta"] = (metrics[m, "full"].values - metrics[m, "drop"].values
+    #    ) / (metrics[m, "full"].values + metrics[m, "drop"].values) * 100
     metrics = metrics.sort_index(axis=1)
 
     return metrics, perc_missing
@@ -436,195 +440,196 @@ if __name__ ==  "__main__":
             ['name', 'NumberOfInstances', 'NumberOfFeatures', 'NumberOfClasses', 'NumberOfNumericFeatures', 'NumberOfSymbolicFeatures']
             ].loc[data_list.index[selection]])
     for row in data_list[['did', 'task_type', 'name']].values[selection,:]:
-        # BAYESIAN HYPERPARAMETER  SEARCH
-        # will search if cannot load params from file
-        print(row[1], row[2])
-        key = rng.integers(9999)
-        X, y, classes, cat_bin = data.prepOpenML(row[0], row[1])
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=key)
-        key = rng.integers(9999)
-        X_train, X_test, X_valid, y_train, y_test, y_valid, diagnostics = data.openml_ds(
-                X_train,
-                y_train,
-                X_test,
-                y_test,
-                row[1],
-                cat_bin=cat_bin,
-                classes=classes,
-                missing=None,
-                imputation=None,  # one of none, simple, iterative, miceforest
-                train_complete=False,
-                test_complete=True,
-                split=0.2,
-                rng_key=key,
-                prop=args.p,
-                corrupt=args.corrupt
-            )
-        key = rng.integers(9999)
-        if row[1] == "Supervised Classification":
-            objective = 'softmax'
-            X_train, y_train = ros.fit_resample(X_train, y_train)
-        else:
-            objective = 'regression'
-            resample=False
-        ## set up transformer model hp search
-        path = "results/openml/hyperparams"
-        filenames = [join(path, f) for f in listdir(path) if isfile(join(path, f))]
-        subset = [f for f in filenames if row[2] in f]
-        
-        # attempt to get params from file
-        try:
-            trans_subset = [f for f in subset if 'trans' in f]
-            with (open(trans_subset[0], "rb")) as handle:
-                trans_results = pickle.load(handle)
-            loaded_hps_trans = True
-        except Exception as e:
-            loaded_hps_trans = False
-        try:
-            gbm_subset = [f for f in subset if 'gbm' in f]
-            with (open(gbm_subset[0], "rb")) as handle:
-                gbm_results = pickle.load(handle)
-            loaded_hps_gbm = True
-        except Exception as e:
-            loaded_hps_gbm = False
-
-        if not loaded_hps_trans:
-            # implement bayesian hyperparameter optimization with sequential domain reduction
-            key = rng.integers(9999)
-            make_model = create_make_model(X_train.shape[1], X_train.shape[0], row[1], key)
-            # find LR range for cyclical training / super convergence
-            search_steps = 4e3
-            # model, batch_size_base2, loss_fun = make_model(128, 128, 12, X_valid, y_valid, search_steps)
-            # model.fit(X_train, y_train)
-            # loss_hx = [h["test_current"] for h in model._history]
-            # lr_hx = [h["lr"] for h in model._history]
-            # lr_max = lr_hx[int(np.argmin(loss_hx) * 0.8)]
-
-            def black_box(lr_max=np.log(5e-3), reg=6, d_model=64, batch_size=6, b2=0.99):
-                model, batch_size_base2, loss_fun = make_model(
-                    X_valid, y_valid, reg=reg, lr_max=lr_max, d_model=d_model, batch_size=batch_size, b2=b2,
-                    early_stop=True
-                    )
-                model.fit(X_train, y_train)
-                # break test into 'batches' to avoid OOM errors
-                test_mod = X_test.shape[0] % batch_size_base2 if batch_size_base2 < X_test.shape[0] else 0
-                test_rows = np.arange(X_test.shape[0] - test_mod)
-                test_batches = np.split(test_rows,
-                            np.maximum(1, X_test.shape[0] // batch_size_base2))
-
-                loss_loop = 0
-                acc_loop = 0
-                pbar1 = tqdm(total=len(test_batches), position=0, leave=False)
-                @jax.jit
-                def loss_calc(params, x_batch, y_batch, rng):
-                    out = model.apply_fun(params, x_batch, rng, False)
-                    loss, _ = loss_fun(params, out, y_batch)
-                    class_o = np.argmax(jnp.squeeze(out[0]), axis=1)
-                    correct_o = class_o == y_batch
-                    acc = np.sum(correct_o) / y_batch.shape[0]
-                    return loss, acc
-                for tbatch in test_batches:
-                    key_ = jnp.ones((X_test[np.array(tbatch), ...].shape[0], 2))
-                    loss, acc = loss_calc(model.params, X_test[np.array(tbatch), ...], y_test[np.array(tbatch)], key_)
-                    loss_loop += loss
-                    acc_loop += acc
-                    pbar1.update(1)
-                # make nan loss high, and average metrics over test batches
-                if np.isnan(loss_loop) or np.isinf(loss_loop):
-                    loss_loop = 999999
-                print(
-                    loss_loop/len(test_batches), 
-                    acc_loop/len(test_batches),
-                    np.sum(y_test) / y_test.shape[0]
-                    ),
-                # return - loss_loop / len(test_batches)
-                return 1 / (loss_loop / len(test_batches))
-
-            pbounds={
-                    "lr_max":(np.log(1e-5), np.log(1e-2)),
-                    # "d_model":(16, 128),
-                    "reg":(2,8),
-                    # "batch_size":(5, 9),
-                    }
-        
-            # bounds_transformer = SequentialDomainReductionTransformer()
-            key = rng.integers(9999)
-            mutating_optimizer = BayesianOptimization(
-                f=black_box,
-                pbounds=pbounds,
-                verbose=0,
-                random_state=int(key),
-                # bounds_transformer=bounds_transformer
-            )
-            mutating_optimizer.probe(params={"lr_max":np.log(1e-3), "reg":10})
-            kappa = 10  # parameter to control exploitation vs exploration. higher = explore
-            xi =1e-1
-            mutating_optimizer.maximize(init_points=5, n_iter=args.iters, acq="ei", xi=xi, kappa=kappa)
-            print(mutating_optimizer.res)
-            print(mutating_optimizer.max)
-            trans_results = {"max": mutating_optimizer.max, "all":mutating_optimizer.res}
-            
-            with open('results/openml/hyperparams/{},trans_hyperparams.pickle'.format(row[2]), 'wb') as handle:
-                pickle.dump(trans_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
-        print(classes, objective, row[1])    
-        if not loaded_hps_gbm:
-            def black_box_gbm(max_depth, learning_rate, max_bin):
-                param = {'objective':objective, 'num_class':classes}
-                param['max_depth'] = int(max_depth)
-                param['num_leaves'] = int(0.8 * (2**max_depth))
-                param['learning_rate'] = learning_rate
-                param['max_bin']=int(max_bin)
-                param['verbosity']=-1
-                dtrain = lgb.Dataset(X_train, label=y_train, categorical_feature=list(np.argwhere(cat_bin == 1)))
-                history = lgb.cv(
-                    params=param,
-                    train_set=dtrain,
-                    num_boost_round=1000,
-                    nfold=5,
-                    early_stopping_rounds=50,
-                    stratified=False,
-                    categorical_feature=list(np.argwhere(cat_bin == 1))
-                    )
-                loss = np.mean(history[list(history.keys())[0]])
-                print(loss)
-                return - loss
-            pbounds_gbm={
-                    "max_depth":(3,12),
-                    "learning_rate":(0.001, 1),
-                    "max_bin":(10, 100)
-                    }
-        
-            key = rng.integers(9999)
-            mutating_optimizer_gbm = BayesianOptimization(
-                f=black_box_gbm,
-                pbounds=pbounds_gbm,
-                verbose=0,
-                random_state=int(key),
-            )
-            mutating_optimizer_gbm.maximize(init_points=5, n_iter=args.iters, acq="ei", xi=xi, kappa=kappa)
-            print(mutating_optimizer_gbm.res)
-            print(mutating_optimizer_gbm.max)
-            best_params_gbm = mutating_optimizer_gbm.max
-            best_params_gbm["params"]["objective"]=objective
-            best_params_gbm["params"]["num_class"]=classes
-            best_params_gbm["params"]['num_leaves'] = int(0.8 * (2**best_params_gbm["params"]["max_depth"]))
-            gbm_results = {"max": best_params_gbm, "all":mutating_optimizer_gbm.res} 
-
-            with open('results/openml/hyperparams/{},gbm_hyperparams.pickle'.format(row[2]), 'wb') as handle:
-                pickle.dump(gbm_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
- 
-        # BOOTSTRAP PERFORMANCE if file not already present
-        path = "results/openml"
-        result_files = [f for f in listdir(path) if isfile(join(path, f))]
-        def result_exists(filename, ds, mis, imp):
-            splt = filename[:-7].split(",")
-            try:
-                return ds == splt[0] and str(mis) == splt[2] and str(imp) == splt[3]
-            except:
-                return False
         for missing in missing_list:
-            if missing == "None":
-                missing = None
+            # BAYESIAN HYPERPARAMETER  SEARCH
+            # will search if cannot load params from file
+            print(row[1], row[2])
+            key = rng.integers(9999)
+            X, y, classes, cat_bin = data.prepOpenML(row[0], row[1])
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=key)
+            key = rng.integers(9999)
+            X_train, X_test, X_valid, y_train, y_test, y_valid, diagnostics = data.openml_ds(
+                    X_train,
+                    y_train,
+                    X_test,
+                    y_test,
+                    row[1],
+                    cat_bin=cat_bin,
+                    classes=classes,
+                    missing=missing,
+                    imputation=None,  # one of none, simple, iterative, miceforest
+                    train_complete=False,
+                    test_complete=True,
+                    split=0.2,
+                    rng_key=key,
+                    prop=0.7,
+                    corrupt=args.corrupt,
+                    cols_miss=int(X.shape[1] * 0.8)
+                )
+            key = rng.integers(9999)
+            if row[1] == "Supervised Classification":
+                objective = 'softmax'
+                X_train, y_train = ros.fit_resample(X_train, y_train)
+            else:
+                objective = 'regression'
+                resample=False
+            ## set up transformer model hp search
+            path = "results/openml/hyperparams"
+            filenames = [join(path, f) for f in listdir(path) if isfile(join(path, f))]
+            subset = [f for f in filenames if row[2] in f]
+            
+            # attempt to get params from file
+            try:
+                trans_subset = [f for f in subset if 'trans' in f]
+                with (open(trans_subset[0], "rb")) as handle:
+                    trans_results = pickle.load(handle)
+                loaded_hps_trans = True
+            except Exception as e:
+                loaded_hps_trans = False
+            try:
+                gbm_subset = [f for f in subset if 'gbm' in f]
+                with (open(gbm_subset[0], "rb")) as handle:
+                    gbm_results = pickle.load(handle)
+                loaded_hps_gbm = True
+            except Exception as e:
+                loaded_hps_gbm = False
+
+            if not loaded_hps_trans:
+                # implement bayesian hyperparameter optimization with sequential domain reduction
+                key = rng.integers(9999)
+                make_model = create_make_model(X_train.shape[1], X_train.shape[0], row[1], key)
+                # find LR range for cyclical training / super convergence
+                search_steps = 4e3
+                # model, batch_size_base2, loss_fun = make_model(128, 128, 12, X_valid, y_valid, search_steps)
+                # model.fit(X_train, y_train)
+                # loss_hx = [h["test_current"] for h in model._history]
+                # lr_hx = [h["lr"] for h in model._history]
+                # lr_max = lr_hx[int(np.argmin(loss_hx) * 0.8)]
+
+                def black_box(lr_max=np.log(5e-3), reg=6, d_model=64, batch_size=6, b2=0.99):
+                    model, batch_size_base2, loss_fun = make_model(
+                        X_valid, y_valid, classes=classes, reg=reg, lr_max=lr_max, d_model=d_model, batch_size=batch_size, b2=b2,
+                        early_stop=True
+                        )
+                    model.fit(X_train, y_train)
+                    # break test into 'batches' to avoid OOM errors
+                    test_mod = X_test.shape[0] % batch_size_base2 if batch_size_base2 < X_test.shape[0] else 0
+                    test_rows = np.arange(X_test.shape[0] - test_mod)
+                    test_batches = np.split(test_rows,
+                                np.maximum(1, X_test.shape[0] // batch_size_base2))
+
+                    loss_loop = 0
+                    acc_loop = 0
+                    pbar1 = tqdm(total=len(test_batches), position=0, leave=False)
+                    @jax.jit
+                    def loss_calc(params, x_batch, y_batch, rng):
+                        out = model.apply_fun(params, x_batch, rng, False)
+                        loss, _ = loss_fun(params, out, y_batch)
+                        class_o = np.argmax(jnp.squeeze(out[0]), axis=1)
+                        correct_o = class_o == y_batch
+                        acc = np.sum(correct_o) / y_batch.shape[0]
+                        return loss, acc
+                    for tbatch in test_batches:
+                        key_ = jnp.ones((X_test[np.array(tbatch), ...].shape[0], 2))
+                        loss, acc = loss_calc(model.params, X_test[np.array(tbatch), ...], y_test[np.array(tbatch)], key_)
+                        loss_loop += loss
+                        acc_loop += acc
+                        pbar1.update(1)
+                    # make nan loss high, and average metrics over test batches
+                    if np.isnan(loss_loop) or np.isinf(loss_loop):
+                        loss_loop = 999999
+                    baseline = np.sum(y_test) / y_test.shape[0]
+                    acc = acc_loop / len(test_batches)
+                    diff = np.abs(acc - 0.5) - np.abs(baseline - 0.5) 
+                    print(
+                        loss_loop/len(test_batches), 
+                        acc_loop/len(test_batches),
+                        diff)
+                    # return - loss_loop / len(test_batches)
+                    return diff / (loss_loop / len(test_batches))
+
+                pbounds={
+                        "lr_max":(np.log(1e-5), np.log(1e-3)),
+                        "d_model":(16, 128),
+                        "reg":(2,8),
+                        # "batch_size":(5, 9),
+                        }
+            
+                # bounds_transformer = SequentialDomainReductionTransformer()
+                key = rng.integers(9999)
+                mutating_optimizer = BayesianOptimization(
+                    f=black_box,
+                    pbounds=pbounds,
+                    verbose=0,
+                    random_state=int(key),
+                    # bounds_transformer=bounds_transformer
+                )
+                mutating_optimizer.probe(params={"lr_max":np.log(1e-4), "reg":10, "d_model":128})
+                kappa = 10  # parameter to control exploitation vs exploration. higher = explore
+                xi =1e-1
+                mutating_optimizer.maximize(init_points=5, n_iter=args.iters, acq="ei", xi=xi, kappa=kappa)
+                print(mutating_optimizer.res)
+                print(mutating_optimizer.max)
+                trans_results = {"max": mutating_optimizer.max, "all":mutating_optimizer.res}
+                
+                with open('results/openml/hyperparams/{},{},trans_hyperparams.pickle'.format(row[2], missing), 'wb') as handle:
+                    pickle.dump(trans_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
+            print(classes, objective, row[1])    
+            if not loaded_hps_gbm:
+                def black_box_gbm(max_depth, learning_rate, max_bin):
+                    param = {'objective':objective, 'num_class':classes}
+                    param['max_depth'] = int(max_depth)
+                    param['num_leaves'] = int(0.8 * (2**max_depth))
+                    param['learning_rate'] = learning_rate
+                    param['max_bin']=int(max_bin)
+                    param['verbosity']=-1
+                    dtrain = lgb.Dataset(X_train, label=y_train, categorical_feature=list(np.argwhere(cat_bin == 1)))
+                    history = lgb.cv(
+                        params=param,
+                        train_set=dtrain,
+                        num_boost_round=1000,
+                        nfold=5,
+                        early_stopping_rounds=50,
+                        stratified=False,
+                        categorical_feature=list(np.argwhere(cat_bin == 1))
+                        )
+                    loss = np.mean(history[list(history.keys())[0]])
+                    print(loss)
+                    return - loss
+                pbounds_gbm={
+                        "max_depth":(3,12),
+                        "learning_rate":(0.001, 1),
+                        "max_bin":(10, 100)
+                        }
+            
+                key = rng.integers(9999)
+                mutating_optimizer_gbm = BayesianOptimization(
+                    f=black_box_gbm,
+                    pbounds=pbounds_gbm,
+                    verbose=0,
+                    random_state=int(key),
+                )
+                mutating_optimizer_gbm.maximize(init_points=5, n_iter=args.iters, acq="ei", xi=xi, kappa=kappa)
+                print(mutating_optimizer_gbm.res)
+                print(mutating_optimizer_gbm.max)
+                best_params_gbm = mutating_optimizer_gbm.max
+                best_params_gbm["params"]["objective"]=objective
+                best_params_gbm["params"]["num_class"]=classes
+                best_params_gbm["params"]['num_leaves'] = int(0.8 * (2**best_params_gbm["params"]["max_depth"]))
+                gbm_results = {"max": best_params_gbm, "all":mutating_optimizer_gbm.res} 
+
+                with open('results/openml/hyperparams/{},{},gbm_hyperparams.pickle'.format(row[2], missing),'wb') as handle:
+                    pickle.dump(gbm_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
+     
+            # BOOTSTRAP PERFORMANCE if file not already present
+            path = "results/openml"
+            result_files = [f for f in listdir(path) if isfile(join(path, f))]
+            def result_exists(filename, ds, mis, imp):
+                splt = filename[:-7].split(",")
+                try:
+                    return ds == splt[0] and str(mis) == splt[2] and str(imp) == splt[3]
+                except:
+                    return False
             for imputation in args.imputation:
                 # try:
                 # we do not want to impute data if there is None missing and data is not corrupted
@@ -637,7 +642,8 @@ if __name__ ==  "__main__":
 
                 if imputation == "None":
                     imputation = None
-
+                if missing == "None":
+                    missing = None
                 m1, perc_missing = run(
                     dataset=row[0],
                     task=row[1],

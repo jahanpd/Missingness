@@ -4,14 +4,14 @@ import jax
 from jax import random
 from jax.nn import (relu, log_softmax, softmax, softplus, sigmoid, elu,
                     leaky_relu, selu, gelu, normalize)
-from jax.nn.initializers import glorot_normal, normal, ones, zeros
+from jax.nn.initializers import glorot_uniform, normal, ones, zeros
 
 def DenseGeneral(
     features,
     in_dim,
     out_dim,
-    W_init = glorot_normal(),
-    b_init = normal(),
+    W_init = glorot_uniform(),
+    b_init = zeros,
     ):
     def init_fun(
         rng,
@@ -32,8 +32,8 @@ def Dense(
     in_dim,
     out_dim,
     bias = True,
-    W_init = glorot_normal(),
-    b_init = normal(),
+    W_init = glorot_uniform(),
+    b_init = zeros,
     ):
     def init_fun(
         rng
@@ -68,8 +68,8 @@ def NeuralNetGeneral(
     hidden_dim,
     out_dim,
     num_hidden = 1,
-    W_init = glorot_normal(),
-    b_init = normal(),
+    W_init = glorot_uniform(),
+    b_init = zeros,
     activation=sigmoid
     ):
     init_l1, layer_1 = DenseGeneral(
@@ -121,8 +121,8 @@ def NeuralNet(
     hidden_dim,
     out_dim,
     num_hidden = 1,
-    W_init = glorot_normal(),
-    b_init = normal(),
+    W_init = glorot_uniform(),
+    b_init = zeros,
     activation=relu
     ):
     init_l1, layer_1 = Dense(
@@ -189,8 +189,8 @@ def AttentionLayer(
     heads,
     dims,
     dff = None,
-    W_init = glorot_normal(),
-    b_init = normal(),
+    W_init = glorot_uniform(),
+    b_init = zeros,
     activation = softplus
     ):
     if dff is None:
@@ -229,7 +229,7 @@ def AttentionLayer(
     def apply_fun(params, q, k, v, mask):
         # note params input is from the AttentionBlock init_params construction, not the above
         # q (features, embedding)
-        # q = layernorm(q)
+        # q = layernorm1((params["ln1b"], params["ln1g"]), q)
         q_ = jnp.transpose(q_map((params["qw"],params["qb"]), q).reshape((-1, heads, dims)), (1,0,2))
         k_ = jnp.transpose(k_map((params["kw"],params["kb"]), k).reshape((-1, heads, dims)), (1,2,0))
         v_ = jnp.transpose(v_map((params["vw"],params["vb"]), v).reshape((-1, heads, dims)), (1,0,2))
@@ -238,12 +238,13 @@ def AttentionLayer(
         qk = jnp.matmul(q_,k_)
         scaled_attention_logits = jax.nn.softplus(qk / jnp.sqrt(dims)) * mask
         attention_weights = scaled_attention_logits / (scaled_attention_logits.sum(-1, keepdims=True) + 1e-6)
+        # attention_weights = jax.nn.softmax(qk + ((mask - 1.0)*1e8 ))
         scaled_attention = jnp.transpose(jnp.matmul(attention_weights, v_), (1,0,2)).reshape((-1, dims*heads))
         x = out((params["outw"],params["outb"]), scaled_attention)
 
         # residual connection
         x = x + q
-        # x = layernorm2((params["ln2b"], params["ln2g"]), x)
+        x = layernorm2((params["ln2b"], params["ln2g"]), x)
         # feedforward network
         x = activation(l1((params["l1w"],params["l1b"]), x))
         x = l2((params["l2w"],params["l2b"]), x)
@@ -257,8 +258,8 @@ def AttentionBlock(
         dims,
         heads,
         dff=None,
-        W_init = glorot_normal(),
-        b_init = normal(),
+        W_init = glorot_uniform(),
+        b_init = zeros,
         activation = softplus
     ):
     

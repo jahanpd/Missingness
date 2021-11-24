@@ -10,6 +10,7 @@ from jax.nn.initializers import glorot_normal, normal, ones, zeros
 from jax.experimental.optimizers import l2_norm
 from UAT.models.models import (AttentionModel_MAP, EnsembleModel)
 from UAT.training.train import training_loop
+from UAT.training.metainit import metainit_loop
 from UAT.models.layers import NeuralNet as nn
 from UAT.aux import oversampled_Kfold
 from imblearn.over_sampling import RandomOverSampler
@@ -33,6 +34,8 @@ class UAT:
         rng_key=42,
         feat_names=None,
         posterior_params={"name":"MAP"},
+        classes=2,
+        metainit=False
         ):
         
         """
@@ -90,6 +93,8 @@ class UAT:
         
         self.params = params
         self.apply_fun = apply_fun
+        self.classes= classes
+        self.metainit = metainit
         
         self.key = key
 
@@ -102,6 +107,19 @@ class UAT:
         self.training_kwargs = training_kwargs
 
     def fit(self, X, y):
+        if self.metainit:
+            params, history, rng = metainit_loop(
+                X=X,
+                y=y,
+                model_fun=self.apply_fun,
+                params=self.params,
+                loss_fun=self.loss_fun,
+                rng=self.key,
+                classes=self.classes
+            )
+            self.params = params
+            self.key = rng
+
         params, history, rng = training_loop(
             X=X,
             y=y,
@@ -182,7 +200,7 @@ class UAT:
             else:
                 probs = jax.nn.sigmoid(logits)
         
-        return jnp.squeeze(probs)
+        return np.array(jnp.squeeze(probs))
     
     def predict(self, X, batch_size=64):
         if self.posterior_params["name"] == "MAP":
@@ -193,7 +211,7 @@ class UAT:
                  out = self.batch_forward(X)
             out = out[0]
 
-        return jnp.squeeze(out)
+        return np.array(jnp.squeeze(out))
     
     def attention(self, X, batch_size=64):
         if X.shape[0] <= batch_size:

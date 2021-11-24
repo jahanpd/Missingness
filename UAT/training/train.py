@@ -1,5 +1,6 @@
 from UAT.optimizers.optimizer import adabound, adaclipped, adabelief, swat
 import optax
+from optax._src import transform, combine, base
 import numpy as np
 import jax.numpy as jnp
 import jax
@@ -12,6 +13,15 @@ import functools
 import time
 from datetime import timedelta
 # from UAT.aux import flatten_params, unflatten_params
+from typing import Any, Callable, Optional, Union
+
+ScalarOrSchedule = Union[float, base.Schedule]
+
+def _scale_by_learning_rate(learning_rate: ScalarOrSchedule, flip_sign=True):
+  m = -1 if flip_sign else 1
+  if callable(learning_rate):
+    return transform.scale_by_schedule(lambda count: m * learning_rate(count))
+  return transform.scale(m * learning_rate)
 
 def training_loop(
     X,
@@ -72,6 +82,18 @@ def training_loop(
         optobj = optax.lamb(**optim_kwargs)
         optim_init = optobj.init
         optim_update = optobj.update
+    
+    if optim == "sgd":
+        tqdm.write("optimizer: sgb, lr: {}, batch_size={}".format(print_step(1), batch_size))
+        if optim_kwargs is None:
+            optim_kwargs = dict(
+                learning_rate=step_size
+            )
+        else:
+            optim_kwargs["learning_rate"] = step_size
+        optobj = optax.sgd(**optim_kwargs)
+        optim_init = optobj.init
+        optim_update = optobj.update
 
     elif optim == "fromage":
         tqdm.write("optimizer: fromage, lr: {}, batch_size={}".format(print_step(1), batch_size))
@@ -108,6 +130,25 @@ def training_loop(
         optobj = optax.adamw(**optim_kwargs)
         optim_init = optobj.init
         optim_update = optobj.update
+
+    elif optim == "adabelief":
+        tqdm.write("optimizer: adabelief, lr: {}, batch_size={}".format(print_step(1), batch_size))
+        if optim_kwargs is None:
+            optim_kwargs = dict(
+                b1=0.9, b2=0.99, eps=1e-8
+            )
+            weight_decay = 1e-5
+        else:
+            weight_decay = optim_kwargs.pop('weight_decay')
+        optobj = combine.chain(
+            transform.scale_by_belief(**optim_kwargs),
+            transform.add_decayed_weights(weight_decay, None),
+            _scale_by_learning_rate(step_size)
+            )
+        optim_init = optobj.init
+        optim_update = optobj.update
+    else:
+        raise AssertionError("{} not implemented".format(optim))
 
     opt_state = optim_init(params)
     opt_state = jax.tree_map(lambda x: x if len(x.shape) > 0 else x.reshape((1)), opt_state)

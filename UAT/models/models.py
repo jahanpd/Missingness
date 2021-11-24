@@ -4,7 +4,7 @@ import jax
 from jax import random
 from jax.nn import (relu, log_softmax, softmax, softplus, sigmoid, elu,
                     leaky_relu, selu, gelu, normalize)
-from jax.nn.initializers import glorot_normal, normal, ones, zeros
+from jax.nn.initializers import glorot_uniform, glorot_normal, normal, ones, zeros
 from .layers import (DenseGeneral, Dense, NeuralNet, NeuralNetGeneral, 
                      AttentionBlock, AttentionLayer, LayerNorm)
 from itertools import combinations
@@ -120,7 +120,7 @@ def AttentionModel_MAP(
         net_activation=relu,
         last_layer_size=64,
         out_size=1,
-        W_init = glorot_normal(),
+        W_init = glorot_uniform(),
         b_init = zeros,
         temp = 0.1,
         eps = 1e-7,
@@ -138,7 +138,7 @@ def AttentionModel_MAP(
 
     def init_fun(rng):
 
-        params = {}        
+        params = {}
         rng, key = random.split(rng)
         params["net1"] = init_net1(key)
         rng, key = random.split(rng)
