@@ -168,7 +168,7 @@ def AttentionModel_MAP(
             probs = jax.nn.sigmoid(params["logits"])
             rng, unif_rng = random.split(rng)
             unif_noise = random.uniform(unif_rng, (1, features))
-            drop_prob = (jnp.log(probs + eps) 
+            drop_prob = (jnp.log(probs + eps)
                             - jnp.log(1.0 - probs + eps)
                             + jnp.log(unif_noise + eps)
                             - jnp.log(1.0 - unif_noise + eps)

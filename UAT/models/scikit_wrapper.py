@@ -1,4 +1,5 @@
 from itertools import combinations
+from UAT.training import gradinit
 import numpy as np
 import pandas as pd
 import jax.numpy as jnp
@@ -10,7 +11,7 @@ from jax.nn.initializers import glorot_normal, normal, ones, zeros
 from jax.experimental.optimizers import l2_norm
 from UAT.models.models import (AttentionModel_MAP, EnsembleModel)
 from UAT.training.train import training_loop
-from UAT.training.metainit import metainit_loop
+from UAT.training.gradinit import gradinit_loop
 from UAT.models.layers import NeuralNet as nn
 from UAT.aux import oversampled_Kfold
 from imblearn.over_sampling import RandomOverSampler
@@ -35,9 +36,8 @@ class UAT:
         feat_names=None,
         posterior_params={"name":"MAP"},
         classes=2,
-        metainit=False
+            gradinit=None, # else dict(epochs:100)
         ):
-        
         """
         model_kwargs: dict, dict(
                         features=features,
@@ -71,7 +71,6 @@ class UAT:
         """
         key = jax.random.PRNGKey(rng_key)
         key, init_key = random.split(key)
-        
         print(posterior_params["name"])
         if type(model_kwargs) == list:
             print("List detected. Do you need to run Grid Search?")
@@ -90,12 +89,10 @@ class UAT:
                 self.feat_names = feat_names
             else:
                 self.feat_names = list(range(model_kwargs["features"]))
-        
         self.params = params
         self.apply_fun = apply_fun
         self.classes= classes
-        self.metainit = metainit
-        
+        self.gradinit = gradinit
         self.key = key
 
         self.loss_fun = loss_fun
@@ -107,16 +104,19 @@ class UAT:
         self.training_kwargs = training_kwargs
 
     def fit(self, X, y):
-        if self.metainit:
-            params, history, rng = metainit_loop(
+        if self.gradinit is not None:
+            params, history, rng = gradinit_loop(
                 X=X,
                 y=y,
                 model_fun=self.apply_fun,
                 params=self.params,
                 loss_fun=self.loss_fun,
                 rng=self.key,
-                classes=self.classes
-            )
+                batch_size=self.gradinit["batch_size"],
+                steps=self.gradinit["steps"],
+                lr=self.gradinit["lr"],
+                version=self.gradinit["version"]
+               )
             self.params = params
             self.key = rng
 
