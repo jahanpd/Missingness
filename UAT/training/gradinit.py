@@ -25,9 +25,8 @@ def global_norm(updates):
       sum([jnp.sum(jnp.abs(x)) for x in jax.tree_leaves(updates)]))
 
 def global_norm2(updates):
-  """Compute the global norm across a nested structure of tensors."""
-  return (
-      sum([jnp.sum(jnp.square(x))/2 for x in jax.tree_leaves(updates)]))
+  """Compute the global norm across a flattened structure of tensors."""
+  return jnp.sum(jnp.square(updates))/2
 
 def gradinit_loop(
     X,
@@ -103,21 +102,21 @@ def gradinit_loop(
         _, g1 = jax.value_and_grad(loss)(
             params, xb, yb, key
         )
-        return global_norm2(g1), g1
+        flat, _ = ravel_pytree(g1)
+        return global_norm2(flat), g1
 
     def gradquot(params, xb, yb, rng, eps=1e-5):
         (val, prod), grads = norm_grad2_(
             params, xb, yb, rng
         )
-        out = sum([
-            jnp.sum(jnp.abs((g - p) / (g + eps * (2 * (e >= 0) - 1)) - 1))
-            for g, p, e in zip(
-                jax.tree_leaves(grads),
-                jax.tree_leaves(prod),
-                jax.tree_leaves(jax.lax.stop_gradient(grads))
-            )]
+        out = tree_multimap(
+            lambda g, p, e: jnp.sum(jnp.abs((g - p) / (g + eps * (2 * (e >= 0) - 1)) - 1)),
+            grads,
+            prod,
+            jax.lax.stop_gradient(grads)
         )
-        return out
+        flat, _ = ravel_pytree(out)
+        return jnp.sum(flat)
 
     loss_ = jax.grad(loss)
     norm_grad_ = jax.value_and_grad(norm_grad, has_aux=True)

@@ -90,7 +90,7 @@ def create_make_model(features, rows, task, key):
         n_cycles = 3
         decay = piecewise_constant_schedule(
             np.exp(lr_max),
-            #1e-5,
+            # 1e-3,
             boundaries_and_scales={
                 int(epochs * 0.8 * steps_per_epoch):0.1,
             })
@@ -134,12 +134,12 @@ def create_make_model(features, rows, task, key):
             loss_fun=loss_fun,
             rng_key=key,
             classes=classes,
-            gradinit=dict(
-                steps=800,
-                lr=1e-2,
-                version='metainit',
-                batch_size=32
-            )
+            #gradinit=dict(
+            #    steps=800,
+            #    lr=1e-2,
+            #    version='metainit',
+            #    batch_size=32
+            #)
             )
         return model, batch_size_base2, loss_fun
     return make_model
@@ -489,7 +489,7 @@ if __name__ ==  "__main__":
             path = "results/openml/hyperparams"
             filenames = [join(path, f) for f in listdir(path) if isfile(join(path, f))]
             subset = [f for f in filenames if row[2] in f]
-            
+
             # attempt to get params from file
             try:
                 trans_subset = [f for f in subset if 'trans' in f]
@@ -645,7 +645,7 @@ if __name__ ==  "__main__":
             for imputation in args.imputation:
                 # try:
                 # we do not want to impute data if there is None missing and data is not corrupted
-                if imputation != "None" and missing is None and args.corrupt:
+                if imputation != "None" and (missing is None or missing =="None") and args.corrupt:
                     continue
                 # if results file already exists then skip
                 sub = [f for f in result_files if result_exists(f, row[2], missing, imputation)]

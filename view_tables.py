@@ -114,7 +114,7 @@ print("fraction of datasets run: ", len(name_list) / len(name_list_full))
 
 
 def table_maker(metric="accuracy"):
-    keys = itertools.product(["MCAR", "MNAR"], ["None", "Simple", "Iterative", "MiceForest"], ["Transformer", "LightGBM"])
+    keys = itertools.product(["MCAR", "MNAR", "MAR"], ["None", "Simple", "Iterative", "MiceForest"], ["Transformer", "LightGBM"])
     process_dict = {
         (" ", " ", "Dataset"):[],
         (" ", " ", "Metric"):[],
@@ -124,7 +124,7 @@ def table_maker(metric="accuracy"):
     for key in keys:
         process_dict[key] = []
 
-    key_sub = list(itertools.product(["MCAR", "MNAR"], ["None", "Simple", "Iterative", "MiceForest"]))
+    key_sub = list(itertools.product(["MCAR", "MNAR", "MAR"], ["None", "Simple", "Iterative", "MiceForest"]))
     for name in name_list:
         process_dict[(" ", " ", "Dataset")].append(name)
         # get metric information
@@ -182,6 +182,7 @@ print(final_results)
 print("win ratio baseline: {}".format(np.sum(final_results["None"]['None']['Transformer'].values > final_results["None"]['None']['LightGBM'].values) / len(final_results['None']['None'].dropna())))
 print("win ratio for MNAR: {}".format(np.sum(final_results["MNAR"]['None']['Transformer'].values > final_results["MNAR"]['None']['LightGBM'].values) / len(final_results['MNAR']['None'].dropna())))
 print("win ratio for MCAR: {}".format(np.sum(final_results["MCAR"]['None']['Transformer'].values > final_results["MCAR"]['None']['LightGBM'].values) / len(final_results['MCAR']['None'].dropna())))
+print("win ratio for MAR: {}".format(np.sum(final_results["MAR"]['None']['Transformer'].values > final_results["MAR"]['None']['LightGBM'].values) / len(final_results['MAR']['None'].dropna())))
 
 process_dict = table_maker("nll")
 print(process_dict)
@@ -191,6 +192,7 @@ print(final_results)
 print("win ratio baseline: {}".format(np.sum(final_results["None"]['None']['Transformer'].values < final_results["None"]['None']['LightGBM'].values) / len(final_results['None']['None'].dropna())))
 print("win ratio for MNAR: {}".format(np.sum(final_results["MNAR"]['None']['Transformer'].values < final_results["MNAR"]['None']['LightGBM'].values) / len(final_results['MNAR']['None'].dropna())))
 print("win ratio for MCAR: {}".format(np.sum(final_results["MCAR"]['None']['Transformer'].values < final_results["MCAR"]['None']['LightGBM'].values) / len(final_results['MCAR']['None'].dropna())))
+print("win ratio for MAR: {}".format(np.sum(final_results["MAR"]['None']['Transformer'].values > final_results["MAR"]['None']['LightGBM'].values) / len(final_results['MAR']['None'].dropna())))
 asd
 
 
