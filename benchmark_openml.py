@@ -43,7 +43,7 @@ def create_make_model(features, rows, task, key):
             batch_size=5,
             max_steps=1e4,
             lr_max=None,
-            d_model=128,
+            embed_depth=128,
             depth=10,
             early_stop=True,
             b2=0.99,
@@ -61,12 +61,12 @@ def create_make_model(features, rows, task, key):
 
         freq = 5
         print("lr: {}, d: {}, depth: {}, reg: {}, b2: {}".format(
-            np.exp(lr_max), int(d_model), int(depth), reg, b2))
+            np.exp(lr_max), int(embed_depth), int(depth), reg, b2))
         model_kwargs_uat = dict(
                 features=features,
-                d_model=int(d_model),
+                d_model=32,
                 embed_hidden_size=32,
-                embed_hidden_layers=int(depth),
+                embed_hidden_layers=int(embed_depth),
                 embed_activation=jax.nn.gelu,
                 encoder_layers=5,
                 encoder_heads=4,
@@ -195,7 +195,7 @@ def run(
     # resample argument will randomly oversample training set
     X, y, classes, cat_bin = data.prepOpenML(dataset, task)
     resample = True if classes > 1 else False
-    kfolds = oversampled_Kfold(5, key=int(key), n_repeats=2, resample=resample)
+    kfolds = oversampled_Kfold(5, key=int(key), n_repeats=1, resample=resample)
     splits = kfolds.split(X, y)
     count = 0
     # turn off verbosity for LGB
@@ -526,14 +526,14 @@ if __name__ ==  "__main__":
                 def black_box(
                         lr_max=np.log(5e-3),
                         reg=6,
-                        d_model=128,
+                        embed_depth=128,
                         depth=5,
                         batch_size=6,
                         b2=0.99
                 ):
                     model, batch_size_base2, loss_fun = make_model(
                         X_valid, y_valid, classes=classes,
-                        reg=reg, lr_max=lr_max, d_model=d_model,
+                        reg=reg, lr_max=lr_max, embed_depth=embed_depth,
                         depth=depth, batch_size=batch_size, b2=b2,
                         early_stop=True
                         )
@@ -576,9 +576,9 @@ if __name__ ==  "__main__":
 
                 pbounds={
                         "lr_max":(np.log(5e-5), np.log(5e-3)),
-                        "d_model":(8, 64),
+                        "embed_depth":(2, 6),
                         "reg":(2,10),
-                        "depth":(2, 12),
+                        "depth":(2, 6),
                         # "batch_size":(5, 9),
                         }
 
@@ -592,7 +592,7 @@ if __name__ ==  "__main__":
                     # bounds_transformer=bounds_transformer
                 )
                 mutating_optimizer.probe(params={
-                    "reg":8, "lr_max":np.log(5e-4), "d_model":16, "depth":5
+                    "reg":8, "lr_max":np.log(5e-4), "embed_depth":5, "depth":5
                 })
                 kappa = 10  # parameter to control exploitation vs exploration. higher = explore
                 xi =1e-1

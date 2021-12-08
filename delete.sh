@@ -1,3 +1,12 @@
+echo -n "Delete MAR (y/n)? "
+read answer
+if [[ $answer =~ ^[Yy]$ ]]
+then
+    cd results/openml
+    ls | grep pickle | grep MAR
+    ls | grep pickle | grep MAR | xargs rm  
+    cd ../..
+fi
 echo -n "Delete MNAR (y/n)? "
 read answer
 if [[ $answer =~ ^[Yy]$ ]]
