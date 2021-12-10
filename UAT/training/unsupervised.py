@@ -156,7 +156,8 @@ def unsupervised_loop(
     step = 0
     # set up test batches to avoid OOM errors on test set computation if test set is large
     start_time = time.time()
-    params_store = None
+    store_loss = np.inf
+    early_stop = 0
     for epoch in range(epochs):
         rng, key = random.split(rng, 2)
         if X.shape[0] > batch_size:
@@ -189,19 +190,22 @@ def unsupervised_loop(
             pbar2.update(1)
             pbar1.set_postfix({"loss": loss_})
             history.append({"loss": loss_})
+            if loss_ < store_loss:
+                store_loss = loss_
+                early_stop = 0
+            else:
+                early_stop += 1
             
         pbar2.close()
         pbar1.update(1)
         elapsed_time = time.time() - start_time
         if (elapsed_time / 60) > 11.5:
             break
+        if early_stop > 20:
+            break
 
     elapsed_time = time.time() - start_time
-
-    if params_store is not None and early_stop:
-        params = params_store
-    else:
-        params = jax.device_get(jax.tree_map(lambda x: x[0], params))
+    params = jax.device_get(jax.tree_map(lambda x: x[0], params))
     
     pbar1.close()
     return params, history, rng

@@ -26,7 +26,7 @@
 4703,4703,14965,TaskType.SUPERVISED_CLASSIFICATION,1461,bank-marketing,Supervised Classification,active,10-fold Crossvalidation,,1461,Class,39922.0,12.0,5289.0,2.0,17.0,45211.0,0.0,0.0,7.0,10.0,,,,,,,,
 4707,4707,14969,TaskType.SUPERVISED_CLASSIFICATION,4538,GesturePhaseSegmentationProcessed,Supervised Classification,active,10-fold Crossvalidation,,4538,Phase,2950.0,5.0,998.0,5.0,33.0,9873.0,0.0,0.0,32.0,1.0,,,,,,,,
 8680,8680,125922,TaskType.SUPERVISED_CLASSIFICATION,40499,texture,Supervised Classification,active,10-fold Crossvalidation,,40499,Class,500.0,11.0,500.0,11.0,41.0,5500.0,0.0,0.0,40.0,1.0,,,,,,,,
-11547,11547,146195,TaskType.SUPERVISED_CLASSIFICATION,40668,connect-4,Supervised Classification,active,10-fold Crossvalidation,,40668,class,44473.0,3.0,6449.0,3.0,43.0,67557.0,0.0,0.0,0.0,43.0,,,,,,,,
+11547,11547,146195,TaskType.SUPERVISED_CLASSIFICATION,40668,connect-4,Supervised Classification,active,10-fold Crossvalidation,,40668,class,44473.0,,6449.0,3.0,43.0,67557.0,0.0,0.0,0.0,43.0,,,,,,,,
 11970,11970,146817,TaskType.SUPERVISED_CLASSIFICATION,40982,steel-plates-fault,Supervised Classification,active,10-fold Crossvalidation,,40982,target,673.0,7.0,55.0,7.0,28.0,1941.0,0.0,0.0,27.0,1.0,,,,,,,,
 11973,11973,146820,TaskType.SUPERVISED_CLASSIFICATION,40983,wilt,Supervised Classification,active,10-fold Crossvalidation,,40983,class,4578.0,2.0,261.0,2.0,6.0,4839.0,0.0,0.0,5.0,1.0,,,,,,,,
 11974,11974,146821,TaskType.SUPERVISED_CLASSIFICATION,40975,car,Supervised Classification,active,10-fold Crossvalidation,,40975,class,1210.0,4.0,65.0,4.0,7.0,1728.0,0.0,0.0,0.0,7.0,,,,,,,,

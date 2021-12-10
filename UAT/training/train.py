@@ -296,7 +296,12 @@ def training_loop(
                 # enforce dtype float for dict object while saving
                 for k in metrics_ewa_.keys():
                     metrics_ewa_[k] = float(metrics_ewa_[k])
-                pbar1.set_postfix(metrics_ewa_)
+                pbar1.set_postfix({
+                    "l":metrics_ewa_["loss"], 
+                    "tl":metrics_ewa_["test_loss"], 
+                    "tc":metrics_ewa_["test_counter"],
+                    "e":metrics_ewa_["ent"]
+                    })
                 history.append(metrics_ewa_)
                 if np.isnan(metrics_ewa_["loss"]):
                     break

@@ -41,7 +41,7 @@ def create_make_model(features, rows, task, key):
             y_valid,
             classes,
             batch_size=5,
-            max_steps=1e4,
+            max_steps=5e3,
             lr_max=None,
             embed_depth=128,
             depth=10,
@@ -135,12 +135,6 @@ def create_make_model(features, rows, task, key):
             loss_fun=loss_fun,
             rng_key=key,
             classes=classes,
-            #gradinit=dict(
-            #    steps=800,
-            #    lr=1e-2,
-            #    version='metainit',
-            #    batch_size=32
-            #)
             unsupervised_pretraining=dict(
                 lr=1e-4,
                 batch_size=batch_size_base2
@@ -612,7 +606,7 @@ if __name__ ==  "__main__":
                     param = {'objective':objective, 'num_class':classes}
                     param['max_depth'] = int(max_depth)
                     param['num_leaves'] = int(0.8 * (2**max_depth))
-                    param['learning_rate'] = learning_rate
+                    param['learning_rate'] = np.exp(learning_rate)
                     param['max_bin']=int(max_bin)
                     param['verbosity']=-1
                     dtrain = lgb.Dataset(X_train, label=y_train, categorical_feature=list(np.argwhere(cat_bin == 1)))
@@ -630,7 +624,7 @@ if __name__ ==  "__main__":
                     return - loss
                 pbounds_gbm={
                         "max_depth":(3,12),
-                        "learning_rate":(0.001, 1),
+                        "learning_rate":(np.log(0.001), np.log(1)),
                         "max_bin":(10, 100)
                         }
             
