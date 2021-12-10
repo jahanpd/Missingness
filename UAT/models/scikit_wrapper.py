@@ -12,6 +12,7 @@ from jax.experimental.optimizers import l2_norm
 from UAT.models.models import (AttentionModel_MAP, EnsembleModel)
 from UAT.training.train import training_loop
 from UAT.training.gradinit import gradinit_loop
+from UAT.training.unsupervised import unsupervised_loop
 from UAT.models.layers import NeuralNet as nn
 from UAT.aux import oversampled_Kfold
 from imblearn.over_sampling import RandomOverSampler
@@ -36,7 +37,8 @@ class UAT:
         feat_names=None,
         posterior_params={"name":"MAP"},
         classes=2,
-            gradinit=None, # else dict(epochs:100)
+        gradinit=None, # else dict(epochs:100)
+        unsupervised_pretraining=None,
         ):
         """
         model_kwargs: dict, dict(
@@ -102,8 +104,29 @@ class UAT:
             self.metric_fun = loss_fun
         self.posterior_params = posterior_params
         self.training_kwargs = training_kwargs
+        if unsupervised_pretraining is not None:
+            _, apply_fun_unsup = AttentionModel_MAP(
+                **model_kwargs,
+                unsupervised_pretraining=True
+            )
+        else:
+            apply_fun_unsup = None
+        self.apply_fun_unsupervised = apply_fun_unsup
+        self.unsupervised = unsupervised_pretraining
 
     def fit(self, X, y):
+        if self.unsupervised is not None:
+            params, history, rng = unsupervised_loop(
+                X=X,
+                model_fun=self.apply_fun_unsupervised,
+                params=self.params,
+                rng=self.key,
+                batch_size=self.unsupervised["batch_size"],
+                lr=self.unsupervised["lr"],
+            )
+            self.params = params
+            self.key = rng
+
         if self.gradinit is not None:
             params, history, rng = gradinit_loop(
                 X=X,
@@ -113,10 +136,9 @@ class UAT:
                 loss_fun=self.loss_fun,
                 rng=self.key,
                 batch_size=self.gradinit["batch_size"],
-                steps=self.gradinit["steps"],
                 lr=self.gradinit["lr"],
                 version=self.gradinit["version"]
-               )
+                )
             self.params = params
             self.key = rng
 

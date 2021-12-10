@@ -124,6 +124,7 @@ def AttentionModel_MAP(
         b_init = zeros,
         temp = 0.1,
         eps = 1e-7,
+        unsupervised_pretraining=False
     ):
     # temp = 1 / (features - 1)
     init_net1, net1 = NeuralNetGeneral(
@@ -183,14 +184,22 @@ def AttentionModel_MAP(
         x = inputs[..., None]
         z1 = net1(params["net1"], x) + params["x_shift"]
         enc_output, sattn = enc(params["enc"], z1, mask=mask, enc_output=None)
-        z2, attn = dec(params["dec"], params["y"], enc_output=enc_output, mask=mask)
-        h = net2(params["net2"], z2)
-        logits = last_layer(params["last_layer"], h)
-
-        attn = process_attn(sattn, attn)
-        return jnp.squeeze(logits), attn, z2
-    
-    vapply = jax.vmap(apply_fun, in_axes=(None, 0, 0, None), out_axes=(0, 0, 0) )
+        if unsupervised_pretraining:
+            z2, attn = dec(params["dec"], params["x_shift"], enc_output=enc_output, mask=mask)
+            z1 = jax.lax.stop_gradient(
+                jnp.transpose(z1, (1, 0)) * nan_mask * (1 - random_arr)) # break gradient for ground truth
+            z2 = jnp.transpose(z2, (1, 0)) * nan_mask # zero out missing values
+            return z1, z2
+        else:
+            z2, attn = dec(params["dec"], params["y"], enc_output=enc_output, mask=mask)
+            h = net2(params["net2"], z2)
+            logits = last_layer(params["last_layer"], h)
+            attn = process_attn(sattn, attn)
+            return jnp.squeeze(logits), attn, z2
+    if unsupervised_pretraining:
+        vapply = jax.vmap(apply_fun, in_axes=(None, 0, 0, None), out_axes=(0, 0) )
+    else:
+        vapply = jax.vmap(apply_fun, in_axes=(None, 0, 0, None), out_axes=(0, 0, 0) )
 
     return init_fun, vapply
 

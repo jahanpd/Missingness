@@ -141,6 +141,10 @@ def create_make_model(features, rows, task, key):
             #    version='metainit',
             #    batch_size=32
             #)
+            unsupervised_pretraining=dict(
+                lr=1e-4,
+                batch_size=batch_size_base2
+                )
             )
         return model, batch_size_base2, loss_fun
     return make_model
