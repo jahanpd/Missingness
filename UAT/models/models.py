@@ -188,7 +188,7 @@ def AttentionModel_MAP(
             z2, attn = dec(params["dec"], params["x_shift"], enc_output=enc_output, mask=mask)
             z1 = jax.lax.stop_gradient(
                 jnp.transpose(z1, (1, 0)) * nan_mask * (1 - random_arr)) # break gradient for ground truth
-            z2 = jnp.transpose(z2, (1, 0)) * nan_mask # zero out missing values
+            z2 = jnp.transpose(z2, (1, 0)) * nan_mask * (1 - random_arr)# zero out missing values
             return z1, z2
         else:
             z2, attn = dec(params["dec"], params["y"], enc_output=enc_output, mask=mask)

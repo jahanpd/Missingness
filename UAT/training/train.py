@@ -7,13 +7,18 @@ import jax
 from jax import random
 from jax.experimental import optimizers
 from jax.experimental.optimizers import make_schedule
-from tqdm import tqdm
 from scipy.stats import halfnorm
 import functools
 import time
 from datetime import timedelta
 # from UAT.aux import flatten_params, unflatten_params
 from typing import Any, Callable, Optional, Union
+import sys
+IN_COLAB = 'google.colab' in sys.modules
+if IN_COLAB:
+  from tqdm.notebook import tqdm
+else:
+  from tqdm import tqdm
 
 ScalarOrSchedule = Union[float, base.Schedule]
 

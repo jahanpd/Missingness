@@ -20,14 +20,18 @@ from UAT.aux import oversampled_Kfold
 from UAT.training.lr_schedule import attention_lr, linear_increase
 from optax import linear_onecycle_schedule, join_schedules, piecewise_constant_schedule, linear_schedule
 import lightgbm as lgb
-from tqdm import tqdm
 import itertools
 from os import listdir
 from os.path import isfile, join
 from numba import cuda
 from bayes_opt import BayesianOptimization
 from bayes_opt import SequentialDomainReductionTransformer
-
+import sys
+IN_COLAB = 'google.colab' in sys.modules
+if IN_COLAB:
+  from tqdm.notebook import tqdm
+else:
+  from tqdm import tqdm
 
 from jax.config import config
 config.update("jax_debug_nans", False)

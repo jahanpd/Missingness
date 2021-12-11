@@ -6,13 +6,17 @@ import jax.numpy as jnp
 import jax
 from jax import random
 from jax.experimental.optimizers import make_schedule
-from tqdm import tqdm
 import functools
 import time
 from datetime import timedelta
 # from UAT.aux import flatten_params, unflatten_params
 from typing import Any, Callable, Optional, Union
-
+import sys
+IN_COLAB = 'google.colab' in sys.modules
+if IN_COLAB:
+  from tqdm.notebook import tqdm
+else:
+  from tqdm import tqdm
 ScalarOrSchedule = Union[float, base.Schedule]
 
 def _scale_by_learning_rate(learning_rate: ScalarOrSchedule, flip_sign=True):
