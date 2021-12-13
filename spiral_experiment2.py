@@ -15,6 +15,9 @@ import os
 # force parallel processing across cpu cores
 # os.environ['XLA_FLAGS'] = '--xla_force_host_platform_device_count=12'
 
+"""
+Script for the second spiral dataset experiment exploring the effect of missingness in the latent space.
+"""
 
 def run(iterations, missing="None", epochs=10):
     # define models and training params as dicts 

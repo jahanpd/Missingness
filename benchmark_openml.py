@@ -23,7 +23,6 @@ import lightgbm as lgb
 import itertools
 from os import listdir
 from os.path import isfile, join
-from numba import cuda
 from bayes_opt import BayesianOptimization
 from bayes_opt import SequentialDomainReductionTransformer
 import sys
@@ -40,6 +39,16 @@ devices = jax.local_device_count()
 # xgb.set_config(verbosity=0)
 
 def create_make_model(features, rows, task, key):
+    """
+        Create a function to make a transformer based model with args in closure.
+        Args:
+            features: int, number of features
+            rows: int, number of rows in training dataset
+            task: str, one of 'Supervised Classification' or 'Supervised Regression'
+            key: int, an rng key
+        Returns:
+            Callable to create model
+    """
     def make_model(
             X_valid,
             y_valid,
@@ -53,7 +62,28 @@ def create_make_model(features, rows, task, key):
             b2=0.99,
             reg=5,
         ):
-        batch_size_base2 = 2 ** int(np.round(np.log2(rows/10)))
+        """
+        Args:
+            X_valid: ndarray, for early stopping
+            y_valid: ndarray,
+            classes: int, number of possible classes in outcome,
+            batch_size: int, number of samples in each batch,
+            max_steps: int, total number of iterations to train for
+            lr_max: float, maximum learning rate
+            embed_depth: int, depth of the embedding neural networks,
+            depth: int, depth of the decoder in the transformer,
+            early_stop: bool, whether to do early stopping,
+            b2: float, interval (0, 1) hyperparameter for adam/adabelief,
+            reg: int, exponent in regularization (1e-reg)
+        Returns:
+            model: Object
+            batch_size_base2: int
+            loss_fun: Callable
+        """
+        # use a batch size to get around 10-20 iterations per epoch
+        # this means you cycle over the datasets a similar number of times
+        # regardless of dataset size. 
+        batch_size_base2 = 2 ** int(np.round(np.log2(rows/20)))
         # batch_size_base2 = 64
         steps_per_epoch = max(rows // batch_size_base2, 1)
         epochs = max_steps // steps_per_epoch
@@ -147,7 +177,7 @@ def create_make_model(features, rows, task, key):
         return model, batch_size_base2, loss_fun
     return make_model
 
-
+# function to run an experiment on an openML dataset 
 def run(
     dataset=61,  # iris
     task="Supervised Classification",
@@ -155,8 +185,6 @@ def run(
     imputation=None,
     train_complete=True,
     test_complete=True,
-    epochs=10,
-    prop=0.35,
     rng_init=12345,
     trans_params = None,
     gbm_params =  None,
@@ -165,17 +193,22 @@ def run(
     row_data=None
     ):
     """
-    dataset: int, referring to an OpenML dataset ID
-    task: str, one of "Supervised Classification" or "Supervised Regression"
-    target: str, colname of target variable
-    missing: str, one of "MCAR", "MAR", "MNAR" to define missingness pattern if corrupting data, "None" if not
-    train_complete: bool, whether the training set is to be complete if corrupting data
-    test_complete: bool, whether the test set is to be complete if corrupting data
-
-
-
-    strategy: str, one of "Simple", "Iterative", "Miceforest" method of dealing with missingness
-    epochs: int, number of epochs to train model
+    Args:
+        dataset: int, referring to an OpenML dataset ID
+        task: str, one of "Supervised Classification" or "Supervised Regression"
+        missing: str, one of "None" "MCAR", "MAR", "MNAR" to define missingness pattern if corrupting data
+        imputation: str, one of "Simple", "Iterative", "Miceforest" method of dealing with missingness
+        train_complete: bool, whether the training set is to be complete if corrupting data
+        test_complete: bool, whether the test set is to be complete if corrupting data
+        rng_init: int, initial rng key
+        trans_params: dict, hyperparams for the transformer
+        gbm_params: dict, hyperparams for the GBM (light gbm)
+        corrupt: bool, whether we are corrupting the OpenML dataset with missingness
+        make_key: rng_key used for initializing weights of model
+        row_data:
+    Returns:
+        Pandas Dataframe: performance data
+        Float: percentage missing (for diagnostic purposes)
     """
     metrics = {
         ("accuracy", "full"):[],
@@ -681,8 +714,6 @@ if __name__ ==  "__main__":
                     train_complete=args.train_complete,
                     test_complete=args.test_complete,
                     imputation=imputation,
-                    epochs=args.epochs,
-                    prop=args.p,
                     trans_params = trans_results["max"]["params"],
                     gbm_params =  gbm_results["max"]["params"],
                     corrupt=args.corrupt,
