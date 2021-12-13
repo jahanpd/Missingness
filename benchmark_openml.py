@@ -561,7 +561,7 @@ if __name__ ==  "__main__":
                 def black_box(
                         lr_max=np.log(5e-3),
                         reg=6,
-                        embed_depth=128,
+                        embed_depth=5,
                         depth=5,
                         batch_size=6,
                         b2=0.99

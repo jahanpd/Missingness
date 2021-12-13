@@ -33,4 +33,4 @@ Please install a version of [Jax](https://github.com/google/jax) appropriate for
     }
 
 ## :e-mail: Contact
-If you have any questions, please email `jahan.penny-dimri@monash.edu`.
+If you have any questions or concerns, please email `jahan.penny-dimri@monash.edu`.

@@ -205,7 +205,7 @@ def unsupervised_loop(
         elapsed_time = time.time() - start_time
         if (elapsed_time / 60) > 11.5:
             break
-        if early_stop > 20:
+        if early_stop > 100:
             break
 
     elapsed_time = time.time() - start_time
