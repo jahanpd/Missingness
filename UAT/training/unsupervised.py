@@ -194,7 +194,7 @@ def unsupervised_loop(
             pbar2.update(1)
             pbar1.set_postfix({"loss": loss_})
             history.append({"loss": loss_})
-            if loss_ < store_loss:
+            if loss_ < store_loss or epoch < 25:
                 store_loss = loss_
                 early_stop = 0
             else:

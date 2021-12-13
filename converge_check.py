@@ -176,109 +176,108 @@ def create_make_model(features, rows, task, key):
         return model, batch_size_base2, loss_fun
     return make_model
 
+if __name__ == "__main__":
+    data_list = data.get_list(0, key=12, test=lambda x, m: x == m)
+    data_list["task_type"] = ["Supervised Classification" if x > 0 else "Supervised Regression" for x in data_list.NumberOfClasses]
 
+    data_list = data_list.reset_index().sort_values(by=['NumberOfInstances'])
 
-data_list = data.get_list(0, key=12, test=lambda x, m: x == m)
-data_list["task_type"] = ["Supervised Classification" if x > 0 else "Supervised Regression" for x in data_list.NumberOfClasses]
-
-data_list = data_list.reset_index().sort_values(by=['NumberOfInstances'])
-
-rng = np.random.default_rng(1234)
-key = rng.integers(9999)
-ros = RandomOverSampler(random_state=key)
-class_filter = np.array([x == "Supervised Classification" for x in data_list.task_type])
-selection = np.arange(len(data_list))[class_filter]
-
-print(
-data_list[
-    ['name', 'NumberOfInstances', 'NumberOfFeatures', 'NumberOfClasses', 'NumberOfNumericFeatures', 'NumberOfSymbolicFeatures']
-    ].loc[data_list.index[selection]]
-)
-
-for row in data_list[['did', 'task_type', 'name', 'NumberOfFeatures']].values[selection,:]:
-    print(row[1], row[2], row[3])
+    rng = np.random.default_rng(1234)
     key = rng.integers(9999)
-    X, y, classes, cat_bin = data.prepOpenML(row[0], row[1])
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=key)
-    key = rng.integers(9999)
-    X_train, X_test, X_valid, y_train, y_test, y_valid, diagnostics = data.openml_ds(
-            X_train,
-            y_train,
-            X_test,
-            y_test,
-            row[1],
-            cat_bin=cat_bin,
-            classes=classes,
-            missing=None,
-            imputation=None,  # one of none, simple, iterative, miceforest
-            train_complete=False,
-            test_complete=True,
-            split=0.2,
-            rng_key=key,
-            prop=0.7,
-            corrupt=True,
-            cols_miss=int(X.shape[1] * 0.8)
-        )
-    key = rng.integers(9999)
-    if row[1] == "Supervised Classification":
-        objective = 'softmax'
-        X_train, y_train = ros.fit_resample(X_train, y_train)
-    else:
-        objective = 'regression'
-        resample=False
-    
-    make_key = rng.integers(9999)
-    make_model = create_make_model(X_train.shape[1], X_train.shape[0], row[1], make_key)
+    ros = RandomOverSampler(random_state=key)
+    class_filter = np.array([x == "Supervised Classification" for x in data_list.task_type])
+    selection = np.arange(len(data_list))[class_filter]
 
-    def black_box(
-            lr_max=np.log(5e-4),
-            reg=6,
-            embed_depth=5,
-            depth=5,
-            b2=0.99
-    ):
-        model, batch_size_base2, loss_fun = make_model(
-            X_valid, y_valid, classes=classes,
-            reg=reg, lr_max=lr_max, embed_depth=embed_depth,
-            depth=depth, b2=b2,
-            early_stop=True
+    print(
+    data_list[
+        ['name', 'NumberOfInstances', 'NumberOfFeatures', 'NumberOfClasses', 'NumberOfNumericFeatures', 'NumberOfSymbolicFeatures']
+        ].loc[data_list.index[selection]]
+    )
+
+    for row in data_list[['did', 'task_type', 'name', 'NumberOfFeatures']].values[selection,:]:
+        print(row[1], row[2], row[3])
+        key = rng.integers(9999)
+        X, y, classes, cat_bin = data.prepOpenML(row[0], row[1])
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=key)
+        key = rng.integers(9999)
+        X_train, X_test, X_valid, y_train, y_test, y_valid, diagnostics = data.openml_ds(
+                X_train,
+                y_train,
+                X_test,
+                y_test,
+                row[1],
+                cat_bin=cat_bin,
+                classes=classes,
+                missing=None,
+                imputation=None,  # one of none, simple, iterative, miceforest
+                train_complete=False,
+                test_complete=True,
+                split=0.2,
+                rng_key=key,
+                prop=0.7,
+                corrupt=True,
+                cols_miss=int(X.shape[1] * 0.8)
             )
-        model.fit(X_train, y_train)
-        # break test into 'batches' to avoid OOM errors
-        test_mod = X_test.shape[0] % batch_size_base2 if batch_size_base2 < X_test.shape[0] else 0
-        test_rows = np.arange(X_test.shape[0] - test_mod)
-        test_batches = np.split(test_rows,
-                    np.maximum(1, X_test.shape[0] // batch_size_base2))
+        key = rng.integers(9999)
+        if row[1] == "Supervised Classification":
+            objective = 'softmax'
+            X_train, y_train = ros.fit_resample(X_train, y_train)
+        else:
+            objective = 'regression'
+            resample=False
+        
+        make_key = rng.integers(9999)
+        make_model = create_make_model(X_train.shape[1], X_train.shape[0], row[1], make_key)
 
-        loss_loop = 0
-        acc_loop = 0
-        pbar1 = tqdm(total=len(test_batches), position=0, leave=False)
-        @jax.jit
-        def loss_calc(params, x_batch, y_batch, rng):
-            out = model.apply_fun(params, x_batch, rng, False)
-            loss, _ = loss_fun(params, out, y_batch)
-            class_o = np.argmax(jnp.squeeze(out[0]), axis=1)
-            correct_o = class_o == y_batch
-            acc = np.sum(correct_o) / y_batch.shape[0]
-            return loss, acc
-        for tbatch in test_batches:
-            key_ = jnp.ones((X_test[np.array(tbatch), ...].shape[0], 2))
-            loss, acc = loss_calc(model.params, X_test[np.array(tbatch), ...], y_test[np.array(tbatch)], key_)
-            loss_loop += loss
-            acc_loop += acc
-            pbar1.update(1)
-        # make nan loss high, and average metrics over test batches
-        if np.isnan(loss_loop) or np.isinf(loss_loop):
-            loss_loop = 999999
-        baseline = np.sum(y_test) / y_test.shape[0]
-        acc = acc_loop / len(test_batches)
-        diff = np.abs(acc - 0.5) - np.abs(baseline - 0.5)
-        print(
-            loss_loop/len(test_batches),
-            acc_loop/len(test_batches),
-            diff)
-        # return - loss_loop / len(test_batches)
-        return diff / (loss_loop / len(test_batches))
-    
-    black_box()
+        def black_box(
+                lr_max=np.log(5e-4),
+                reg=6,
+                embed_depth=5,
+                depth=5,
+                b2=0.99
+        ):
+            model, batch_size_base2, loss_fun = make_model(
+                X_valid, y_valid, classes=classes,
+                reg=reg, lr_max=lr_max, embed_depth=embed_depth,
+                depth=depth, b2=b2,
+                early_stop=True
+                )
+            model.fit(X_train, y_train)
+            # break test into 'batches' to avoid OOM errors
+            test_mod = X_test.shape[0] % batch_size_base2 if batch_size_base2 < X_test.shape[0] else 0
+            test_rows = np.arange(X_test.shape[0] - test_mod)
+            test_batches = np.split(test_rows,
+                        np.maximum(1, X_test.shape[0] // batch_size_base2))
+
+            loss_loop = 0
+            acc_loop = 0
+            pbar1 = tqdm(total=len(test_batches), position=0, leave=False)
+            @jax.jit
+            def loss_calc(params, x_batch, y_batch, rng):
+                out = model.apply_fun(params, x_batch, rng, False)
+                loss, _ = loss_fun(params, out, y_batch)
+                class_o = np.argmax(jnp.squeeze(out[0]), axis=1)
+                correct_o = class_o == y_batch
+                acc = np.sum(correct_o) / y_batch.shape[0]
+                return loss, acc
+            for tbatch in test_batches:
+                key_ = jnp.ones((X_test[np.array(tbatch), ...].shape[0], 2))
+                loss, acc = loss_calc(model.params, X_test[np.array(tbatch), ...], y_test[np.array(tbatch)], key_)
+                loss_loop += loss
+                acc_loop += acc
+                pbar1.update(1)
+            # make nan loss high, and average metrics over test batches
+            if np.isnan(loss_loop) or np.isinf(loss_loop):
+                loss_loop = 999999
+            baseline = np.sum(y_test) / y_test.shape[0]
+            acc = acc_loop / len(test_batches)
+            diff = np.abs(acc - 0.5) - np.abs(baseline - 0.5)
+            print(
+                loss_loop/len(test_batches),
+                acc_loop/len(test_batches),
+                diff)
+            # return - loss_loop / len(test_batches)
+            return diff / (loss_loop / len(test_batches))
+        
+        black_box()
 
