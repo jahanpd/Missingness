@@ -194,7 +194,7 @@ def unsupervised_loop(
             pbar2.update(1)
             pbar1.set_postfix({"loss": loss_})
             history.append({"loss": loss_})
-            if loss_ < store_loss or epoch < 25:
+            if loss_ < store_loss or epoch < 10:
                 store_loss = loss_
                 early_stop = 0
             else:
@@ -205,7 +205,7 @@ def unsupervised_loop(
         elapsed_time = time.time() - start_time
         if (elapsed_time / 60) > 11.5:
             break
-        if early_stop > 100:
+        if early_stop > 100 or epoch > 20:
             break
 
     elapsed_time = time.time() - start_time
