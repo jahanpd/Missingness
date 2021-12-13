@@ -187,7 +187,7 @@ def AttentionModel_MAP(
         if unsupervised_pretraining:
             z2, attn = dec(params["dec"], params["x_shift"], enc_output=enc_output, mask=mask)
             z1 = jax.lax.stop_gradient(
-                jnp.transpose(z1, (1, 0)) * nan_mask # break gradient for ground truth, zero out missing variables
+                jnp.transpose(z1, (1, 0)) * nan_mask) # break gradient for ground truth, zero out missing variables
             z2 = jnp.transpose(z2, (1, 0)) * nan_mask # zero out missing values
             return z1, z2
         else:
