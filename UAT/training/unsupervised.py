@@ -44,9 +44,9 @@ def unsupervised_loop(
     params = jax.tree_map(lambda x: jnp.array([x] * devices), params)
     
     def loss(params, x_batch, rng, samp):
-        embed, output = model_fun(params, x_batch, rng, samp)
+        embed, output, kld = model_fun(params, x_batch, rng, samp)
         # basic mean squared error
-        error = jnp.mean(jnp.square(embed - output))
+        error = jnp.mean(jnp.square(embed - output)) + jnp.mean(kld)
         return error
 
     print_step = make_schedule(lr)

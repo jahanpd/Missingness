@@ -130,11 +130,11 @@ def table_maker(metric="accuracy"):
         # get metric information
         try:
             s = [f for f in result_files if file_filter(f, name, "None", "None")]
-            path = join('./results/openml/', str(s[0]))
+            path = join('../results/openml/', str(s[0]))
             ds = pd.read_pickle(path)
             colnames = list(ds)
             process_dict[(" ", " ", "Metric")].append(metric)
-        except:
+        except Exception as e:
             metric = np.nan
             process_dict[(" ", " ", "Metric")].append(metric)
             

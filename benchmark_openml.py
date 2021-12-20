@@ -83,11 +83,13 @@ def create_make_model(features, rows, task, key):
         # use a batch size to get around 10-20 iterations per epoch
         # this means you cycle over the datasets a similar number of times
         # regardless of dataset size. 
-        batch_size_base2 = 2 ** int(np.round(np.log2(rows/20)))
+        batch_size_base2 = min(2 ** int(np.round(np.log2(rows/20))), 512)
         # batch_size_base2 = 64
         steps_per_epoch = max(rows // batch_size_base2, 1)
         epochs = max_steps // steps_per_epoch
         while epochs < 100:
+            if batch_size_base2 > 500:
+                break
             batch_size_base2 *= 2
             steps_per_epoch = max(rows // batch_size_base2, 1)
             epochs = max_steps // steps_per_epoch
@@ -102,14 +104,14 @@ def create_make_model(features, rows, task, key):
                 embed_hidden_size=32,
                 embed_hidden_layers=int(embed_depth),
                 embed_activation=jax.nn.gelu,
-                encoder_layers=5,
-                encoder_heads=4,
+                encoder_layers=int(depth),
+                encoder_heads=5,
                 enc_activation=jax.nn.gelu,
                 decoder_layers=int(depth),
-                decoder_heads=4,
+                decoder_heads=5,
                 dec_activation=jax.nn.gelu,
                 net_hidden_size=32,
-                net_hidden_layers=3,
+                net_hidden_layers=5,
                 net_activation=jax.nn.gelu,
                 last_layer_size=32,
                 out_size=classes,
@@ -254,9 +256,9 @@ def run(
                 test_complete=test_complete,
                 split=0.2,
                 rng_key=key,
-                prop=0.6,
+                prop=0.4,
                 corrupt=corrupt,
-                cols_miss=int(X.shape[1] * 0.9)
+                cols_miss=int(X.shape[1] * 0.99)
             )
         print(diagnostics)
         count += 1
@@ -320,6 +322,7 @@ def run(
         print("training gbmoost for {} epochs".format(num_round))
         for k in ["max_depth", "max_bin"]:
             gbm_params[k] = int(gbm_params[k])
+        gbm_params["learning_rate"] = np.exp(gbm_params["learning_rate"])
         bst = lgb.train(gbm_params, dtrain, num_round, valid_sets=[dvalid], early_stopping_rounds=50, verbose_eval=100)
         output_gbm = bst.predict(X_test)
 
@@ -485,7 +488,7 @@ if __name__ ==  "__main__":
     else:
         selection = np.arange(len(data_list))[class_filter]
         if args.inverse:
-            selection = np.flip(selection)[15:]
+            selection = np.flip(selection)
 
     print(
         data_list[
@@ -599,7 +602,8 @@ if __name__ ==  "__main__":
                     # make nan loss high, and average metrics over test batches
                     if np.isnan(loss_loop) or np.isinf(loss_loop):
                         loss_loop = 999999
-                    baseline = np.sum(y_test) / y_test.shape[0]
+                    unique, counts = np.unique(y_test, return_counts=True)
+                    baseline = np.sum(unique[np.argmax(counts)] == y_test) / y_test.shape[0]
                     acc = acc_loop / len(test_batches)
                     diff = np.abs(acc - 0.5) - np.abs(baseline - 0.5)
                     print(
@@ -611,9 +615,9 @@ if __name__ ==  "__main__":
 
                 pbounds={
                         "lr_max":(np.log(5e-5), np.log(5e-3)),
-                        "embed_depth":(2, 6),
+                        "embed_depth":(3, 6),
                         "reg":(2,10),
-                        "depth":(2, 6),
+                        "depth":(4, 6),
                         # "batch_size":(5, 9),
                         }
 
@@ -672,7 +676,7 @@ if __name__ ==  "__main__":
                     verbose=0,
                     random_state=int(key),
                 )
-                mutating_optimizer_gbm.maximize(init_points=1, n_iter=args.iters, acq="ei", xi=xi, kappa=kappa)
+                mutating_optimizer_gbm.maximize(init_points=5, n_iter=args.iters, acq="ei", xi=xi, kappa=kappa)
                 print(mutating_optimizer_gbm.res)
                 print(mutating_optimizer_gbm.max)
                 best_params_gbm = mutating_optimizer_gbm.max

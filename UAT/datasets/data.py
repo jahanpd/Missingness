@@ -215,13 +215,13 @@ def miceforest(train, rng_key, dtypes=None, valid=None, test=None):
     df.astype(dtype_dict)
     # set mean match candidates to max of 10
     mms = int(np.minimum(10, train.shape[1]))
-    kernel = mf.MultipleImputedKernel(
+    kernel = mf.ImputationKernel(
                 df,
                 datasets=4,
                 save_all_iterations=True,
                 random_state=rng_key,
                 mean_match_candidates=0,
-                mean_match_subset=mms
+                data_subset=mms
                 )
     # define tree parameters
     print("fitting mice model")

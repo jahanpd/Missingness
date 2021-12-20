@@ -186,10 +186,13 @@ def AttentionModel_MAP(
         enc_output, sattn = enc(params["enc"], z1, mask=mask, enc_output=None)
         if unsupervised_pretraining:
             z2, attn = dec(params["dec"], params["x_shift"], enc_output=enc_output, mask=mask)
+            mu = jnp.mean(z1, axis=-1)
+            var = jnp.var(z1, axis=-1)
+            kld = -0.5 * (1.0 + jnp.log(var) - var - (mu - 1)**2)
             z1 = jax.lax.stop_gradient(
                 jnp.transpose(z1, (1, 0)) * nan_mask) # break gradient for ground truth, zero out missing variables
             z2 = jnp.transpose(z2, (1, 0)) * nan_mask # zero out missing values
-            return z1, z2
+            return z1, z2, kld
         else:
             z2, attn = dec(params["dec"], params["y"], enc_output=enc_output, mask=mask)
             h = net2(params["net2"], z2)
@@ -197,7 +200,7 @@ def AttentionModel_MAP(
             attn = process_attn(sattn, attn)
             return jnp.squeeze(logits), attn, z2
     if unsupervised_pretraining:
-        vapply = jax.vmap(apply_fun, in_axes=(None, 0, 0, None), out_axes=(0, 0) )
+        vapply = jax.vmap(apply_fun, in_axes=(None, 0, 0, None), out_axes=(0, 0, 0) )
     else:
         vapply = jax.vmap(apply_fun, in_axes=(None, 0, 0, None), out_axes=(0, 0, 0) )
 
