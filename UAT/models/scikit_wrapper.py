@@ -123,6 +123,7 @@ class UAT:
                 rng=self.key,
                 batch_size=self.unsupervised["batch_size"],
                 lr=self.unsupervised["lr"],
+                cut_off=self.unsupervised["cut_off"]
             )
             self.params = params
             self.key = rng

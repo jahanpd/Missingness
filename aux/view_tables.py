@@ -30,7 +30,7 @@ for r in rows:
 
 multiindex = pd.MultiIndex.from_tuples(colnames, names=["Model", "Measure"])
 df = pd.DataFrame(result_strs, index=indexes, columns=multiindex)
-# print(df.to_latex(multirow=True))
+print(df.to_latex())
 
 # table 2 prep
 rows = [7, 11, 3, 15]
@@ -50,7 +50,7 @@ for r in rows:
 
 multiindex = pd.MultiIndex.from_tuples(colnames, names=["Model", "Measure"])
 df = pd.DataFrame(result_strs, index=indexes, columns=multiindex)
-# print(df.to_latex(multirow=True))
+print(df.to_latex())
 
 # table 3 prep
 rows = [7, 11, 3, 15]
@@ -67,7 +67,7 @@ for r in rows:
     result_strs.append(row)
 
 df = pd.DataFrame(result_strs, index=indexes, columns=colnames)
-# print(df.to_latex(multirow=True))
+print(df.to_latex())
 
 # table 4 prep
 rows = [0,1,2,3]
@@ -84,7 +84,7 @@ for r in rows:
     result_strs.append(row)
 
 df = pd.DataFrame(result_strs, index=indexes, columns=colnames)
-# print(df.to_latex(multirow=True))
+print(df.to_latex())
 
 ## tables for performance experiments
 

@@ -36,6 +36,7 @@ def unsupervised_loop(
     optim="adabelief",
     optim_kwargs=None,
     early_stop=True, # if makes it to end of training cycle, return early stop. Also shuts down early stopping for HP optim
+    cut_off=20,
     ):
     devices = jax.local_device_count()
     assert batch_size % devices == 0, "batch size must be divisible by number of devices"
@@ -205,7 +206,7 @@ def unsupervised_loop(
         elapsed_time = time.time() - start_time
         if (elapsed_time / 60) > 11.5:
             break
-        if early_stop > 100 or epoch > 20:
+        if early_stop > 100 or epoch > cut_off:
             break
 
     elapsed_time = time.time() - start_time

@@ -173,7 +173,8 @@ def create_make_model(features, rows, task, key):
             classes=classes,
             unsupervised_pretraining=dict(
                 lr=1e-4,
-                batch_size=batch_size_base2
+                batch_size=batch_size_base2,
+                cut_off=20
                 )
             )
         return model, batch_size_base2, loss_fun
@@ -676,6 +677,8 @@ if __name__ ==  "__main__":
                     verbose=0,
                     random_state=int(key),
                 )
+                kappa = 10  # parameter to control exploitation vs exploration. higher = explore
+                xi =1e-1
                 mutating_optimizer_gbm.maximize(init_points=5, n_iter=args.iters, acq="ei", xi=xi, kappa=kappa)
                 print(mutating_optimizer_gbm.res)
                 print(mutating_optimizer_gbm.max)

@@ -3,6 +3,7 @@ imbalanced-learn
 lightgbm
 matplotlib
 miceforest
+networkx
 numpy
 openml
 optax
