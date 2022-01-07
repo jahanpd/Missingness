@@ -21,16 +21,8 @@ As a comparison, we use the popular and highly performing Light-GBM that handles
 We also compare the out-of-the-box missingness handling of these algorithms against an impute and regress strategy.
 Imputation strategies tested include simple imputation, multivariate imputation, and multiple imputation with random forests.
 
+### ANZSCTS Database
+We test the performance of our approach on a real world dataset with heterogenous missingness patterns.
+
 ## Requirements
 Please install a version of [Jax](https://github.com/google/jax) appropriate for your system (eg. GPU enabled), then install the requirements in the requirements.txt file.
-
-## BibTeX
-
-    @InProceedings{penny-dimri2021missing,
-        author = {Jahan Penny-Dimri and Christoph Bergmeir etc},
-        title = {Dealing with missing data through attention and latent space regularization},
-        year = {2021}
-    }
-
-## :e-mail: Contact
-If you have any questions or concerns, please email `jahan.penny-dimri@monash.edu`.
