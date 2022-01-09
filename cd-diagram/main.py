@@ -351,7 +351,8 @@ def wilcoxon_holm(alpha=0.05, df_perf=None):
     # loop through the hypothesis
     for i in range(k):
         # correct alpha with holm
-        new_alpha = float(alpha / float(k - i))
+        # new_alpha = float(alpha / float(k - i))
+        new_alpha = alpha
         # test if significant after holm's correction of alpha
         if p_values[i][2] <= new_alpha:
             p_values[i] = (p_values[i][0], p_values[i][1], p_values[i][2], True)
