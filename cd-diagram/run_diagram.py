@@ -19,7 +19,7 @@ for missingness in ["MNAR", "MAR", "MCAR"]:
     for r in list(itertools.product(["Transformer", "LightGBM"], ["None", "Simple", "Iterative", "MiceForest"], raw.index)):
         df_perf['classifier_name'].append(r[0] + " (" + r[1] + ")")
         df_perf['dataset_name'].append(r[2])
-        df_perf['accuracy'].append(1.0 / float(raw.loc[r[2]][missingness][r[1]][r[0]]))
+        df_perf['accuracy'].append(-float(raw.loc[r[2]][missingness][r[1]][r[0]]))
 
     df_perf = pd.DataFrame(df_perf)
     print(df_perf)
