@@ -155,16 +155,14 @@ def training_loop(
     else:
         raise AssertionError("{} not implemented".format(optim))
 
-    opt_state = optim_init(params)
-    opt_state = jax.tree_map(lambda x: x if len(x.shape) > 0 else x.reshape((1)), opt_state)
+    opt_state = optim_init(params_)
     in_ax1 = jax.tree_map(lambda x: 0, params)
-    in_ax2 = jax.tree_map(lambda x: 0 if len(x.shape) > 0 else None, opt_state)
 
     dist = functools.partial(
         jax.pmap,
         axis_name='num_devices',
-        in_axes=(None, in_ax1, 0, 0 , 0, in_ax2, None),
-        out_axes=(in_ax1, in_ax2),
+        in_axes=(None, in_ax1, 0, 0 , 0, None, None),
+        out_axes=(in_ax1, None),
         static_broadcasted_argnums=(6,)
     )
 
@@ -254,7 +252,7 @@ def training_loop(
                 if stop and early_stop:
                     elapsed_time = time.time() - start_time
                     tqdm.write("Final test loss: {}, epoch: {}, time: {}".format(
-                        metric_store["loss"], epoch, timedelta(minutes=elapsed_time)))
+                        metric_store["loss"], epoch, timedelta(minutes=elapsed_time/60)))
                     return params_store, history, rng
 
             step += 1
@@ -303,7 +301,8 @@ def training_loop(
                     metrics_ewa_[k] = float(metrics_ewa_[k])
                 pbar1.set_postfix({
                     "l":metrics_ewa_["loss"], 
-                    "tl":metrics_ewa_["test_loss"], 
+                    "tl":metrics_ewa_["test_loss"],
+                    "tlc":metrics_ewa_["test_current"],
                     "tc":metrics_ewa_["test_counter"],
                     "e":metrics_ewa_["ent"]
                     })
@@ -315,7 +314,7 @@ def training_loop(
         pbar2.close()
         pbar1.update(1)
         elapsed_time = time.time() - start_time
-        if (elapsed_time / 60) > 11.5:
+        if (elapsed_time / 60) > 60:
             break
 
     elapsed_time = time.time() - start_time
@@ -327,7 +326,7 @@ def training_loop(
     else:
         params = jax.device_get(jax.tree_map(lambda x: x[0], params))
     tqdm.write("Final test loss: {}, epoch: {}, time: {}".format(
-        metric_store["loss"], epoch, timedelta(minutes=elapsed_time)))
+        metric_store["loss"], epoch, timedelta(minutes=elapsed_time/60)))
 
     pbar1.close()
     return params, history, rng

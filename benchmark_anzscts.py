@@ -15,6 +15,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import f1_score, roc_auc_score
 from imblearn.over_sampling import RandomOverSampler
 import UAT.datasets as data
+from UAT.datasets.data import simple, iterative, miceforest
 from UAT import UAT, create_early_stopping
 from UAT import binary_cross_entropy, cross_entropy, mse, brier
 from UAT.aux import oversampled_Kfold
@@ -55,7 +56,7 @@ def create_make_model(features, rows, task, key):
             y_valid,
             classes,
             batch_size=5,
-            max_steps=5e3,
+            max_steps=1e5,
             lr_max=None,
             embed_depth=128,
             depth=10,
@@ -84,12 +85,12 @@ def create_make_model(features, rows, task, key):
         # use a batch size to get around 10-20 iterations per epoch
         # this means you cycle over the datasets a similar number of times
         # regardless of dataset size. 
-        batch_size_base2 = min(2 ** int(np.round(np.log2(rows/20))), 64)
+        batch_size_base2 = min(2 ** int(np.round(np.log2(rows/20))), 256)
         # batch_size_base2 = 64
         steps_per_epoch = max(rows // batch_size_base2, 1)
         epochs = max_steps // steps_per_epoch
         while epochs < 100:
-            if batch_size_base2 > 64:
+            if batch_size_base2 > 256:
                 break
             batch_size_base2 *= 2
             steps_per_epoch = max(rows // batch_size_base2, 1)
@@ -101,8 +102,8 @@ def create_make_model(features, rows, task, key):
             np.exp(lr_max), int(embed_depth), int(depth), reg, b2))
         model_kwargs_uat = dict(
                 features=features,
-                d_model=32,
-                embed_hidden_size=32,
+                d_model=16,
+                embed_hidden_size=16,
                 embed_hidden_layers=int(embed_depth),
                 embed_activation=jax.nn.gelu,
                 encoder_layers=int(depth),
@@ -111,16 +112,16 @@ def create_make_model(features, rows, task, key):
                 decoder_layers=int(depth),
                 decoder_heads=5,
                 dec_activation=jax.nn.gelu,
-                net_hidden_size=32,
+                net_hidden_size=16,
                 net_hidden_layers=5,
                 net_activation=jax.nn.gelu,
-                last_layer_size=32,
+                last_layer_size=16,
                 out_size=classes,
                 W_init = jax.nn.initializers.he_normal(),
                 b_init = jax.nn.initializers.zeros,
                 )
         epochs = int(max_steps // steps_per_epoch)
-        start_steps = 3*steps_per_epoch # wait at least 5 epochs before early stopping
+        start_steps = 10*steps_per_epoch # wait at least 0 epochs before early stopping
         stop_steps_ = steps_per_epoch * (epochs // 4) / min(steps_per_epoch, freq)
 
         # definint learning rate schedule
@@ -128,9 +129,8 @@ def create_make_model(features, rows, task, key):
         n_cycles = 3
         decay = piecewise_constant_schedule(
             np.exp(lr_max),
-            # 1e-3,
             boundaries_and_scales={
-                int(epochs * 0.8 * steps_per_epoch):0.1,
+                int(15 * steps_per_epoch):0.1,
             })
         warmup = linear_schedule(
             init_value=1e-20,
@@ -182,7 +182,8 @@ def create_make_model(features, rows, task, key):
     return make_model
 
 # convenience function to get ANZSCTS data from VPN source
-def get_data(path):
+def get_data(path, imputation, keyinit=121):
+    rng = np.random.default_rng(keyinit)
     dataset = pd.read_csv(path)
     # orders dataset in ascending order based on date of procedure
     dataset.sort_values(by='DOP', inplace=True)
@@ -200,6 +201,8 @@ def get_data(path):
             'ITA', 'DAN_AC', 'DANV', 'DAN', 'AOPROC', 'AOPATH', 'MIPROC', 'MIPATH', 'TRPROC', 'TRPATH',
             'PUPROC', 'PUPATH', 'AOPLN', 'RBC', 'RBCUnit', 'NRBC', 'PlateUnit', 'NovoUnit', 'CryoUnit',
             'FFPUnit', 'DRAIN_4']
+    cont = ['ICU', 'VENT', 'AGE', 'PRECR', 'HG','EF','BMI', 'eGFR', 'CCT', 'PERF', 'MINHT', 'DRAIN_4']
+    cat_bin = [0 if x in cont else 1 for x in cols]
     outcome = ['MORT30']
     X = dataset[cols]
     y = dataset[outcome]
@@ -208,7 +211,38 @@ def get_data(path):
     X_test = X.values[idx:, :]
     y_train = y.values.flatten()[:idx]
     y_test = y.values.flatten()[idx:]
-    return X_train, X_test, y_train, y_test
+
+    # perform desired imputation strategy
+    if imputation == "simple":
+        X_train, _, X_test = simple(
+            X_train,
+            dtypes=cat_bin,
+            valid=None,
+            test=X_test,
+            all_cat=False
+            )
+
+    key = rng.integers(9999)
+    if imputation == "iterative":
+        X_train, _, X_test = iterative(
+            X_train,
+            key,
+            dtypes=cat_bin,
+            valid=None,
+            test=X_test)
+
+    key = rng.integers(9999)
+    if imputation == "miceforest":
+        test_input = X_test
+        X_train, _, test_input = miceforest(
+            X_train,
+            int(key),
+            dtypes=cat_bin,
+            valid=None,
+            test=test_input)
+        X_test = test_input
+
+    return X_train, X_test, y_train, y_test, cat_bin
 
 
 
@@ -252,7 +286,7 @@ def run(
 
     key = rng.integers(9999)
 
-    X_train_, X_test, y_train_, y_test = get_data(path)
+    X_train_, X_test, y_train_, y_test, cat_bin = get_data(path, imputation, keyinit=key)
     task = 'Supervised Classification'
     classes=2
     rows = np.arange(X_train_.shape[0])
@@ -285,8 +319,8 @@ def run(
             key = rng.integers(9999)
             ros = RandomOverSampler(random_state=key)
             rws = np.arange(len(X_train)).reshape(-1,1)
-            rws, y_train = ros.fit_resample(rws.flatten(), y_train)
-            X_train = X_train[rws, :]
+            rws, y_train = ros.fit_resample(rws, y_train)
+            X_train = X_train[rws.flatten(), :]
         else:
             relevant_metrics = ["rmse"]
 
@@ -339,7 +373,7 @@ def run(
         # 3. there is no point dropping if we have imputed the training set
         # 4a. if we are corrupting we want to drop when missing is not none OR
         # 4b. if we are not corrupting we want to drop when missing is none
-        if (not train_complete) and (not empty) and (imputation is None) and ((missing is not None and corrupt) or (missing is None and not corrupt)) and False:
+        if (not empty) and (imputation is None) and False:
             if X_train_drop.shape[0] < trans_params["batch_size"]:
                 new_bs = 2
                 while new_bs <= X_train_drop.shape[0] - new_bs:
@@ -368,17 +402,12 @@ def run(
         else:
             empty = True # in order to set dropped metrics to NA
 
-        
         # assess performance of models on test set and store metrics
         # predict prob will output 
         if task == "Supervised Regression":
             output = model.predict(X_test)
-            if not train_complete and not empty:
-                output_drop = model_drop.predict(X_test_drop)
         elif task == "Supervised Classification":
             output = model.predict_proba(X_test)
-            if not train_complete and not empty:
-                output_drop = model_drop.predict_proba(X_test_drop)
 
         # calculate performance metrics
         for rm in relevant_metrics:
@@ -390,51 +419,15 @@ def run(
                 class_x = np.argmax(output_gbm, axis=1)
                 correct_x = class_x == y_test
                 acc_gbm = np.sum(correct_x) / y_test.shape[0]
-                if not train_complete and not empty:
-                    class_d = np.argmax(output_drop, axis=1)
-                    correct_d = class_d == y_test_drop
-                    acc_drop = np.sum(correct_d) / y_test_drop.shape[0]
-
-                    class_d = np.argmax(output_gbm_drop, axis=1)
-                    correct_d = class_d == y_test_drop
-                    acc_drop_gbm = np.sum(correct_d) / y_test_drop.shape[0]
-                else:
-                    acc_drop = np.nan
-                    acc_drop_gbm = np.nan
                 metrics[("accuracy","full")].append(acc)
-                metrics[("accuracy","drop")].append(acc_drop)
                 metrics[("accuracy","gbmoost")].append(acc_gbm)
-                metrics[("accuracy","gbmoost_drop")].append(acc_drop_gbm)
-                tqdm.write("strategy:{}, acc full:{}, acc drop:{}, acc gbm: {}".format(imputation, acc, acc_drop, acc_gbm))
+                tqdm.write("strategy:{}, acc full:{}, acc gbm: {}".format(imputation, acc, acc_gbm))
             if rm == "nll":
                 nll = (- jnp.log(output + 1e-8) * jax.nn.one_hot(y_test, classes)).sum(axis=-1).mean()
                 nll_gbm = (- jnp.log(output_gbm + 1e-8) * jax.nn.one_hot(y_test, classes)).sum(axis=-1).mean()
-                if not train_complete and not empty:
-                    nll_drop = (- jnp.log(output_drop + 1e-8) * jax.nn.one_hot(y_test_drop, classes)).sum(axis=-1).mean()
-                    nll_drop_gbm = (- jnp.log(output_gbm_drop + 1e-8) * jax.nn.one_hot(y_test_drop, classes)).sum(axis=-1).mean()
-                else:
-                    nll_drop = np.nan
-                    nll_drop_gbm = np.nan
                 metrics[("nll","full")].append(nll)
-                metrics[("nll","drop")].append(nll_drop)
                 metrics[("nll","gbmoost")].append(nll_gbm)
-                metrics[("nll","gbmoost_drop")].append(nll_drop_gbm)
-                tqdm.write("strategy:{}, nll full:{}, nll drop:{}, nll xbg:{}".format(imputation, nll, nll_drop, nll_gbm))
-            if rm == "rmse":
-                rmse = np.sqrt(np.square(output - y_test).mean())
-                rmse_gbm = np.sqrt(np.square(output_gbm - y_test).mean())
-                if not train_complete and not empty:
-                    rmse_drop = np.sqrt(np.square(output_drop - y_test_drop).mean())
-                    rmse_gbm_drop = np.sqrt(np.square(output_gbm_drop - y_test_drop).mean())
-                else:
-                    rmse_drop = np.nan
-                    rmse_gbm_drop = np.nan
-                metrics[("rmse","full")].append(rmse)
-                metrics[("rmse","drop")].append(rmse_drop)
-                metrics[("rmse","gbmoost")].append(rmse_gbm)
-                metrics[("rmse","gbmoost_drop")].append(rmse_gbm_drop)
-                tqdm.write("strategy:{}, rmse full:{}, rmse drop:{}, rmse xbg:{}".format(imputation, rmse, rmse_drop, rmse_gbm))
-    
+                tqdm.write("strategy:{}, nll full:{}, nll xbg:{}".format(imputation, nll, nll_gbm))
     # convert metrics dict to dataframe and determine % change
     # get rid of unused metrics
     dict_keys = list(metrics.keys())
@@ -454,7 +447,7 @@ def run(
     #    ) / (metrics[m, "full"].values + metrics[m, "drop"].values) * 100
     metrics = metrics.sort_index(axis=1)
 
-    return metrics, perc_missing
+    return metrics
 
 
 if __name__ ==  "__main__":
@@ -464,7 +457,7 @@ if __name__ ==  "__main__":
     parser.add_argument("--epochs", default=10000, type=int)
     parser.add_argument("--load_params", action='store_false') # default is true
     parser.add_argument("--save", action='store_true')
-    parser.add_argument("--iters", type=int, default=25)
+    parser.add_argument("--iters", type=int, default=20)
     parser.add_argument("--inverse", action='store_true')
     parser.add_argument("--gbm_gpu", type=int, default=-1)
     args = parser.parse_args()
@@ -472,7 +465,7 @@ if __name__ ==  "__main__":
     task = 'Supervised Classification'
     classes=2
     rng = np.random.default_rng(1234)
-    X_train_, X_test, y_train_, y_test = get_data(args.path)
+    X_train_, X_test, y_train_, y_test, cat_bin = get_data(args.path, "None")
     rows = np.arange(X_train_.shape[0])
     slc = int(len(rows) * 0.8)
     idxs = rng.choice(rows, len(rows))
@@ -610,7 +603,7 @@ if __name__ ==  "__main__":
         print(mutating_optimizer.max)
         trans_results = {"max": mutating_optimizer.max, "all":mutating_optimizer.res, "key": make_key}
         
-        with open('results/anzscts/hyperparams/{},{},trans_hyperparams.pickle'.format("anzscts", missing), 'wb') as handle:
+        with open('results/anzscts/hyperparams/{},trans_hyperparams.pickle'.format("anzscts"), 'wb') as handle:
             pickle.dump(trans_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
     if not loaded_hps_gbm:
         def black_box_gbm(max_depth, learning_rate, max_bin):
@@ -657,42 +650,35 @@ if __name__ ==  "__main__":
         best_params_gbm["params"]['num_leaves'] = int(0.8 * (2**best_params_gbm["params"]["max_depth"]))
         gbm_results = {"max": best_params_gbm, "all":mutating_optimizer_gbm.res} 
 
-        with open('results/anzscts/hyperparams/{},{},gbm_hyperparams.pickle'.format('anzscts', missing),'wb') as handle:
+        with open('results/anzscts/hyperparams/{},gbm_hyperparams.pickle'.format('anzscts'),'wb') as handle:
             pickle.dump(gbm_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     # BOOTSTRAP PERFORMANCE if file not already present
     path = "results/openml"
     result_files = [f for f in listdir(path) if isfile(join(path, f))]
-    def result_exists(filename, ds, mis, imp):
+    def result_exists(filename, ds, imp):
         splt = filename[:-7].split(",")
         try:
-            return ds == splt[0] and str(mis) == splt[2] and str(imp) == splt[3]
+            return ds == splt[0] and str(imp) == splt[1]
         except:
             return False
     for imputation in args.imputation:
-        # try:
-        # we do not want to impute data if there is None missing and data is not corrupted
-        if imputation != "None" and (missing is None or missing =="None") and args.corrupt:
-            continue
-        # if results file already exists then skip
-        sub = [f for f in result_files if result_exists(f, 'anzscts', missing, imputation)]
+        sub = [f for f in result_files if result_exists(f, 'anzscts', imputation)]
         if len(sub) > 0:
             continue
 
         if imputation == "None":
             imputation = None
-        m1, perc_missing = run(
+        m1 = run(
             path=args.path,
             imputation=imputation,
             trans_params = trans_results["max"]["params"],
             gbm_params =  gbm_results["max"]["params"],
             make_key=trans_results["key"],
             )
-        print('anzscts', missing, imputation)
+        print('anzscts', imputation)
         print(m1.mean())
         if args.save:
             m1.to_pickle("results/anzscts/{},{}.pickle".format(
             "anzscts", str(imputation)))
 
-        # except Exception as e:
-        #     print(e)

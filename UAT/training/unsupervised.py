@@ -132,18 +132,17 @@ def unsupervised_loop(
     else:
         raise AssertionError("{} not implemented".format(optim))
 
-    opt_state = optim_init(params)
-    opt_state = jax.tree_map(lambda x: x if len(x.shape) > 0 else x.reshape((1)), opt_state)
+    opt_state = optim_init(params_)
+    # opt_state = (jax.tree_map(lambda x: x if len(x.shape) > 0 else x.reshape((1)), opt_state[0]), opt_state[1], opt_state[2])
     in_ax1 = jax.tree_map(lambda x: 0, params)
-    in_ax2 = jax.tree_map(lambda x: 0 if len(x.shape) > 0 else None, opt_state)
+    # in_ax2 = (jax.tree_map(lambda x: 0 if len(x.shape) > 0 else None, opt_state[0]), None, None)
 
     dist = functools.partial(
         jax.pmap,
         axis_name='num_devices',
-        in_axes=(None, in_ax1, 0, 0, in_ax2),
-        out_axes=(in_ax1, in_ax2, None),
+        in_axes=(None, in_ax1, 0, 0, None),
+        out_axes=(in_ax1, None, None),
     )
-
     def _take_step(step, params, x_batch, rng, opt_state):
         """ Compute the gradient for a batch and update the parameters """
         l, grads = jax.value_and_grad(loss)(params, x_batch, rng, True)
@@ -200,6 +199,8 @@ def unsupervised_loop(
                 early_stop = 0
             else:
                 early_stop += 1
+            if store_loss < 0.1:
+                break
             
         pbar2.close()
         pbar1.update(1)
@@ -207,6 +208,8 @@ def unsupervised_loop(
         if (elapsed_time / 60) > 11.5:
             break
         if early_stop > 100 or epoch > cut_off:
+            break
+        if store_loss < 0.1:
             break
 
     elapsed_time = time.time() - start_time
