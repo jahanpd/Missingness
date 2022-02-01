@@ -72,7 +72,7 @@ for missingness in ["MNAR", "MAR", "MCAR"]:
     print(raw.index)
 
     for r in list(itertools.product(["Transformer", "LightGBM"], ["None", "Simple", "Iterative", "MiceForest"], raw.index)):
-        if (r[0] == "Transformer" and r[1] == "None") or (r[0] == "LightGBM"):
+        if (r[0] == "Transformer" and r[1] == "None") or (r[0] == "LightGBM" and r[1] != "None"):
             name = "LSAM" if r[0] == "Transformer" else "LightGBM"
             if r[1] == "None":
                 df_perf['classifier_name'].append(name)
