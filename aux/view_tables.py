@@ -188,6 +188,7 @@ process_dict = table_maker("accuracy")
 final_results = pd.DataFrame(process_dict).fillna(np.inf)
 datasets = final_results[" "][" "]["Dataset"].values
 final_results.index = datasets
+final_results.to_pickle('../results/openml/openml_acc.pickle')
 print("None")
 print(final_results["None"].to_latex())
 print("MCAR")
@@ -206,6 +207,7 @@ process_dict = table_maker("nll")
 final_results = pd.DataFrame(process_dict)
 datasets = final_results[" "][" "]["Dataset"].values
 final_results.index = datasets
+final_results.to_pickle('../results/openml/openml_nll.pickle')
 final_results.fillna(np.inf, inplace=True)
 print("None")
 print(final_results["None"].to_latex())
