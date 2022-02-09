@@ -257,9 +257,9 @@ def run(
                 test_complete=test_complete,
                 split=0.2,
                 rng_key=key,
-                prop=0.4,
+                prop=0.5,
                 corrupt=corrupt,
-                cols_miss=int(X.shape[1] * 0.99)
+                cols_miss=int(X.shape[1] * 0.90)
             )
         print(diagnostics)
         count += 1
@@ -310,13 +310,8 @@ def run(
             empty=False
         
         model.fit(X_train, y_train)
-        # XGBoost comparison
-        # build XGBoost model
-        # dtrain = xgb.DMatrix(X_train, label=y_train)
         dtrain = lgb.Dataset(X_train, label=y_train, categorical_feature=list(np.argwhere(cat_bin == 1)), free_raw_data=False)
-        # dvalid = xgb.DMatrix(X_valid, label=y_valid)
         dvalid = lgb.Dataset(X_valid, label=y_valid, categorical_feature=list(np.argwhere(cat_bin == 1)), reference=dtrain, free_raw_data=False)
-        # dtest = xgb.DMatrix(X_test)
         dtest = lgb.Dataset(X_test, label=y_test, categorical_feature=list(np.argwhere(cat_bin == 1)), free_raw_data=False)
         evallist = [(dvalid, 'eval'), (dtrain, 'train')]
         num_round = 1000
@@ -383,36 +378,15 @@ def run(
                 class_x = np.argmax(output_gbm, axis=1)
                 correct_x = class_x == y_test
                 acc_gbm = np.sum(correct_x) / y_test.shape[0]
-                if not train_complete and not empty:
-                    class_d = np.argmax(output_drop, axis=1)
-                    correct_d = class_d == y_test_drop
-                    acc_drop = np.sum(correct_d) / y_test_drop.shape[0]
-                    
-                    class_d = np.argmax(output_gbm_drop, axis=1)
-                    correct_d = class_d == y_test_drop
-                    acc_drop_gbm = np.sum(correct_d) / y_test_drop.shape[0]
-                else:
-                    acc_drop = np.nan
-                    acc_drop_gbm = np.nan
                 metrics[("accuracy","full")].append(acc)
-                metrics[("accuracy","drop")].append(acc_drop)
                 metrics[("accuracy","gbmoost")].append(acc_gbm)
-                metrics[("accuracy","gbmoost_drop")].append(acc_drop_gbm)
-                tqdm.write("strategy:{}, acc full:{}, acc drop:{}, acc gbm: {}".format(imputation, acc, acc_drop, acc_gbm))
+                tqdm.write("strategy:{}, acc full:{}, acc gbm: {}".format(imputation, acc, acc_gbm))
             if rm == "nll":
-                nll = (- jnp.log(output + 1e-8) * jax.nn.one_hot(y_test, classes)).sum(axis=-1).mean()
-                nll_gbm = (- jnp.log(output_gbm + 1e-8) * jax.nn.one_hot(y_test, classes)).sum(axis=-1).mean()
-                if not train_complete and not empty:
-                    nll_drop = (- jnp.log(output_drop + 1e-8) * jax.nn.one_hot(y_test_drop, classes)).sum(axis=-1).mean()
-                    nll_drop_gbm = (- jnp.log(output_gbm_drop + 1e-8) * jax.nn.one_hot(y_test_drop, classes)).sum(axis=-1).mean()
-                else:
-                    nll_drop = np.nan
-                    nll_drop_gbm = np.nan
+                nll = -(jnp.log(output + 1e-8) * jax.nn.one_hot(y_test, classes) + jnp.log(1 - output + 1e-8) * jax.nn.one_hot(1 - y_test, classes)).sum(axis=-1).mean()
+                nll_gbm = -(jnp.log(output_gbm + 1e-8) * jax.nn.one_hot(y_test, classes) + jnp.log(1 - output_gbm + 1e-8) * jax.nn.one_hot(1 - y_test, classes) ).sum(axis=-1).mean()
                 metrics[("nll","full")].append(nll)
-                metrics[("nll","drop")].append(nll_drop)
                 metrics[("nll","gbmoost")].append(nll_gbm)
-                metrics[("nll","gbmoost_drop")].append(nll_drop_gbm)
-                tqdm.write("strategy:{}, nll full:{}, nll drop:{}, nll xbg:{}".format(imputation, nll, nll_drop, nll_gbm))
+                tqdm.write("strategy:{}, nll full:{}, nll xbg:{}".format(imputation, nll, nll_gbm))
             if rm == "rmse":
                 rmse = np.sqrt(np.square(output - y_test).mean())
                 rmse_gbm = np.sqrt(np.square(output_gbm - y_test).mean())

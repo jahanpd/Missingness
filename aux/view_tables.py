@@ -1,8 +1,10 @@
 import pandas as pd
+import os
 from os import listdir
 from os.path import isfile, join
 import numpy as np
 import itertools
+import sys
 
 ## tables for latent space experiments
 ed1 = pd.read_csv('../results/latent_space/Ensemble_Distances1_None.csv')
@@ -92,7 +94,7 @@ datasets = pd.read_csv('../results/openml/corrupted_tasklist.csv')
 name_list_full = datasets.name.values
 
 path = '../results/openml/'
-result_files = [f for f in listdir(path) if isfile(join(path, f))]
+result_files = [f for f in listdir(path) if isfile(join(path, f)) and "," in f]
 
 def file_filter(filename, dsname, missingness, imputation):
     splt = filename[:-7].split(",")
@@ -143,13 +145,12 @@ def table_maker(metric="accuracy"):
             s = [f for f in result_files if file_filter(f, name, "None", "None")]
             path = join('../results/openml/', str(s[0]))
             ds = pd.read_pickle(path)
-            # print(ds)
             baseline_trans = np.nanmean(ds[metric]["full"].values)
             baseline_gbm = np.nanmean(ds[metric]["gbmoost"].values)
             process_dict[("None", "None", "Transformer")].append(baseline_trans)
             process_dict[("None", "None", "LightGBM")].append(baseline_gbm)
         except Exception as e:
-            # print(e)
+            print(e, name, s, result_files, [f for f in result_files if name in f])
             process_dict[("None", "None", "Transformer")].append(np.nan)
             process_dict[("None", "None", "LightGBM")].append(np.nan)
         # get the same as above but for each missingness and imputation pattern
@@ -159,17 +160,28 @@ def table_maker(metric="accuracy"):
                 path = join('../results/openml/', str(s[0]))
                 ds = pd.read_pickle(path)
                 if metric in ["accuracy", "nll"]:
-                    trans = (np.nanmean(ds[metric]["full"].values) - baseline_trans) / baseline_trans
-                    gbm = (np.nanmean(ds[metric]["gbmoost"].values) - baseline_gbm) / baseline_gbm
+                    trans = (np.mean(ds[metric]["full"].values) - baseline_trans) / baseline_trans
+                    process_dict[(key[0], key[1], "Transformer")].append(trans)
+                    gbm = (np.mean(ds[metric]["gbmoost"].values) - baseline_gbm) / baseline_gbm
+                    process_dict[(key[0], key[1], "LightGBM")].append(gbm)
                 elif metric == "rmse":
-                    trans = (np.nanmean(ds[metric]["full"].values) - baseline_trans) / baseline_trans
-                    gbm = (np.nanmean(ds[metric]["gbmoost"].values) - baseline_gbm) / baseline_gbm
-                process_dict[(key[0], key[1], "Transformer")].append(trans)
-                process_dict[(key[0], key[1], "LightGBM")].append(gbm)
+                    trans = (np.mean(ds[metric]["full"].values) - baseline_trans) / baseline_trans
+                    process_dict[(key[0], key[1], "Transformer")].append(trans)
+                    gbm = (np.mean(ds[metric]["gbmoost"].values) - baseline_gbm) / baseline_gbm
+                    process_dict[(key[0], key[1], "LightGBM")].append(gbm)
             except Exception as e:
-                # print(e)
-                process_dict[(key[0], key[1], "Transformer")].append(np.nan)
-                process_dict[(key[0], key[1], "LightGBM")].append(np.nan)
+                print(e, name, s, [f for f in result_files if name in f])
+                exc_type, exc_obj, exc_tb = sys.exc_info()
+                fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+                print(exc_type, fname, exc_tb.tb_lineno)
+                if metric == "nll":
+                    process_dict[(key[0], key[1], "Transformer")].append(np.inf)
+                    process_dict[(key[0], key[1], "LightGBM")].append(np.inf)
+                else:
+                    process_dict[(key[0], key[1], "Transformer")].append(np.nan)
+                    process_dict[(key[0], key[1], "LightGBM")].append(np.nan)
+
+
     return process_dict
 
 process_dict = table_maker("accuracy")
@@ -185,15 +197,16 @@ print(final_results["MAR"].to_latex())
 print("MNAR")
 print(final_results["MNAR"].to_latex())
 
-print("win ratio baseline: {}".format(np.sum(final_results["None"]['None']['Transformer'].values > final_results["None"]['None']['LightGBM'].values) / len(final_results['None']['None'].dropna())))
-print("win ratio for MNAR: {}".format(np.sum(final_results["MNAR"]['None']['Transformer'].values > final_results["MNAR"]['None']['LightGBM'].values) / len(final_results['MNAR']['None'].dropna())))
-print("win ratio for MCAR: {}".format(np.sum(final_results["MCAR"]['None']['Transformer'].values > final_results["MCAR"]['None']['LightGBM'].values) / len(final_results['MCAR']['None'].dropna())))
-print("win ratio for MAR: {}".format(np.sum(final_results["MAR"]['None']['Transformer'].values > final_results["MAR"]['None']['LightGBM'].values) / len(final_results['MAR']['None'].dropna())))
+print("win ratio baseline: {}".format(np.sum(final_results["None"]['None']['Transformer'].values > final_results["None"]['None']['LightGBM'].values) / len(final_results['None']['None'])))
+print("win ratio for MNAR: {}".format(np.sum(final_results["MNAR"]['None']['Transformer'].values > final_results["MNAR"]['None']['LightGBM'].values) / len(final_results['MNAR']['None'])))
+print("win ratio for MCAR: {}".format(np.sum(final_results["MCAR"]['None']['Transformer'].values > final_results["MCAR"]['None']['LightGBM'].values) / len(final_results['MCAR']['None'])))
+print("win ratio for MAR: {}".format(np.sum(final_results["MAR"]['None']['Transformer'].values > final_results["MAR"]['None']['LightGBM'].values) / len(final_results['MAR']['None'])))
 
 process_dict = table_maker("nll")
 final_results = pd.DataFrame(process_dict)
 datasets = final_results[" "][" "]["Dataset"].values
 final_results.index = datasets
+final_results.fillna(np.inf, inplace=True)
 print("None")
 print(final_results["None"].to_latex())
 print("MCAR")
@@ -202,10 +215,10 @@ print("MAR")
 print(final_results["MAR"].to_latex())
 print("MNAR")
 print(final_results["MNAR"].to_latex())
-print("win ratio baseline: {}".format(np.sum(final_results["None"]['None']['Transformer'].values < final_results["None"]['None']['LightGBM'].values) / len(final_results['None']['None'].dropna())))
-print("win ratio for MNAR: {}".format(np.sum(final_results["MNAR"]['None']['Transformer'].values < final_results["MNAR"]['None']['LightGBM'].values) / len(final_results['MNAR']['None'].dropna())))
-print("win ratio for MCAR: {}".format(np.sum(final_results["MCAR"]['None']['Transformer'].values < final_results["MCAR"]['None']['LightGBM'].values) / len(final_results['MCAR']['None'].dropna())))
-print("win ratio for MAR: {}".format(np.sum(final_results["MAR"]['None']['Transformer'].values > final_results["MAR"]['None']['LightGBM'].values) / len(final_results['MAR']['None'].dropna())))
+print("win ratio baseline: {}".format(np.sum(final_results["None"]['None']['Transformer'].values < final_results["None"]['None']['LightGBM'].values) / len(final_results['None']['None'])))
+print("win ratio for MNAR: {}".format(np.sum(final_results["MNAR"]['None']['Transformer'].values < final_results["MNAR"]['None']['LightGBM'].values) / len(final_results['MNAR']['None'])))
+print("win ratio for MCAR: {}".format(np.sum(final_results["MCAR"]['None']['Transformer'].values < final_results["MCAR"]['None']['LightGBM'].values) / len(final_results['MCAR']['None'])))
+print("win ratio for MAR: {}".format(np.sum(final_results["MAR"]['None']['Transformer'].values < final_results["MAR"]['None']['LightGBM'].values) / len(final_results['MAR']['None'])))
 
 
 
