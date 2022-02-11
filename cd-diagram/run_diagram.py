@@ -107,7 +107,7 @@ for missingness in ["MNAR", "MAR", "MCAR"]:
         else:
             df_perf['classifier_name'].append(name + "+" + r[1])
         df_perf['dataset_name'].append(r[2])
-        df_perf['accuracy'].append(-float(raw.loc[r[2]][missingness][r[1]][r[0]]))
+        df_perf['accuracy'].append(float(raw.loc[r[2]][missingness][r[1]][r[0]]))
 
     df_perf = pd.DataFrame(df_perf)
     print(df_perf)
