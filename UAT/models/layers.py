@@ -6,6 +6,196 @@ from jax.nn import (relu, log_softmax, softmax, softplus, sigmoid, elu,
                     leaky_relu, selu, gelu, normalize)
 from jax.nn.initializers import glorot_uniform, normal, ones, zeros
 
+def Embed(
+    features,
+    ndim,
+    W_init = glorot_uniform(),
+    b_init = zeros,
+    ):
+    def init_fun(
+        rng,
+        ):
+        k1, k2 = random.split(rng, 2)
+        W = W_init(k1, (features, ndim))
+        b = b_init(k2, (ndim))
+        return (W, b)
+
+    def apply_fun(params, x, scan=False):
+        W, b = params
+        return (x * W) + b
+
+    def rapply_fun(params, x, scan=False):
+        W, b = params
+        return jnp.divide((x - b), W + 1e-8)
+
+    return init_fun, apply_fun, rapply_fun
+
+def BijectLayer(
+    features,
+    ndim,
+    layers,
+    W_init = glorot_uniform(),
+    b_init = zeros,
+    tactivation = jax.nn.softplus,
+    sactivation = jax.nn.tanh,
+    ):
+    idx = ndim // 2
+    def init_fun(
+        rng,
+        ):
+        k1, k2, k3, k4 = random.split(rng, 4)
+        sW = W_init(k1, (features, idx, ndim - idx))
+        sb = b_init(k2, (features, ndim - idx))
+        tW = W_init(k3, (features, idx, ndim - idx))
+        tb = b_init(k4, (features, ndim - idx))
+        return (sW, sb, tW, tb)
+
+    def apply_fun(params, x, lay, scan=False):
+        if scan:
+            sW, sb = params["sW"], params["sb"]
+            tW, tb = params["tW"], params["tb"]
+        else:
+            sW, sb, tW, tb = params
+
+        x1 = x[:, :idx]
+        x1a = x[:, idx:]
+        x2 = x[:, -idx:]
+        x2a = x[:, :-idx]
+
+        trans = jnp.where(
+            lay % 2 == 0,
+            tactivation(
+                jnp.einsum('...ij,...ijk->...ik', x1, sW) + sb
+            ),
+            tactivation(
+                jnp.einsum('...ij,...ijk->...ik', x2, sW) + sb
+            )
+        )
+        scale = jnp.where(
+            lay % 2 == 0,
+            sactivation(
+                jnp.einsum('...ij,...ijk->...ik', x1, tW) + tb
+            ),
+            sactivation(
+                jnp.einsum('...ij,...ijk->...ik', x2, tW) + tb
+            )
+        )
+        h = jnp.where(
+            lay % 2 == 0,
+            (x1a * jnp.exp(scale)) + trans,
+            (x2a * jnp.exp(scale)) + trans
+        )
+        return jnp.where(
+            lay % 2 == 0,
+            jnp.concatenate([x1, h], -1),
+            jnp.concatenate([h, x2], -1),
+        )
+
+    def rapply_fun(params, x, lay, scan=False):
+        if scan:
+            sW, sb = params["sW"], params["sb"]
+            tW, tb = params["tW"], params["tb"]
+        else:
+            sW, sb, tW, tb = params
+
+        x1 = x[:, :idx]
+        x1a = x[:, idx:]
+
+        x2 = x[:, -idx:]
+        x2a = x[:, :-idx]
+
+        trans = jnp.where(
+            lay % 2 == 0,
+            tactivation(
+                jnp.einsum('...ij,...ijk->...ik', x1, sW) + sb
+            ),
+            tactivation(
+                jnp.einsum('...ij,...ijk->...ik', x2, sW) + sb
+            )
+        )
+        scale = jnp.where(
+            lay % 2 == 0,
+            sactivation(
+                jnp.einsum('...ij,...ijk->...ik', x1, tW) + tb
+            ),
+            sactivation(
+                jnp.einsum('...ij,...ijk->...ik', x2, tW) + tb
+            )
+        )
+        h = jnp.where(
+            lay % 2 == 0,
+            (x1a - trans) * jnp.exp(-1 * scale),
+            (x2a - trans) * jnp.exp(-1 * scale)
+        )
+        return jnp.where(
+            lay % 2 == 0,
+            jnp.concatenate([x1, h], -1),
+            jnp.concatenate([h, x2], -1),
+        )
+
+    return init_fun, apply_fun, rapply_fun
+
+def Bijector(
+    features,
+    ndim,
+    layers,
+    W_init = glorot_uniform(),
+    b_init = zeros,
+    tactivation = jax.nn.softplus,
+    sactivation = jax.nn.tanh,
+    ):
+
+    init_bij, bijf, bijr = BijectLayer(
+            features, ndim, layers, W_init, b_init, tactivation, sactivation)
+
+    def init_fun(
+        rng,
+        ):
+
+        sW, sb, tW, tb = [], [], [], []
+        for l in range(layers):
+            rng, key = random.split(rng)
+            sW_, sb_, tW_, tb_ = init_bij(key)
+            sW.append(sW_)
+            sb.append(sb_)
+            tW.append(tW_)
+            tb.append(tb_)
+
+        params = {
+            "sW":jnp.stack(sW, axis=0),
+            "sb":jnp.stack(sb, axis=0),
+            "tW":jnp.stack(tW, axis=0),
+            "tb":jnp.stack(tb, axis=0),
+        }
+
+        return params
+
+    def apply_fun(params, x, scan=False):
+
+        def body(carry, x):
+            state, lay = carry
+            # note x is actually the params
+            temp = bijf(x, state, lay, scan=True)
+            lay = lay + 1
+            return (temp, lay), None
+
+        out, _ = jax.lax.scan(body, (x, 0), params)
+        return out[0]
+
+    def rapply_fun(params, x, scan=False):
+
+        def body(carry, x):
+            state, lay = carry
+            # note x is actually the params
+            temp = bijr(x, state, lay, scan=True)
+            lay = lay - 1
+            return (temp, lay), None
+
+        out, _ = jax.lax.scan(body, (x, layers-1), params, reverse=True)
+        return out[0]
+
+    return init_fun, apply_fun, rapply_fun
+
 def DenseGeneral(
     features,
     in_dim,
@@ -63,7 +253,7 @@ def Dense(
 
 
 def NeuralNetGeneral(
-    features,
+    features, 
     in_dim,
     hidden_dim,
     out_dim,
@@ -78,19 +268,19 @@ def NeuralNetGeneral(
         features, hidden_dim, hidden_dim, W_init=W_init, b_init=b_init)
     init_out, layer_out = DenseGeneral(
         features, hidden_dim, out_dim, W_init=W_init, b_init=b_init)
-    
+
     def init_fun(rng):
         params = {}
         rng, key = random.split(rng)
         params["l1"] = init_l1(key)
-        
+
         hw, hb = [], []
         for _ in range(num_hidden):
             rng, key = random.split(rng)
             W, b = init_hidden(key)
             hw.append(W)
             hb.append(b)
-        
+
         params["hidden"] = {
             "hw":jnp.stack(hw, axis=0),
             "hb":jnp.stack(hb, axis=0)
@@ -99,8 +289,8 @@ def NeuralNetGeneral(
         rng, key = random.split(rng)
         params["out"] = init_out(key)
 
-        return params  
-  
+        return params
+
     def apply_fun(params, inputs):
         h = activation(layer_1(params["l1"], inputs))
 
@@ -108,12 +298,12 @@ def NeuralNetGeneral(
             # note x is actually the params
             temp = activation(layer_h(x, carry, scan=True))
             return temp, None
-        
+
         h, _ = jax.lax.scan(body, h, params["hidden"])
 
         out = layer_out(params["out"], h)
         return out
-    
+
     return init_fun, apply_fun
 
 def NeuralNet(
