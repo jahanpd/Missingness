@@ -11,7 +11,7 @@ for result in results:
     with open(result, 'rb') as f:
         y = pickle.load(f)
     # print(result, y[np.argmin([l[1] for l in y])], [l[1] for l in y])
-    print(result, y["max"])
+    print(result, y["results"])
 
 # data_list = pd.read_csv("/home/jahan/missing/results/openml/noncorrupted_tasklist.csv")
 # print(data_list)

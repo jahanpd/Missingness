@@ -145,8 +145,8 @@ def table_maker(metric="accuracy"):
             s = [f for f in result_files if file_filter(f, name, "None", "None")]
             path = join('../results/openml/', str(s[0]))
             ds = pd.read_pickle(path)
-            baseline_trans = np.nanmean(ds[metric]["full"].values)
-            baseline_gbm = np.nanmean(ds[metric]["gbmoost"].values)
+            baseline_trans = np.nanmean(ds[metric]["attn"].values)
+            baseline_gbm = np.nanmean(ds[metric]["gbm"].values)
             process_dict[("None", "None", "Transformer")].append(baseline_trans)
             process_dict[("None", "None", "LightGBM")].append(baseline_gbm)
         except Exception as e:
@@ -160,14 +160,14 @@ def table_maker(metric="accuracy"):
                 path = join('../results/openml/', str(s[0]))
                 ds = pd.read_pickle(path)
                 if metric in ["accuracy", "nll"]:
-                    trans = (np.mean(ds[metric]["full"].values) - baseline_trans) / baseline_trans
+                    trans = (np.mean(ds[metric]["attn"].values) - baseline_trans) / baseline_trans
                     process_dict[(key[0], key[1], "Transformer")].append(trans)
-                    gbm = (np.mean(ds[metric]["gbmoost"].values) - baseline_gbm) / baseline_gbm
+                    gbm = (np.mean(ds[metric]["gbm"].values) - baseline_gbm) / baseline_gbm
                     process_dict[(key[0], key[1], "LightGBM")].append(gbm)
                 elif metric == "rmse":
-                    trans = (np.mean(ds[metric]["full"].values) - baseline_trans) / baseline_trans
+                    trans = (np.mean(ds[metric]["attn"].values) - baseline_trans) / baseline_trans
                     process_dict[(key[0], key[1], "Transformer")].append(trans)
-                    gbm = (np.mean(ds[metric]["gbmoost"].values) - baseline_gbm) / baseline_gbm
+                    gbm = (np.mean(ds[metric]["gbm"].values) - baseline_gbm) / baseline_gbm
                     process_dict[(key[0], key[1], "LightGBM")].append(gbm)
             except Exception as e:
                 print(e, name, s, [f for f in result_files if name in f])
