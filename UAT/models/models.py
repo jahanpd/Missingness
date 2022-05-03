@@ -133,21 +133,12 @@ def AttentionModel_MAP(
     init_biject, bijectf, bijectr = Bijector(
         features, d_model, encoder_layers, W_init=W_init, b_init=b_init, tactivation=jax.nn.softplus, sactivation=jax.nn.tanh
     )
-    init_qs, qs = DenseGeneral(
-        1, d_model, d_model, W_init=W_init, b_init=b_init
-    )
-    init_ks, ks = DenseGeneral(
-        1, d_model, d_model, W_init=W_init, b_init=b_init
+    init_sattn, sattention = NeuralNetGeneral(
+        features, d_model, embed_hidden_size, features, embed_hidden_layers, W_init=W_init, b_init=b_init, activation=embed_activation
     )
     init_oattn, oattention = NeuralNetGeneral(
-        1, d_model, embed_hidden_size, 1, W_init=W_init, b_init=b_init, activation=embed_activation
+        features, d_model, embed_hidden_size, 1, embed_hidden_layers, W_init=W_init, b_init=b_init, activation=embed_activation
     )
-    #init_sattn, sattention = NeuralNetGeneral(
-    #    features, d_model, embed_hidden_size, features, embed_hidden_layers, W_init=W_init, b_init=b_init, activation=embed_activation
-    #)
-    #init_qa, qa = NeuralNetGeneral(
-    #    features, d_model, embed_hidden_size, 1, embed_hidden_layers, W_init=W_init, b_init=b_init, activation=embed_activation
-    #)
     init_out, outnet = NeuralNet(
         d_model, net_hidden_size, out_size, net_hidden_layers, W_init=W_init, b_init=b_init, activation=net_activation)
 
@@ -160,17 +151,8 @@ def AttentionModel_MAP(
         rng, key = random.split(rng)
         params["bijector"] = init_biject(key)
 
-        #rng, key = random.split(rng)
-        #params["sattention"] = init_sattn(key)
-
         rng, key = random.split(rng)
-        params["xshift"] = W_init(key, (features, d_model))
-
-        rng, key = random.split(rng)
-        params["qs"] = init_qs(key)
-
-        rng, key = random.split(rng)
-        params["ks"] = init_ks(key)
+        params["sattention"] = init_sattn(key)
 
         rng, key = random.split(rng)
         params["oattention"] = init_oattn(key)
@@ -208,9 +190,7 @@ def AttentionModel_MAP(
                             - jnp.log(1.0 - unif_noise + eps)
                             )
             drop_prob = jax.nn.sigmoid(drop_prob / temp)
-            # this line is 1.0 - drop_prob if you want to select more important variables
-            # during training
-            random_arr = drop_prob  # (1 if keeping 0 if removing)
+            random_arr = 1.0 - drop_prob  # (1 if keeping 0 if removing)
             mask = nan_mask * random_arr
         else:
             mask = nan_mask
@@ -220,23 +200,18 @@ def AttentionModel_MAP(
         z0_f = embedf(params["embed"], x) # (f, ndim)
         zk_f = bijectf(params["bijector"], z0_f) #  (f, ndim)
         if unsupervised_pretraining:
-            q = qs(params["qs"], zk_f + params["xshift"])  # (f, ndim)
-            k = ks(params["ks"], zk_f + params["xshift"])
-            sattn = pattn(jnp.matmul(q, jnp.transpose(k, (1, 0))), mask, True)  # (f, f)
+            sattn = pattn(sattention(params["sattention"], zk_f), mask, True)  # (f, f)
             zrk_f = jnp.matmul(sattn, zk_f)  # (f, ndim)
             zr0_f = bijectr(params["bijector"], zrk_f)
             return z0_f, zr0_f
         else:
-            q = qs(params["qs"], zk_f + params["xshift"])  # (f, ndim)
-            k = ks(params["ks"], zk_f + params["xshift"])
-            sattn = pattn(jnp.matmul(q, jnp.transpose(k, (1, 0))), mask, True)  # (f, f)            
+            sattn = pattn(sattention(params["sattention"], zk_f), mask, True)  # (f, f)
             zrk_f = jnp.matmul(sattn, zk_f)  # (f, ndim)
-            zkf_zrkf = zk_f + zrk_f
             zr0_f = bijectr(params["bijector"], zrk_f)
 
             oattn = pattn(
                 jnp.transpose(
-                    oattention(params["oattention"], zkf_zrkf + params["xshift"]),
+                    oattention(params["oattention"], zk_f),
                     (1, 0)
                 ), # (1, f)
                 mask, False) # (1, f)
