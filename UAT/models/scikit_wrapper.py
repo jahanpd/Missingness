@@ -263,7 +263,6 @@ class UAT:
             rng_placeholder = random.split(self.key, X_nan.shape[0])
             out = self.apply_fun(self.params, X_nan, rng_placeholder, False)
             z = out[-1]  # (batch, 1, dims)
-            print(c, z.shape)
             latent_spaces.append(z)
 
         z = np.concatenate(latent_spaces, axis=1)  # (batch, sets, dims)

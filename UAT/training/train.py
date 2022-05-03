@@ -5,8 +5,8 @@ import numpy as np
 import jax.numpy as jnp
 import jax
 from jax import random
-from jax.experimental import optimizers
-from jax.experimental.optimizers import make_schedule
+from jax.example_libraries import optimizers
+from jax.example_libraries.optimizers import make_schedule
 from scipy.stats import halfnorm
 import functools
 import time
@@ -48,7 +48,7 @@ def training_loop(
     early_stopping=None, # or callable
     output_freq=5,
     early_stop=True, # if makes it to end of training cycle, return early stop. Also shuts down early stopping for HP optim
-    steps_til_samp=1000,
+    steps_til_samp=0,
     k=None, # parameters for SWA if implemented
     m=None
     ):
@@ -89,14 +89,19 @@ def training_loop(
         optim_update = optobj.update
     
     if optim == "sgd":
-        tqdm.write("optimizer: sgb, lr: {}, batch_size={}".format(print_step(1), batch_size))
+        tqdm.write("optimizer: sgd, lr: {}, batch_size={}".format(print_step(1), batch_size))
         if optim_kwargs is None:
             optim_kwargs = dict(
                 learning_rate=step_size
             )
         else:
             optim_kwargs["learning_rate"] = step_size
-        optobj = optax.sgd(**optim_kwargs)
+            weight_decay = optim_kwargs.pop('weight_decay')
+        optobj = combine.chain(
+            base.identity(),
+            transform.add_decayed_weights(weight_decay, None),
+            _scale_by_learning_rate(step_size)
+            )
         optim_init = optobj.init
         optim_update = optobj.update
 
@@ -299,13 +304,31 @@ def training_loop(
                 # enforce dtype float for dict object while saving
                 for k in metrics_ewa_.keys():
                     metrics_ewa_[k] = float(metrics_ewa_[k])
-                pbar1.set_postfix({
-                    "l":metrics_ewa_["loss"], 
-                    "tl":metrics_ewa_["test_loss"],
-                    "tlc":metrics_ewa_["test_current"],
-                    "tc":metrics_ewa_["test_counter"],
-                    "e":metrics_ewa_["ent"]
-                    })
+                try:
+                    pbar1.set_postfix({
+                        "l":metrics_ewa_["loss"],
+                        "tl":metrics_ewa_["test_loss"],
+                        "tlc":metrics_ewa_["test_current"],
+                        "tc":metrics_ewa_["test_counter"],
+                        "mse":metrics_ewa_["mse"],
+                        "e":metrics_ewa_["ent"]
+                        })
+                except:
+                    try:
+                        pbar1.set_postfix({
+                            "l":metrics_ewa_["loss"], 
+                            "tl":metrics_ewa_["test_loss"],
+                            "tlc":metrics_ewa_["test_current"],
+                            "tc":metrics_ewa_["test_counter"],
+                            "e":metrics_ewa_["ent"]
+                            })
+                    except:
+                        pbar1.set_postfix({
+                            "l":metrics_ewa_["loss"],
+                            "tl":metrics_ewa_["test_loss"],
+                            "tlc":metrics_ewa_["test_current"],
+                            "tc":metrics_ewa_["test_counter"],
+                            })
                 history.append(metrics_ewa_)
                 if np.isnan(metrics_ewa_["loss"]):
                     break

@@ -45,9 +45,9 @@ def unsupervised_loop(
     params = jax.tree_map(lambda x: jnp.array([x] * devices), params)
     
     def loss(params, x_batch, rng, samp):
-        embed, output, kld = model_fun(params, x_batch, rng, samp)
+        embed, output = model_fun(params, x_batch, rng, samp)
         # basic mean squared error
-        error = jnp.mean(jnp.square(embed - output)) + jnp.mean(kld)
+        error = jnp.mean(jnp.sum(jnp.square(jax.lax.stop_gradient(embed) - output), -1))
         return error
 
     print_step = make_schedule(lr)
@@ -194,7 +194,7 @@ def unsupervised_loop(
             pbar2.update(1)
             pbar1.set_postfix({"loss": loss_})
             history.append({"loss": loss_})
-            if loss_ < store_loss or epoch < 10:
+            if loss_ < store_loss or epoch < 1000:
                 store_loss = loss_
                 early_stop = 0
             else:
@@ -206,10 +206,13 @@ def unsupervised_loop(
         pbar1.update(1)
         elapsed_time = time.time() - start_time
         if (elapsed_time / 60) > 11.5:
+            print("time")
             break
         if early_stop > 100 or epoch > cut_off:
+            print("early stop or epoch")
             break
-        if store_loss < 0.1:
+        if store_loss < 0.001:
+            print("loss")
             break
 
     elapsed_time = time.time() - start_time

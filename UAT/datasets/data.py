@@ -22,9 +22,10 @@ else:
 
 def get_list(
         missing,
-        max_features=100,
+        min_features=20,
+        max_features=250,
         min_instances=1000,
-        max_instances=100000,
+        max_instances=200000,
         key=42,
         test=lambda x, m: x > m
         ):
@@ -66,12 +67,14 @@ def get_list(
     # limit number of features to less than 500 for tractability
     class_subset = class_subset[
         (class_subset.NumberOfFeatures < max_features) & 
+        (class_subset.NumberOfFeatures > min_features) & 
         (class_subset.NumberOfInstances < max_instances) & 
         (class_subset.NumberOfInstances > min_instances) &
         test(class_subset.NumberOfMissingValues, class_subset.NumberOfInstancesWithMissingValues)
         ].drop_duplicates(subset=["name"])
     reg_subset = reg_subset[
         (reg_subset.NumberOfFeatures < max_features) & 
+        (reg_subset.NumberOfFeatures > min_features) & 
         (reg_subset.NumberOfInstances < max_instances) & 
         (reg_subset.NumberOfInstances > min_instances) &
         test(reg_subset.NumberOfMissingValues, reg_subset.NumberOfInstancesWithMissingValues)

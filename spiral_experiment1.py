@@ -26,20 +26,20 @@ def run(iterations, missing="None", epochs=10):
                 d_model=32,
                 embed_hidden_size=32,
                 embed_hidden_layers=2,
-                embed_activation=jax.nn.relu,
+                embed_activation=jax.nn.gelu,
                 encoder_layers=3,
                 encoder_heads=3,
-                enc_activation=jax.nn.relu,
+                enc_activation=jax.nn.gelu,
                 decoder_layers=3,
                 decoder_heads=3,
-                dec_activation=jax.nn.relu,
+                dec_activation=jax.nn.gelu,
                 net_hidden_size=32,
                 net_hidden_layers=2,
-                net_activation=jax.nn.relu,
+                net_activation=jax.nn.gelu,
                 last_layer_size=32,
                 out_size=1,
-                W_init = jax.nn.initializers.glorot_uniform(),
-                b_init = jax.nn.initializers.normal(0.01),
+                W_init = jax.nn.initializers.he_normal(),
+                b_init = jax.nn.initializers.zeros,
                 )
 
     early_stopping = create_early_stopping(100, 50, metric_name="loss", tol=1e-8)
@@ -107,9 +107,9 @@ def run(iterations, missing="None", epochs=10):
             rng_key=i,
         )
         model1.fit(X, y)
-        d1, d2 = model1.distances(X, y)
-        d1_uat.append(d1)
-        d2_uat.append(d2)
+        d11, d22 = model1.distances(X, y)
+        d1_uat.append(d11)
+        d2_uat.append(d22)
 
         training_kwargs_ens["X_test"] = X_test
         training_kwargs_ens["y_test"] = y_test
@@ -123,10 +123,11 @@ def run(iterations, missing="None", epochs=10):
         d1,d2 = model2.distances(X, y)
         d1_ens.append(d1)
         d2_ens.append(d2)
-    
+        print(i, missing)
+
     d1_uat = pd.concat(d1_uat)
     d2_uat = pd.concat(d2_uat)
-    
+
     d1_ens = pd.concat(d1_ens)
     d2_ens = pd.concat(d2_ens)
 
@@ -176,6 +177,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     run(args.iterations, missing="None")
-    run(args.iterations, missing="MCAR")
-    run(args.iterations, missing="MAR")
-    run(args.iterations, missing="MNAR")
+    # run(args.iterations, missing="MCAR")
+    # run(args.iterations, missing="MAR")
+    # run(args.iterations, missing="MNAR")

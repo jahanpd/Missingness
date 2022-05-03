@@ -66,6 +66,42 @@ def cross_entropy(
             return loss, loss_dict
     return loss_fun
 
+def dual(
+    classes,
+    l2_reg=1e-2,
+    dropout_reg=1e-4
+    ):
+    def loss_fun(params, output, labels):
+            logits = output[0]
+            z0_f, zr0_f = output[2], output[3]
+            one_hot = jax.nn.one_hot(labels, classes)
+            probs = jax.nn.softmax(logits)
+            # probs = jnp.mean(jax.nn.sigmoid(jnp.stack(logits, axis=0)), axis=0)
+            p_drop = jax.nn.sigmoid(params["logits"])
+            @jax.vmap
+            def cross_entropy(probs, labels):
+                return -(labels * jnp.log(probs + 1e-7) 
+                        + (1-labels) * jnp.log(1 - probs + 1e-7)).sum()
+
+            ce = cross_entropy(probs, one_hot).mean()
+            norm_params = [params[key] for key in params.keys() if key in ["last_layer", "net2"]] 
+            l2 = l2_norm(norm_params)
+            entropy = p_drop * jnp.log(p_drop + 1e-7)
+            entropy += (1.0 - p_drop) * jnp.log(1.0 - p_drop + 1e-7)
+            entropy = entropy.mean()
+            mse = jnp.mean(jnp.sum(jnp.square(jax.lax.stop_gradient(z0_f) - zr0_f), -1))
+            loss = ce + l2_reg*l2 + dropout_reg*entropy + mse
+
+            loss_dict = {
+                "loss":ce,
+                "l2":l2,
+                "mse":mse,
+                "ent":entropy
+                }
+
+            return loss, loss_dict
+    return loss_fun
+
 def cross_entropy_(
     classes,
     l2_reg=1e-2
