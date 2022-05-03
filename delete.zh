@@ -1,0 +1,3 @@
+cd results/openml
+ls | grep pickle | xargs rm
+cd ../..
