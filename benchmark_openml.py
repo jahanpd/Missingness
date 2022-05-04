@@ -99,15 +99,15 @@ if __name__ ==  "__main__":
         hpk = 4
         if not loaded_hps_trans:
             searchspace = [
-                ("d_model",[128,256]),
-                ("lr_max", [1e-3]),
-                ("reg", [0.1, 1.0, 2.0, 4.0]),
-                ("start_es", [0.0]),  # start early stopping
-                ("depth", [4]),
-                ("nndepth", [2]),
-                ("nnwidth", [32]),
+                ("d_model",[32, 128]),
+                ("lr_max", [5e-3]),
+                ("reg", [1e-3, 0]),
+                ("start_es", [0.3]),  # start early stopping
+                ("depth", [4, 2]),
+                ("nndepth", [2,1]),
+                # ("nnwidth", [4]), # change to 2**(nndepth + 1)
             ]
-            trans_results = gridsearchattn(searchspace, 2, row, args)
+            trans_results = gridsearchattn(searchspace, 4, row, args)
             with open('results/openml/hyperparams/{},{},trans_hyperparams.pickle'.format(row[2], "None"), 'wb') as handle:
                     pickle.dump(trans_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
@@ -117,7 +117,7 @@ if __name__ ==  "__main__":
                 ("learning_rate", [1e-2]),
                 ("max_bin", [10, 50])
             ]
-            gbm_results = gridsearchgbm(searchspace, 2, row, args)
+            gbm_results = gridsearchgbm(searchspace, 4, row, args)
             with open('results/openml/hyperparams/{},{},gbm_hyperparams.pickle'.format(row[2], "None"),'wb') as handle:
                     pickle.dump(gbm_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
@@ -158,8 +158,8 @@ if __name__ ==  "__main__":
                     corrupt=args.corrupt,
                     row_data=row,
                     rng_init=key,
-                    folds=2,
-                    repeats=5
+                    folds=4,
+                    repeats=1
                     )
                 print(row[2], missing, imputation)
                 print(m1.mean())

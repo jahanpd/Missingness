@@ -57,12 +57,14 @@ def create_make_model(features, rows, task, key):
         steps_per_epoch = max(rows // batch_size_base2, 1)
         epochs = max_steps // steps_per_epoch
         
+        nnwidth = int(2**(nndepth*2))
         # d_model = 2
         decay = piecewise_constant_schedule(
             lr_max,
             # 1e-3,
             boundaries_and_scales={
-                int(0.5 * epochs * steps_per_epoch):0.1,
+                int(start_es * epochs * steps_per_epoch):0.1,
+                int((start_es + 0.5*(1.0 - start_es)) * epochs * steps_per_epoch):0.1,
             })
 
         while epochs < 150:
@@ -74,8 +76,8 @@ def create_make_model(features, rows, task, key):
             print(epochs)
 
         freq = 5
-        print("lr: {}, d: {}, d_model: {}".format(
-            lr_max, int(depth), int(d_model)))
+        print("lr: {}, depth: {}, d_model: {}, widthL {}".format(
+            lr_max, int(depth), int(d_model), nnwidth))
         model_kwargs_uat = dict(
                 features=features,
                 d_model=d_model,
@@ -93,12 +95,12 @@ def create_make_model(features, rows, task, key):
                 net_activation=jax.nn.gelu,
                 last_layer_size=32,
                 out_size=classes,
-                W_init = jax.nn.initializers.he_normal(),
-                b_init = jax.nn.initializers.zeros,
+                W_init = jax.nn.initializers.lecun_uniform(),
+                b_init = jax.nn.initializers.normal(0.001),
                 )
         epochs = int(max_steps // steps_per_epoch)
         start_steps = int(start_es*epochs*steps_per_epoch) # wait at least 80 epochs before early stopping
-        stop_steps_ = steps_per_epoch * (epochs // 4) / min(steps_per_epoch, freq)
+        stop_steps_ = steps_per_epoch * (epochs // 10) / min(steps_per_epoch, freq)
 
         optim_kwargs=dict(
             b1=0.9, b2=0.99,
@@ -119,11 +121,11 @@ def create_make_model(features, rows, task, key):
                     steps_til_samp=0
                 )
         if task == "Supervised Classification":
-            # loss_fun = cross_entropy(classes, l2_reg=0, dropout_reg=1e-7)
-            loss_fun = dual(classes, l2_reg=0, dropout_reg=1e-5)
+            # loss_fun = cross_entropy(classes, l2_reg=0, dropout_reg=1e-8)
+            loss_fun = dual(classes, l2_reg=0, dropout_reg=1.0)
             # loss_fun = brier(l2_reg=0.0, dropout_reg=1e-7)
         elif task == "Supervised Regression":
-            loss_fun = mse(l2_reg=0.0, dropout_reg=1e-5)
+            loss_fun = mse(l2_reg=0.0, dropout_reg=1.0)
         training_kwargs_uat["X_test"] = X_valid
         training_kwargs_uat["y_test"] = y_valid
         model = UAT(

@@ -17,7 +17,7 @@ def Embed(
         ):
         k1, k2 = random.split(rng, 2)
         W = W_init(k1, (features, ndim))
-        b = b_init(k2, (ndim))
+        b = b_init(k2, (ndim,))
         return (W, b)
 
     def apply_fun(params, x, scan=False):
