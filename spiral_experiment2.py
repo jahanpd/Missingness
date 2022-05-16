@@ -1,5 +1,5 @@
 import argparse
-from jax.experimental.optimizers import l2_norm
+from jax.example_libraries.optimizers import l2_norm
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split

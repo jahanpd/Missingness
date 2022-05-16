@@ -23,13 +23,16 @@ def create_make_model(features, rows, task, key):
             y_valid,
             classes,
             d_model=32,
-            max_steps=5e3,
+            max_steps=1e4,
             lr_max=None,
+            batch_size=32,
             depth=4,  #bij
             nndepth=2,
             nnwidth=4,
             early_stop=True,
-            reg=1,
+            reg=1e-5,
+            msereg=1e-5,
+            dropreg=1e-5,
             start_es=0.5
         ):
         """
@@ -53,18 +56,17 @@ def create_make_model(features, rows, task, key):
         # use a batch size to get around 10-20 iterations per epoch
         # this means you cycle over the datasets a similar number of times
         # regardless of dataset size.
-        batch_size_base2 = min(2 ** int(np.round(np.log2(rows/20))), 512)
+        # batch_size_base2 = min(2 ** int(np.round(np.log2(rows/20))), batch_size)
+        batch_size_base2 = batch_size
         steps_per_epoch = max(rows // batch_size_base2, 1)
         epochs = max_steps // steps_per_epoch
-        
-        nnwidth = int(2**(nndepth*2))
-        # d_model = 2
+        nnwidth = d_model
         decay = piecewise_constant_schedule(
             lr_max,
             # 1e-3,
             boundaries_and_scales={
-                int(start_es * epochs * steps_per_epoch):0.1,
-                int((start_es + 0.5*(1.0 - start_es)) * epochs * steps_per_epoch):0.1,
+                int(0.5 * epochs * steps_per_epoch):0.1,
+                int(0.8 * epochs * steps_per_epoch):0.1,
             })
 
         while epochs < 150:
@@ -76,31 +78,31 @@ def create_make_model(features, rows, task, key):
             print(epochs)
 
         freq = 5
-        print("lr: {}, depth: {}, d_model: {}, widthL {}".format(
+        print("lr: {}, depth: {}, d_model: {}, width: {}".format(
             lr_max, int(depth), int(d_model), nnwidth))
         model_kwargs_uat = dict(
                 features=features,
                 d_model=d_model,
-                embed_hidden_size=int(nnwidth),  # attn
-                embed_hidden_layers=int(nndepth),  # attn
+                embed_hidden_size=int(d_model),
+                embed_hidden_layers=int(2),  # bij
                 embed_activation=jax.nn.gelu,
-                encoder_layers=int(depth),  # bijector
+                encoder_layers=int(depth),  # attn
                 encoder_heads=5,
                 enc_activation=jax.nn.gelu,
-                decoder_layers=int(depth),
+                decoder_layers=int(depth),  # attn
                 decoder_heads=5,
                 dec_activation=jax.nn.gelu,
-                net_hidden_size=int(nnwidth),  # output
-                net_hidden_layers=int(nndepth),  # output
+                net_hidden_size=int(d_model),  # output
+                net_hidden_layers=int(nndepth),  # output or mixture attn
                 net_activation=jax.nn.gelu,
-                last_layer_size=32,
+                last_layer_size=d_model // 2,
                 out_size=classes,
-                W_init = jax.nn.initializers.lecun_uniform(),
-                b_init = jax.nn.initializers.normal(0.001),
+                W_init = jax.nn.initializers.he_normal(),
+                b_init = jax.nn.initializers.zeros,
                 )
         epochs = int(max_steps // steps_per_epoch)
-        start_steps = int(start_es*epochs*steps_per_epoch) # wait at least 80 epochs before early stopping
-        stop_steps_ = steps_per_epoch * (epochs // 10) / min(steps_per_epoch, freq)
+        start_steps = int(0.8*epochs*steps_per_epoch) # wait at least 80 epochs before early stopping
+        stop_steps_ = steps_per_epoch * (epochs // 8) / min(steps_per_epoch, freq)
 
         optim_kwargs=dict(
             b1=0.9, b2=0.99,
@@ -118,14 +120,14 @@ def create_make_model(features, rows, task, key):
                     early_stopping=early_stopping,
                     optim_kwargs=optim_kwargs,
                     early_stop=early_stop,
-                    steps_til_samp=0
+                    steps_til_samp=-1
                 )
         if task == "Supervised Classification":
-            # loss_fun = cross_entropy(classes, l2_reg=0, dropout_reg=1e-8)
-            loss_fun = dual(classes, l2_reg=0, dropout_reg=1.0)
+            # loss_fun = cross_entropy(classes, l2_reg=0, dropout_reg=1e-5)
+            loss_fun = dual(classes, dropout_reg=dropreg, msereg=msereg)
             # loss_fun = brier(l2_reg=0.0, dropout_reg=1e-7)
         elif task == "Supervised Regression":
-            loss_fun = mse(l2_reg=0.0, dropout_reg=1.0)
+            loss_fun = mse(l2_reg=0.0, dropout_reg=5e-1)
         training_kwargs_uat["X_test"] = X_valid
         training_kwargs_uat["y_test"] = y_valid
         model = UAT(

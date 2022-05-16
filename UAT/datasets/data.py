@@ -11,7 +11,6 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.feature_selection import mutual_info_classif, mutual_info_regression
 import miceforest as mf
 # import tensorflow_datasets
-import os
 import openml
 import sys
 IN_COLAB = 'google.colab' in sys.modules
@@ -24,7 +23,7 @@ def get_list(
         missing,
         min_features=20,
         max_features=250,
-        min_instances=1000,
+        min_instances=2000,
         max_instances=200000,
         key=42,
         test=lambda x, m: x > m

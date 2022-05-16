@@ -5,7 +5,7 @@ import numpy as np
 import jax.numpy as jnp
 import jax
 from jax import random
-from jax.experimental.optimizers import make_schedule
+from jax.example_libraries.optimizers import make_schedule
 import functools
 import time
 from datetime import timedelta

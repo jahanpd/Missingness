@@ -16,7 +16,7 @@ def Embed(
         rng,
         ):
         k1, k2 = random.split(rng, 2)
-        W = W_init(k1, (features, ndim))
+        W = W_init(k1, (features, ndim)) * 1e-3
         b = b_init(k2, (ndim,))
         return (W, b)
 
@@ -82,8 +82,8 @@ def BijectLayer(
         )
         h = jnp.where(
             lay % 2 == 0,
-            (x1a * jnp.exp(scale)) + trans,
-            (x2a * jnp.exp(scale)) + trans
+            (x1a + trans) * scale,
+            (x2a + trans) + scale
         )
         return jnp.where(
             lay % 2 == 0,
@@ -124,8 +124,8 @@ def BijectLayer(
         )
         h = jnp.where(
             lay % 2 == 0,
-            (x1a - trans) * jnp.exp(-1 * scale),
-            (x2a - trans) * jnp.exp(-1 * scale)
+            (x1a / (1e-8 + scale)) - trans,
+            (x2a / (1e-8 + scale)) - trans
         )
         return jnp.where(
             lay % 2 == 0,
@@ -150,7 +150,7 @@ def Bijector(
 
     def init_fun(
         rng,
-        ):
+    ):
 
         sW, sb, tW, tb = [], [], [], []
         for l in range(layers):
@@ -236,19 +236,19 @@ def Dense(
             return (W, b)
         else:
             return (W)
-    def apply_fun(params, x, scan = False):
+    def apply_fun(params, x, scan = False, mask = 1.0):
         if bias:
             if scan:
                 W, b = params["hw"], params["hb"]
             else:
                 W, b = params
-            return jnp.einsum('...i,...ij->...j', x, W) + b
+            return jnp.einsum('...i,...ij->...j', x*mask, W) + b
         else:
             if scan:
                 W = params["hw"]
             else:
                 W = params
-            return jnp.einsum('...i,...ij->...j', x, W)
+            return jnp.einsum('...i,...ij->...j', x*mask, W)
     return init_fun, apply_fun
 
 
@@ -416,7 +416,7 @@ def AttentionLayer(
         params["ln2"] = init_ln2(key, dims)
         return params
     
-    def apply_fun(params, q, k, v, mask):
+    def apply_fun(params, q, k, v, mask, vmap=True):
         # note params input is from the AttentionBlock init_params construction, not the above
         # q (features, embedding)
         # q = layernorm1((params["ln1b_block"], params["ln1g_block"]), q)
@@ -519,6 +519,137 @@ def AttentionBlock(
             return attn_out, sattn
         
         out, sattn = jax.lax.scan(body, q, params)
+        return out, sattn
+
+    return init_fun, apply_fun
+
+def AttentionLayer2(
+    heads,
+    dims,
+    dff = None,
+    W_init = glorot_uniform(),
+    b_init = zeros,
+    activation = softplus
+    ):
+    if dff is None:
+        dff = dims * 4
+    init_q, q_map = Dense(dims, dims*heads, W_init=W_init, b_init=b_init)
+    init_k, k_map = Dense(dims, dims*heads, W_init=W_init, b_init=b_init)
+    init_v, v_map = Dense(dims, dims*heads, W_init=W_init, b_init=b_init)
+    init_out, out = Dense(dims*heads, dims, W_init=W_init, b_init=b_init)
+    # feedforward network
+    init_l1, l1 = Dense(dims, dff, W_init=W_init, b_init=b_init)
+    init_l2, l2 = Dense(dff, dims, W_init=W_init, b_init=b_init)
+
+    def init_fun(rng):
+        params = {}
+        rng, key = random.split(rng)
+        params["q"] = init_q(key)
+        rng, key = random.split(rng)
+        params["k"] = init_k(key)
+        rng, key = random.split(rng)
+        params["v"] = init_v(key)
+        rng, key = random.split(rng)
+        params["out"] = init_out(key)
+        rng, key = random.split(rng)
+        params["l1"] = init_l1(key)
+        rng, key = random.split(rng)
+        params["l2"] = init_l2(key)
+        return params
+
+    def apply_fun(params, q, v, state, mask, vmap=True):
+        # note params input is from the AttentionBlock init_params construction, not the above
+        # q (features, embedding)
+        # q = layernorm1((params["ln1b_block"], params["ln1g_block"]), q)
+        q_ = jnp.transpose(q_map((params["qw_block"],params["qb_block"]), q).reshape((-1, heads, dims)), (1,0,2))
+        k_ = jnp.transpose(k_map((params["kw_block"],params["kb_block"]), q).reshape((-1, heads, dims)), (1,2,0))
+        v_ = jnp.transpose(v_map((params["vw_block"],params["vb_block"]), v).reshape((-1, heads, dims)), (1,0,2))
+
+        # scaled dot product attention
+        qk = jnp.matmul(q_,k_)  # (h, f, f)
+        qk = jnp.transpose(jnp.sum(qk * mask, 2, keepdims=True), (0,2,1))  # (h, 1, f)
+        scaled_attention_logits = jax.nn.softplus(qk / jnp.sqrt(dims)) * mask
+        attention_weights = scaled_attention_logits / (scaled_attention_logits.sum(-1, keepdims=True) + 1e-6)
+        # attention_weights = jax.nn.softmax(qk + ((mask - 1.0)*1e8 ))
+        scaled_attention = jnp.transpose(
+            jnp.matmul(attention_weights, v_), (1,0,2)).reshape((-1, dims*heads))  # (1, heads*dims)
+        x = out((params["outw_block"],params["outb_block"]), scaled_attention)  # (1, dims)
+
+        # residual connection
+        x = x + state
+        # feedforward network
+        x = activation(l1((params["l1w_block"],params["l1b_block"]), x))
+        x = l2((params["l2w_block"],params["l2b_block"]), x)
+
+        return x, attention_weights
+
+    return init_fun, apply_fun
+
+def AttentionBlock2(
+        num_layers,
+        dims,
+        heads,
+        dff=None,
+        W_init = glorot_uniform(),
+        b_init = zeros,
+        activation = softplus
+    ):
+
+    init_attn, apply_attn = AttentionLayer2(
+        heads, dims, dff=dff, W_init=W_init, b_init=b_init, activation=activation
+    )
+
+    def init_fun(rng):
+
+        qw, qb = [], []
+        kw, kb = [], []
+        vw, vb = [], []
+        outw, outb = [], []
+        l1w, l1b = [], []
+        l2w, l2b = [], []
+        ln1g, ln1b = [], []
+        ln2g, ln2b = [], []
+
+        for _ in range(num_layers):
+            rng, layer_rng = random.split(rng)
+            params = init_attn(layer_rng)
+            qw.append(params["q"][0])
+            qb.append(params["q"][1])
+            kw.append(params["k"][0])
+            kb.append(params["k"][1])
+            vw.append(params["v"][0])
+            vb.append(params["v"][1])
+            outw.append(params["out"][0])
+            outb.append(params["out"][1])
+            l1w.append(params["l1"][0])
+            l1b.append(params["l1"][1])
+            l2w.append(params["l2"][0])
+            l2b.append(params["l2"][1])
+
+        BlockParams = {
+            "qw_block":jnp.stack(qw, axis=0),
+            "qb_block":jnp.stack(qb, axis=0),
+            "kw_block":jnp.stack(kw, axis=0),
+            "kb_block":jnp.stack(kb, axis=0),
+            "vw_block":jnp.stack(vw, axis=0),
+            "vb_block":jnp.stack(vb, axis=0),
+            "outw_block":jnp.stack(outw, axis=0),
+            "outb_block":jnp.stack(outb, axis=0),
+            "l1w_block":jnp.stack(l1w, axis=0),
+            "l1b_block":jnp.stack(l1b, axis=0),
+            "l2w_block":jnp.stack(l2w, axis=0),
+            "l2b_block":jnp.stack(l2b, axis=0),
+        }
+        return BlockParams
+
+    def apply_fun(params, q, v, mask):
+
+        def body(carry, x):
+            # note x is actually the params
+            attn_out, sattn = apply_attn(x, q, v, carry, mask)
+            return attn_out, sattn
+
+        out, sattn = jax.lax.scan(body, jnp.zeros((1,dims)), params)
         return out, sattn
 
     return init_fun, apply_fun

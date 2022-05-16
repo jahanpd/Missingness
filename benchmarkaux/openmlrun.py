@@ -16,6 +16,16 @@ if IN_COLAB:
 else:
   from tqdm import tqdm
 
+def dimRepeat(x, t = 1):
+    return jnp.reshape(
+        jnp.repeat(x[None, ...], t, 0),
+        (-1, x.shape[1])
+    )
+
+def meanRepeats(x, t = 1):
+    return jnp.mean(x.reshape((t, -1, x.shape[1])), 0)
+
+
 def run(
     dataset=61,  # iris
     task="Supervised Classification",
@@ -143,8 +153,10 @@ def run(
             # assess performance of models on test set and store metrics
             # predict prob will output 
             if task == "Supervised Regression":
+                # output = meanRepeats(model.predict(dimRepeat(X_test)))
                 output = model.predict(X_test)
             elif task == "Supervised Classification":
+                # output = meanRepeats(model.predict_proba(dimRepeat(X_test)))
                 output = model.predict_proba(X_test)
             # calculate performance metrics
             for rm in relevant_metrics:
@@ -154,9 +166,10 @@ def run(
                     acc = np.sum(correct_o) / y_test.shape[0]
                     metrics[("accuracy","attn")].append(acc)
                     tqdm.write("strategy:{}, acc attn:{}".format(imputation, acc))
-
                 if rm == "nll":
-                    nll = -(jnp.log(output + 1e-8) * jax.nn.one_hot(y_test, classes) + jnp.log(1 - output + 1e-8) * jax.nn.one_hot(1 - y_test, classes)).sum(axis=-1).mean()
+                    nll = -(jnp.log(output + 1e-8) * jax.nn.one_hot(y_test, classes) +
+                            jnp.log(1 - output + 1e-8) * jax.nn.one_hot(1 - y_test, classes)
+                            ).sum(axis=-1).mean()
                     metrics[("nll","attn")].append(nll)
                     tqdm.write("strategy:{}, nll attn:{}".format(imputation, nll))
                 if rm == "rmse":
@@ -197,7 +210,9 @@ def run(
                     metrics[("accuracy","gbm")].append(acc_gbm)
                     tqdm.write("strategy:{}, acc gbm: {}".format(imputation, acc_gbm))
                 if rm == "nll":
-                    nll_gbm = -(jnp.log(output_gbm + 1e-8) * jax.nn.one_hot(y_test, classes) + jnp.log(1 - output_gbm + 1e-8) * jax.nn.one_hot(1 - y_test, classes) ).sum(axis=-1).mean()
+                    nll_gbm = -(jnp.log(output_gbm + 1e-8) * jax.nn.one_hot(y_test, classes) +
+                                jnp.log(1 - output_gbm + 1e-8) * jax.nn.one_hot(1 - y_test, classes)
+                                ).sum(axis=-1).mean()
                     metrics[("nll","gbm")].append(nll_gbm)
                     tqdm.write("strategy:{}, nll xbg:{}".format(imputation, nll_gbm))
                 if rm == "rmse":

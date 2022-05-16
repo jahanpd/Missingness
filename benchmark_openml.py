@@ -63,7 +63,7 @@ if __name__ ==  "__main__":
     ros = RandomOverSampler(random_state=key)
     class_filter = np.array([x == "Supervised Classification" for x in data_list.task_type])
     if args.dataset is not None:
-        selection = np.array(args.dataset)
+        selection = (np.arange(len(data_list))[class_filter])[np.array(args.dataset)]
     else:
         selection = np.arange(len(data_list))[class_filter]
         if args.inverse:
@@ -99,25 +99,26 @@ if __name__ ==  "__main__":
         hpk = 4
         if not loaded_hps_trans:
             searchspace = [
-                ("d_model",[32, 128]),
-                ("lr_max", [5e-3]),
-                ("reg", [1e-3, 0]),
-                ("start_es", [0.3]),  # start early stopping
-                ("depth", [4, 2]),
-                ("nndepth", [2,1]),
-                # ("nnwidth", [4]), # change to 2**(nndepth + 1)
+                ("d_model",[128, 64, 32, 8]),
+                ("lr_max", [1e-3, 1e-4]),
+                ("batch_size", [8, 32]),
+                ("dropreg", [1e-6, 1e-3]),
+                ("msereg", [1e-3]),
+                # ("start_es", [0.3]), # start early stopping
+                # ("depth", [2]),  # encoder depth
+                ("nndepth", [4]),  # decoder depth
             ]
-            trans_results = gridsearchattn(searchspace, 4, row, args)
+            trans_results = gridsearchattn(searchspace, 2, row, args)
             with open('results/openml/hyperparams/{},{},trans_hyperparams.pickle'.format(row[2], "None"), 'wb') as handle:
                     pickle.dump(trans_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
         if not loaded_hps_gbm:
             searchspace = [
                 ("max_depth", [6,12,24]),
-                ("learning_rate", [1e-2]),
+                ("learning_rate", [1e-2, 1e-1]),
                 ("max_bin", [10, 50])
             ]
-            gbm_results = gridsearchgbm(searchspace, 4, row, args)
+            gbm_results = gridsearchgbm(searchspace, 2, row, args)
             with open('results/openml/hyperparams/{},{},gbm_hyperparams.pickle'.format(row[2], "None"),'wb') as handle:
                     pickle.dump(gbm_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
 

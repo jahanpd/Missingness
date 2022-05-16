@@ -1,5 +1,5 @@
 from UAT.models.layers import Embed, BijectLayer, Bijector
-from UAT.models.models import AttentionModel_MAP
+from UAT.models.models import AttentionModel
 import jax.numpy as jnp
 import jax
 from jax import random

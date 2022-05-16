@@ -9,7 +9,12 @@ from jax.nn import (relu, log_softmax, softmax, softplus, sigmoid, elu,
                     leaky_relu, selu, gelu, normalize)
 from jax.nn.initializers import glorot_normal, normal, ones, zeros
 from jax.experimental.optimizers import l2_norm
-from UAT.models.models import (AttentionModel_MAP, EnsembleModel)
+# from UAT.models.models import EnsembleModel
+# from UAT.models.models import AttentionModel as Model
+# from UAT.models.models import AttentionModel2 as Model
+from UAT.models.models import MixtureModel as Model
+# from UAT.models.models import CentroidCluster as Model
+# from UAT.models.models import MaskedNeuralNet as Model
 from UAT.training.train import training_loop
 from UAT.training.gradinit import gradinit_loop
 from UAT.training.unsupervised import unsupervised_loop
@@ -81,7 +86,7 @@ class UAT:
             params=None
             apply_fun=None
         else:
-            init_fun, apply_fun = AttentionModel_MAP(
+            init_fun, apply_fun = Model(
                 **model_kwargs
                 )
             params = init_fun(init_key)
@@ -105,7 +110,7 @@ class UAT:
         self.posterior_params = posterior_params
         self.training_kwargs = training_kwargs
         if unsupervised_pretraining is not None:
-            _, apply_fun_unsup = AttentionModel_MAP(
+            _, apply_fun_unsup = Model(
                 **model_kwargs,
                 unsupervised_pretraining=True
             )
@@ -156,7 +161,7 @@ class UAT:
         self.params = params
         self._history = history
         self.key = rng
-    
+
     def grid_search(self, X, y, resample=False, folds=5):
         key1, key2  = random.split(self.key)
         kfolds = oversampled_Kfold(folds, key=int(key2[0]), resample=resample)
@@ -165,7 +170,7 @@ class UAT:
         performance = []
         for model_kwargs, training_kwargs in self.model_kwargs:
             key1, key2  = random.split(key1)
-            init_fun, apply_fun = AttentionModel_MAP(
+            init_fun, apply_fun = Model(
                 **model_kwargs
                 )
             params_ = init_fun(key2)
@@ -187,7 +192,7 @@ class UAT:
         self.optimal_model_kwargs = self.model_kwargs[np.array(performance).argmax()]
         self.key = key1
 
-    def batch_forward(self, X, batch_size=64):
+    def batch_forward(self, X, batch_size=64, sample=False):
         # break test into 'batches' to avoid OOM errors
         rows = np.arange(X.shape[0])
         batches = np.array_split(rows,
@@ -197,23 +202,25 @@ class UAT:
         # jitted forward pass
         @jax.jit
         def forward(params, x_batch, rng):
-            return self.apply_fun(params, x_batch, rng, False)
+            out = self.apply_fun(params, x_batch, rng, sample)
+            return out[0]
 
         for tbatch in batches:
-            key_ = jnp.ones((X[np.array(tbatch), ...].shape[0], 2))
-            out = forward(self.params, X[np.array(tbatch), ...], key_)
+            key = random.split(self.key, len(tbatch) + 1)
+            self.key = key[0]
+            key = key[1:]
+            out = forward(self.params, X[np.array(tbatch), ...], key)
             out_list.append(out)
             pbar1.update(1)
-        temp = [[j[..., None] for j in i] for i in out_list]
-        stacked = list(map(np.vstack, zip(*temp) ))
-        squeezed = [np.squeeze(x) for x in stacked]
-        return squeezed
+        return [np.vstack(out_list)]
 
-    def predict_proba(self, X, batch_size=64):
+    def predict_proba(self, X, batch_size=64, sample=False):
         if self.posterior_params["name"] == "MAP":
             if X.shape[0] <= batch_size:
-                rng_placeholder = jnp.ones((X.shape[0],2))
-                out = self.apply_fun(self.params, X, rng_placeholder, False)
+                key = random.split(self.key, X.shape[0] + 1)
+                self.key = key[0]
+                key = key[1:]
+                out = self.apply_fun(self.params, X, key, sample)
             else:
                 out = self.batch_forward(X)
 
@@ -225,13 +232,13 @@ class UAT:
         
         return np.array(jnp.squeeze(probs))
     
-    def predict(self, X, batch_size=64):
+    def predict(self, X, batch_size=64, sample=False):
         if self.posterior_params["name"] == "MAP":
             if X.shape[0] <= batch_size:
                 rng_placeholder = jnp.ones((X.shape[0],2))
-                out = self.apply_fun(self.params, X, rng_placeholder, False)
+                out = self.apply_fun(self.params, X, rng_placeholder, sample)
             else:
-                 out = self.batch_forward(X)
+                 out = self.batch_forward(X, sample)
             out = out[0]
 
         return np.array(jnp.squeeze(out))

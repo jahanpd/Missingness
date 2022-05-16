@@ -50,7 +50,7 @@ def cross_entropy(
                         + (1-labels) * jnp.log(1 - probs + 1e-7)).sum()
 
             ce = cross_entropy(probs, one_hot).mean()
-            norm_params = [params[key] for key in params.keys() if key in ["last_layer", "net2"]] 
+            norm_params = [params[key] for key in params.keys() if key not in ["logits"]]
             l2 = l2_norm(norm_params)
             entropy = p_drop * jnp.log(p_drop + 1e-7)
             entropy += (1.0 - p_drop) * jnp.log(1.0 - p_drop + 1e-7)
@@ -69,34 +69,40 @@ def cross_entropy(
 def dual(
     classes,
     l2_reg=1e-2,
-    dropout_reg=1e-4
+    dropout_reg=1e-4,
+    msereg = 1e-5
     ):
     def loss_fun(params, output, labels):
-            logits = output[0]
-            z0_f, zr0_f = output[2], output[3]
+            logits = output[0]  # (b, o)
+            zk_f = output[2]  # (b, f, d)
+            logits_all = output[3]  # (b, f, o)
+            mask = jax.lax.stop_gradient(output[4])  # (b, f, 1)
             one_hot = jax.nn.one_hot(labels, classes)
             probs = jax.nn.softmax(logits)
+            probs_all = jax.nn.softmax(logits_all)
             # probs = jnp.mean(jax.nn.sigmoid(jnp.stack(logits, axis=0)), axis=0)
             p_drop = jax.nn.sigmoid(params["logits"])
             @jax.vmap
             def cross_entropy(probs, labels):
-                return -(labels * jnp.log(probs + 1e-7) 
-                        + (1-labels) * jnp.log(1 - probs + 1e-7)).sum()
+                return -(labels * jnp.log(probs + 1e-7)
+                        + (1-labels) * jnp.log(1 - probs + 1e-7)).sum(-1)
 
             ce = cross_entropy(probs, one_hot).mean()
-            norm_params = [params[key] for key in params.keys() if key in ["last_layer", "net2"]] 
-            l2 = l2_norm(norm_params)
+            ce_all = (cross_entropy(probs_all, one_hot[:, None, :])
+                      * mask).mean()
             entropy = p_drop * jnp.log(p_drop + 1e-7)
             entropy += (1.0 - p_drop) * jnp.log(1.0 - p_drop + 1e-7)
             entropy = entropy.mean()
-            mse = jnp.mean(jnp.sum(jnp.square(jax.lax.stop_gradient(z0_f) - zr0_f), -1))
-            loss = ce + l2_reg*l2 + dropout_reg*entropy + mse
+            mse = jnp.mean(jnp.square(zk_f))
+            loss = ce + ce_all + dropout_reg*entropy + msereg*mse
 
             loss_dict = {
                 "loss":ce,
-                "l2":l2,
                 "mse":mse,
-                "ent":entropy
+                "ce_all":ce_all,
+                "ent":entropy,
+                "pmax": jnp.max(p_drop),
+                "pmin": jnp.min(p_drop),
                 }
 
             return loss, loss_dict

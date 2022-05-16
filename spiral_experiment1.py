@@ -1,5 +1,5 @@
 import argparse
-from jax.experimental.optimizers import l2_norm
+from jax.example_libraries.optimizers import l2_norm
 import numpy as np
 import pandas as pd
 from scipy.stats import t
@@ -23,9 +23,9 @@ def run(iterations, missing="None", epochs=10):
     # define models and training params as dicts 
     model_kwargs_uat = dict(
                 features=4,
-                d_model=32,
-                embed_hidden_size=32,
-                embed_hidden_layers=2,
+                d_model=16,
+                embed_hidden_size=16,
+                embed_hidden_layers=4,
                 embed_activation=jax.nn.gelu,
                 encoder_layers=3,
                 encoder_heads=3,
@@ -33,8 +33,8 @@ def run(iterations, missing="None", epochs=10):
                 decoder_layers=3,
                 decoder_heads=3,
                 dec_activation=jax.nn.gelu,
-                net_hidden_size=32,
-                net_hidden_layers=2,
+                net_hidden_size=16,
+                net_hidden_layers=3,
                 net_activation=jax.nn.gelu,
                 last_layer_size=32,
                 out_size=1,
@@ -90,7 +90,7 @@ def run(iterations, missing="None", epochs=10):
 
                 return loss, loss_dict
         return loss_fun
-    loss_fun = binary_cross_entropy(l2_reg=1e-3, dropout_reg=1e-5)
+    loss_fun = binary_cross_entropy(l2_reg=1e-3, dropout_reg=1e-8)
     loss_fun2 = binary_cross_entropy2()
     
     # create data, initialize models, train and record distances bootstraps

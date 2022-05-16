@@ -311,7 +311,10 @@ def training_loop(
                         "tlc":metrics_ewa_["test_current"],
                         "tc":metrics_ewa_["test_counter"],
                         "mse":metrics_ewa_["mse"],
-                        "e":metrics_ewa_["ent"]
+                        "cea":metrics_ewa_["ce_all"],
+                        "e":metrics_ewa_["ent"],
+                        "pmax":metrics_ewa_["pmax"],
+                        "pmin":metrics_ewa_["pmin"]
                         })
                 except:
                     try:
