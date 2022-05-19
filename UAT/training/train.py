@@ -63,13 +63,13 @@ def training_loop(
         swa = False
 
     def loss(params, x_batch, y_batch, rng, samp):
-        out = model_fun(params, x_batch, rng, samp)
+        out = model_fun(params, x_batch, rng, samp, True)
         loss, _ = loss_fun(params, out, y_batch)
         return loss
 
     @jax.jit
     def metrics(params, x_batch, y_batch, rng):
-        out = model_fun(params, x_batch, rng, False)
+        out = model_fun(params, x_batch, rng, True, False)
         _, metric_dict = metric_fun(params, out, y_batch)
         return metric_dict
 
@@ -200,7 +200,8 @@ def training_loop(
     perform_test = ((X_test is not None) and (y_test is not None)) and early_stopping is not None
     if perform_test:
         temp_row = np.minimum(20, X_test.shape[0])
-        key_ = jnp.ones((temp_row, 2))
+        rng, key = random.split(rng, 2)
+        key_ = random.split(key, temp_row).reshape((temp_row, 2))
         metric_store_master = metrics(params_, X_test[:temp_row, ...], y_test[:temp_row], key_)
         metric_store_master["loss"] = np.inf
         metric_store_master["counter"] = 0
@@ -243,7 +244,9 @@ def training_loop(
                     # calculate list of metrics over 10 batches of the test set
                     test_dict = dict(zip(metric_store.keys(), [0.0]*len(metric_store.keys())))
                     for tbatch in test_batches[:np.minimum(10, len(test_batches))]:
-                        key_ = jnp.ones((X_test[np.array(tbatch), ...].shape[0], 2))
+                        rng, key = random.split(rng, 2)
+                        key_ = random.split(key, len(tbatch)).reshape((len(tbatch), 2))
+                        # key_ = jnp.ones((X_test[np.array(tbatch), ...].shape[0], 2))
                         temp = metrics(params_, X_test[np.array(tbatch), ...], y_test[np.array(tbatch)], key_)
                         for k in temp.keys():
                             test_dict[k] += temp[k]
@@ -280,13 +283,17 @@ def training_loop(
             # initialize some training metrics
             if step <= 1:
                 params_ = jax.device_get(jax.tree_map(lambda x: x[0], params))
-                metrics_ewa = metrics(params_, batch_x.reshape((batch_size,)+xbs[1:]), batch_y.reshape((batch_size,-1)), None)
+                rng, key = random.split(rng, 2)
+                key_ = random.split(key, batch_size).reshape((batch_size, 2))
+                metrics_ewa = metrics(params_, batch_x.reshape((batch_size,)+xbs[1:]), batch_y.reshape((batch_size,-1)), key_)
                 metrics_ewa["step"]=step
 
             pbar2.update(1)
             if step % output_freq == 0:
                 params_ = jax.device_get(jax.tree_map(lambda x: x[0], params))
-                metrics_dict = metrics(params_, batch_x.reshape((batch_size,)+xbs[1:]), batch_y.reshape((batch_size,-1)), None)
+                rng, key = random.split(rng, 2)
+                key_ = random.split(key, batch_size).reshape((batch_size, 2))
+                metrics_dict = metrics(params_, batch_x.reshape((batch_size,)+xbs[1:]), batch_y.reshape((batch_size,-1)), key_)
                 metrics_dict["step"]=step
                 metrics_ewa = jax.tree_map(lambda x, y : 0.1 * y + 0.9 * x, metrics_ewa, metrics_dict)
                 metrics_ewa["step"]=step

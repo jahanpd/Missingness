@@ -1,5 +1,5 @@
 from UAT import UAT, create_early_stopping
-from UAT import binary_cross_entropy, cross_entropy, mse, brier, dual
+from UAT import binary_cross_entropy, cross_entropy, mse, brier, dual, cross_entropy_conc
 from UAT.aux import oversampled_Kfold
 from UAT.training.lr_schedule import attention_lr, linear_increase
 from optax import linear_onecycle_schedule, join_schedules, piecewise_constant_schedule, linear_schedule
@@ -30,7 +30,7 @@ def create_make_model(features, rows, task, key):
             nndepth=2,
             nnwidth=4,
             early_stop=True,
-            reg=1e-5,
+            reg=1e-10,
             msereg=1e-5,
             dropreg=1e-5,
             start_es=0.5
@@ -65,7 +65,7 @@ def create_make_model(features, rows, task, key):
             lr_max,
             # 1e-3,
             boundaries_and_scales={
-                int(0.5 * epochs * steps_per_epoch):0.1,
+                int(start_es * epochs * steps_per_epoch):0.1,
                 int(0.8 * epochs * steps_per_epoch):0.1,
             })
 
@@ -75,7 +75,6 @@ def create_make_model(features, rows, task, key):
             batch_size_base2 *= 2
             steps_per_epoch = max(rows // batch_size_base2, 1)
             epochs = max_steps // steps_per_epoch
-            print(epochs)
 
         freq = 5
         print("lr: {}, depth: {}, d_model: {}, width: {}".format(
@@ -84,7 +83,7 @@ def create_make_model(features, rows, task, key):
                 features=features,
                 d_model=d_model,
                 embed_hidden_size=int(d_model),
-                embed_hidden_layers=int(2),  # bij
+                embed_hidden_layers=int(depth),  # bij
                 embed_activation=jax.nn.gelu,
                 encoder_layers=int(depth),  # attn
                 encoder_heads=5,
@@ -101,7 +100,7 @@ def create_make_model(features, rows, task, key):
                 b_init = jax.nn.initializers.zeros,
                 )
         epochs = int(max_steps // steps_per_epoch)
-        start_steps = int(0.8*epochs*steps_per_epoch) # wait at least 80 epochs before early stopping
+        start_steps = int(start_es*epochs*steps_per_epoch) # wait at least X epochs before early stopping
         stop_steps_ = steps_per_epoch * (epochs // 8) / min(steps_per_epoch, freq)
 
         optim_kwargs=dict(
@@ -123,8 +122,9 @@ def create_make_model(features, rows, task, key):
                     steps_til_samp=-1
                 )
         if task == "Supervised Classification":
-            # loss_fun = cross_entropy(classes, l2_reg=0, dropout_reg=1e-5)
-            loss_fun = dual(classes, dropout_reg=dropreg, msereg=msereg)
+            # loss_fun = cross_entropy(classes, l2_reg=0, dropout_reg=dropreg)
+            loss_fun = cross_entropy_conc(classes, dropout_reg=dropreg)
+            # loss_fun = dual(classes, dropout_reg=dropreg, msereg=msereg)
             # loss_fun = brier(l2_reg=0.0, dropout_reg=1e-7)
         elif task == "Supervised Regression":
             loss_fun = mse(l2_reg=0.0, dropout_reg=5e-1)

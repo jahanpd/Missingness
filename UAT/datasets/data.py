@@ -581,19 +581,19 @@ def openml_ds(
 
     if train_complete and test_complete:
         X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=key)
-        
+
     elif train_complete and not test_complete: # TRAIN COMPLETE IS TRUE AND TEST COMPLETE IS FALSE
         X_train, X, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=key)
-    
-    elif not train_complete and test_complete:        
+
+    elif not train_complete and test_complete:
         X, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=key)
-    
+
     elif not train_complete and not test_complete:
         X = X_train
 
     # create missingness mask
     cols = X_train.shape[1]
-    if missing == "MCAR": 
+    if missing == "MCAR":
         cols_miss = np.minimum(cols, cols_miss) # clip cols missing 
         rand_arr = rng.uniform(0, 1, X.shape)
         nan_arr = np.where(rand_arr < prop, np.nan, 1.0)
@@ -604,9 +604,6 @@ def openml_ds(
         cols_miss = np.minimum(cols, cols_miss) # clip cols missing
         nan_list = []
         for i,b in enumerate(cat_bin):
-            # for each column get ~20% that you are keeping for sure
-            # based completely on the value, hence MNAR
-            # aim to delete 60% per column
             if b == 1: # categorical
                 unique, counts = np.unique(X[:, i], return_counts=True)
                 if len(unique) == 2:

@@ -5,7 +5,7 @@ from jax import random
 from jax.nn import (relu, log_softmax, softmax, softplus, sigmoid, elu,
                     leaky_relu, selu, gelu, normalize)
 from jax.nn.initializers import glorot_uniform, glorot_normal, normal, ones, zeros
-from .layers import (DenseGeneral, Dense, NeuralNet, NeuralNetGeneral, 
+from .layers import (DenseGeneral, Dense, ConcDropNeuralNet, NeuralNet, NeuralNetGeneral, 
                      AttentionBlock, AttentionLayer, LayerNorm, Embed, Bijector,
                      AttentionLayer2, AttentionBlock2)
 from itertools import combinations
@@ -121,11 +121,8 @@ def MaskedNeuralNet(
         eps = 1e-7,
         **kwargs
     ):
-    init_l1, l1 = Dense(
-        features, embed_hidden_size, bias = False, W_init = W_init, b_init = b_init,
-    )
-    init_fk, fk = NeuralNet(
-        embed_hidden_size, embed_hidden_size, d_model, embed_hidden_layers, W_init=W_init, b_init=b_init, activation=embed_activation
+    init_fk, fk = ConcDropNeuralNet(
+        features, embed_hidden_size, d_model, embed_hidden_layers, W_init=W_init, b_init=b_init, activation=embed_activation
     )
     init_g, g = NeuralNet(
         d_model, net_hidden_size, out_size, net_hidden_layers, W_init=W_init, b_init=b_init, activation=net_activation
@@ -133,9 +130,6 @@ def MaskedNeuralNet(
     def init_fun(rng):
 
         params = {}
-        rng, key = random.split(rng)
-        params["l1"] = init_l1(key)
-
         rng, key = random.split(rng)
         params["fk"] = init_fk(key)
 
@@ -147,16 +141,22 @@ def MaskedNeuralNet(
 
         return params
 
-    def apply_fun(params, inputs, rng, dropout):
+    def apply_fun(params, inputs, rng, dropout, train):
         # mask missing variables through forward pass
-        nan_mask = jnp.where(jnp.isnan(inputs), 0.0, 1.0).reshape((1,-1))
-        # replace nans in data to -1 to preserve output, will still be masked
-        inputs = jnp.nan_to_num(inputs, nan=-1.0)
+        rng, key = random.split(rng)
+        rand_noise = random.normal(key, inputs.shape)
+        # replace nans in data to with random noise if training
+        if train:
+            inputs = jnp.where(jnp.isnan(inputs), rand_noise, inputs)
+            nan_mask = jnp.ones(inputs.shape).reshape((-1,1))
+        else:
+            nan_mask = jnp.where(jnp.isnan(inputs), 0.0, 1.0).reshape((-1,1))
+            inputs = jnp.nan_to_num(inputs, nan=-1.0)
         # use concrete dropout to further drop features (f,)
         if dropout:
-            probs = jax.nn.sigmoid(params["logits"])
+            probs = jax.nn.sigmoid(params["fk"]["l1_logit"])
             rng, unif_rng = random.split(rng)
-            unif_noise = random.uniform(unif_rng, (features,))
+            unif_noise = random.uniform(unif_rng, params["fk"]["l1_logit"].shape)
             drop_prob = (jnp.log(probs + eps)
                             - jnp.log(1.0 - probs + eps)
                             + jnp.log(unif_noise + eps)
@@ -170,12 +170,12 @@ def MaskedNeuralNet(
         else:
             mask = nan_mask
 
-        x = l1(params["l1"], inputs, mask=mask)
-        z = fk(params["fk"], x)
+        rng, key = random.split(rng)
+        z = fk(params["fk"], inputs, mask1=mask, rng=key)
         logits = g(params["g"], z)
         return jnp.squeeze(logits), z, z, z
 
-    vapply = jax.vmap(apply_fun, in_axes=(None, 0, 0, None), out_axes=(0, 0, 0, 0) )
+    vapply = jax.vmap(apply_fun, in_axes=(None, 0, 0, None, None), out_axes=(0, 0, 0, 0) )
 
     return init_fun, vapply
 
@@ -282,6 +282,7 @@ def MixtureModel(
         features,
         d_model=32,
         embed_hidden_layers=2,
+        embed_activation=relu,
         dec_activation=relu,
         net_hidden_size=64,
         net_hidden_layers=5,
@@ -294,8 +295,11 @@ def MixtureModel(
         **kwargs
     ):
     # temp = 1 / (features - 1)
-    init_embed, embedf, embedr = Embed(
-        features, d_model, W_init=jax.nn.initializers.ones, b_init=zeros
+    #init_embed, embedf, embedr = Embed(
+    #    features, d_model, W_init=jax.nn.initializers.ones, b_init=zeros
+    #)
+    init_net1, net1 = NeuralNetGeneral(
+        features, 1, d_model, d_model, embed_hidden_layers, W_init=W_init, b_init=b_init, activation=embed_activation
     )
     init_biject, bijectf, bijectr = Bijector(
         features, d_model, embed_hidden_layers, W_init=W_init, b_init=b_init, tactivation=jax.nn.softplus, sactivation=jax.nn.tanh
@@ -310,19 +314,7 @@ def MixtureModel(
 
         params = {}
         rng, key = random.split(rng)
-        params["embed"] = init_embed(key)
-
-        rng, key = random.split(rng)
-        params["bijector"] = init_biject(key)
-
-        rng, key = random.split(rng)
-        params["bijector2"] = init_biject(key)
-
-        rng, key = random.split(rng)
-        params["bijector3"] = init_biject(key)
-
-        rng, key = random.split(rng)
-        params["bijector4"] = init_biject(key)
+        params["embed"] = init_net1(key)
 
         rng, key = random.split(rng)
         params["attn"] = init_attn(key)
@@ -331,7 +323,7 @@ def MixtureModel(
         params["outnet"] = init_out(key)
 
         rng, key = random.split(rng)
-        params["logits"] = jnp.zeros((1, features))
+        params["logits"] = jnp.ones((1, features)) * 0.
 
         rng, key = random.split(rng)
         params["feat"] = W_init(key, (features, d_model))
@@ -372,9 +364,7 @@ def MixtureModel(
 
         # apply embedding to input of (features)
         x = inputs[..., None]
-        z0_f = embedf(params["embed"], x) # (f, ndim)
-        zk_f = bijectf(params["bijector"], z0_f) #  (f, ndim)
-        zk_f = bijectf(params["bijector2"], z0_f + zk_f) #  (f, ndim)
+        zk_f = net1(params["embed"], x) #  (f, ndim)
         zk_f = (zk_f * jnp.transpose(mask, (1, 0)))
         attn = pattn(
             jnp.transpose(

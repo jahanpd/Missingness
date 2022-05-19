@@ -16,13 +16,13 @@ if IN_COLAB:
 else:
   from tqdm import tqdm
 
-def dimRepeat(x, t = 1):
+def dimRepeat(x, t = 10):
     return jnp.reshape(
         jnp.repeat(x[None, ...], t, 0),
         (-1, x.shape[1])
     )
 
-def meanRepeats(x, t = 1):
+def meanRepeats(x, t = 10):
     return jnp.mean(x.reshape((t, -1, x.shape[1])), 0)
 
 
@@ -97,9 +97,9 @@ def run(
                 test_complete=test_complete,
                 split=0.2,
                 rng_key=key,
-                prop=0.5,
+                prop=0.8,
                 corrupt=corrupt,
-                cols_miss=int(X.shape[1] * 0.90)
+                cols_miss=int(X.shape[1] * 0.80)
             )
         print(diagnostics)
         count += 1
@@ -153,11 +153,11 @@ def run(
             # assess performance of models on test set and store metrics
             # predict prob will output 
             if task == "Supervised Regression":
-                # output = meanRepeats(model.predict(dimRepeat(X_test)))
-                output = model.predict(X_test)
+                output = meanRepeats(model.predict(dimRepeat(X_test), sample=True))
+                # output = model.predict(X_test)
             elif task == "Supervised Classification":
-                # output = meanRepeats(model.predict_proba(dimRepeat(X_test)))
-                output = model.predict_proba(X_test)
+                output = meanRepeats(model.predict_proba(dimRepeat(X_test), sample=True))
+                # output = model.predict_proba(X_test)
             # calculate performance metrics
             for rm in relevant_metrics:
                 if rm == "accuracy":

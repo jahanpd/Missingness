@@ -12,9 +12,9 @@ from jax.experimental.optimizers import l2_norm
 # from UAT.models.models import EnsembleModel
 # from UAT.models.models import AttentionModel as Model
 # from UAT.models.models import AttentionModel2 as Model
-from UAT.models.models import MixtureModel as Model
+# from UAT.models.models import MixtureModel as Model
 # from UAT.models.models import CentroidCluster as Model
-# from UAT.models.models import MaskedNeuralNet as Model
+from UAT.models.models import MaskedNeuralNet as Model
 from UAT.training.train import training_loop
 from UAT.training.gradinit import gradinit_loop
 from UAT.training.unsupervised import unsupervised_loop
@@ -202,7 +202,7 @@ class UAT:
         # jitted forward pass
         @jax.jit
         def forward(params, x_batch, rng):
-            out = self.apply_fun(params, x_batch, rng, sample)
+            out = self.apply_fun(params, x_batch, rng, sample, False)
             return out[0]
 
         for tbatch in batches:
@@ -220,7 +220,7 @@ class UAT:
                 key = random.split(self.key, X.shape[0] + 1)
                 self.key = key[0]
                 key = key[1:]
-                out = self.apply_fun(self.params, X, key, sample)
+                out = self.apply_fun(self.params, X, key, sample, False)
             else:
                 out = self.batch_forward(X)
 
@@ -236,7 +236,7 @@ class UAT:
         if self.posterior_params["name"] == "MAP":
             if X.shape[0] <= batch_size:
                 rng_placeholder = jnp.ones((X.shape[0],2))
-                out = self.apply_fun(self.params, X, rng_placeholder, sample)
+                out = self.apply_fun(self.params, X, rng_placeholder, sample, False)
             else:
                  out = self.batch_forward(X, sample)
             out = out[0]

@@ -242,18 +242,112 @@ def Dense(
                 W, b = params["hw"], params["hb"]
             else:
                 W, b = params
-            return jnp.einsum('...i,...ij->...j', x*mask, W) + b
+            return jnp.einsum('...i,...ij->...j', x, W*mask) + b
         else:
             if scan:
                 W = params["hw"]
             else:
                 W = params
-            return jnp.einsum('...i,...ij->...j', x*mask, W)
+            return jnp.einsum('...i,...ij->...j', x, W*mask)
     return init_fun, apply_fun
 
+def DenseRoll(
+    features,
+    in_dim,
+    out_dim,
+    bias = True,
+    W_init = glorot_uniform(),
+    b_init = zeros,
+    ):
+    def init_fun(
+        rng
+        ):
+        k1, k2, k3, k4 = random.split(rng, 4)
+        out_shape = (out_dim)
+        W1 = W_init(k1, (in_dim, out_dim))
+        W2 = W_init(k2, (features, out_dim))
+        if bias:
+            b1 = b_init(k3, (out_dim,))
+            b2 = b_init(k4, (out_dim,))
+            return (W1, W2, b1, b2)
+        else:
+            return (W1, W2)
+    def apply_fun(params, x, res, scan = False, mask = 1.0):
+        if bias:
+            if scan:
+                W1, W2, b1, b2 = params["hw1"], params["hb1"], params["hw2"], params["hb2"]
+            else:
+                W1, W2, b1, b2 = params
+            return (jnp.einsum('...i,...ij->...j', x, W1) + b1 +
+                    jnp.einsum('...i,...ij->...j', res*mask, W2) + b2)
+        else:
+            if scan:
+                W1, W2 = params["hw1"], params["hw2"]
+            else:
+                W1, W2 = params
+            return (jnp.einsum('...i,...ij->...j', x, W1) +
+                    jnp.einsum('...i,...ij->...j', res*mask, W2))
+    return init_fun, apply_fun
+
+def ResNet(
+    features,
+    hidden_dim,
+    out_dim,
+    num_hidden = 1,
+    W_init = glorot_uniform(),
+    b_init = zeros,
+    activation=relu
+    ):
+    init_l1, layer_1 = Dense(
+        features, hidden_dim, W_init=W_init, b_init=b_init)
+    init_hidden, layer_h = DenseRoll(
+        features, hidden_dim, hidden_dim, W_init=W_init, b_init=b_init)
+    init_out, layer_out = Dense(
+        hidden_dim, out_dim, W_init=W_init, b_init=b_init)
+
+    def init_fun(rng):
+        params = {}
+        rng, key = random.split(rng)
+        params["l1"] = init_l1(key)
+
+        hw1, hw2, hb1, hb2 = [], [], [], []
+        for _ in range(num_hidden):
+            rng, key = random.split(rng)
+            W1, W2, b1, b2 = init_hidden(key)
+            hw1.append(W1)
+            hw2.append(W2)
+            hb1.append(b1)
+            hb2.append(b2)
+        
+        params["hidden"] = {
+            "hw1":jnp.stack(hw1, axis=0),
+            "hw2":jnp.stack(hw2, axis=0),
+            "hb1":jnp.stack(hb1, axis=0),
+            "hb2":jnp.stack(hb2, axis=0)
+        }
+
+        rng, key = random.split(rng)
+        params["out"] = init_out(key)
+
+        return params
+    
+    def apply_fun(params, inputs, mask, rng=None):
+        h = activation(layer_1(params["l1"], inputs, mask=mask))
+
+        def body(carry, x):
+            # note x is actually the params
+            temp = activation(layer_h(x, carry, inputs, mask=mask, scan=True))
+            return temp, None
+        
+        h, _ = jax.lax.scan(body, h, params["hidden"])
+
+        out = layer_out(params["out"], h)
+        return out
+    
+    return init_fun, apply_fun
 
 def NeuralNetGeneral(
-    features, 
+    features,
     in_dim,
     hidden_dim,
     out_dim,
@@ -329,7 +423,7 @@ def NeuralNet(
         
         hw, hb = [], []
         for _ in range(num_hidden):
-            rng, key = random.split(rng)
+            rng, key = random.split(rng, 2)
             W, b = init_hidden(key)
             hw.append(W)
             hb.append(b)
@@ -356,9 +450,85 @@ def NeuralNet(
 
         out = layer_out(params["out"], h)
         return out
-    
+
     return init_fun, apply_fun
 
+def ConcDropNeuralNet(
+    in_dim,
+    hidden_dim,
+    out_dim,
+    num_hidden = 1,
+    W_init = glorot_uniform(),
+    b_init = zeros,
+    activation=relu,
+    temp = 0.1,
+    eps = 1e-7
+    ):
+    init_l1, layer_1 = Dense(
+        in_dim, hidden_dim, W_init=W_init, b_init=b_init)
+    init_hidden, layer_h = Dense(
+        hidden_dim, hidden_dim, W_init=W_init, b_init=b_init)
+    init_out, layer_out = Dense(
+        hidden_dim, out_dim, W_init=W_init, b_init=b_init)
+
+    def init_fun(rng):
+        params = {}
+        rng, key = random.split(rng)
+        params["l1"] = init_l1(key)
+        params["l1_logit"] = jnp.zeros((in_dim,hidden_dim))
+
+        hw, hb, lgts = [], [], []
+        for _ in range(num_hidden):
+            rng, key = random.split(rng, 2)
+            W, b = init_hidden(key)
+            hw.append(W)
+            hb.append(b)
+            lgts.append(jnp.zeros((hidden_dim,hidden_dim)))
+
+        params["hidden"] = {
+            "hw":jnp.stack(hw, axis=0),
+            "hb":jnp.stack(hb, axis=0),
+            "lgts":jnp.stack(lgts, axis=0)
+        }
+
+        rng, key = random.split(rng)
+        params["out"] = init_out(key)
+
+        return params
+
+    def masksamp(lgts, rng):
+        probs = jax.nn.sigmoid(lgts)
+        unif_noise = random.uniform(rng, lgts.shape)
+        drop_prob = (jnp.log(probs + eps)
+                        - jnp.log(1.0 - probs + eps)
+                        + jnp.log(unif_noise + eps)
+                        - jnp.log(1.0 - unif_noise + eps)
+                        )
+        drop_prob = jax.nn.sigmoid(drop_prob / temp)
+        # this line is 1.0 - drop_prob if you want to select more important variables
+        # during training
+        random_arr = 1. - drop_prob  # (1 if keeping 0 if removing)
+        return random_arr
+
+    def apply_fun(params, inputs, mask1, rng):
+
+        h = activation(layer_1(params["l1"], inputs, mask=mask1))
+
+        def body(carry, x):
+            # note x is actually the params
+            mask = masksamp(x["lgts"], x["rng"])
+            temp = activation(layer_h(x, carry, mask=mask, scan=True))
+            return temp, None
+
+        rng = random.split(rng, num_hidden)
+        params["hidden"]["rng"] = rng
+
+        h, _ = jax.lax.scan(body, h, params["hidden"])
+
+        out = layer_out(params["out"], h)
+        return out
+
+    return init_fun, apply_fun
 
 def LayerNorm(epsilon=1e-5, center=True, scale=True, beta_init=zeros, gamma_init=ones):
     def init_fun(rng, elements): 

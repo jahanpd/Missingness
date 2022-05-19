@@ -3,6 +3,10 @@ import pandas as pd
 import itertools
 from .openmlrun import run
 
+
+# missing= "MNAR"
+missing= None
+
 def gridsearchattn(searchspace, k, row, args):
     """
     Args:
@@ -24,7 +28,7 @@ def gridsearchattn(searchspace, k, row, args):
         output, _ = run(
                     dataset=row[0],
                     task=row[1],
-                    missing=None,
+                    missing=missing,
                     train_complete=args.train_complete,
                     test_complete=args.test_complete,
                     imputation=None,
