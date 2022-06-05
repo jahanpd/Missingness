@@ -68,7 +68,8 @@ def cross_entropy(
 
 def cross_entropy_conc(
     classes,
-    dropout_reg=1e-4
+    dropout_reg=1e-4,
+    l2_reg=1e-4
     ):
     def loss_fun(params, output, labels):
             logits = output[0]
@@ -84,6 +85,7 @@ def cross_entropy_conc(
             p_drop = jax.nn.sigmoid(jnp.concatenate([
                 params["fk"]["l1_logit"].flatten(),
                 params["fk"]["hidden"]["lgts"].flatten()]))
+
             entropy = p_drop * jnp.log(p_drop + 1e-7)
             entropy += (1.0 - p_drop) * jnp.log(1.0 - p_drop + 1e-7)
             entropy = entropy.mean()
@@ -91,7 +93,8 @@ def cross_entropy_conc(
 
             loss_dict = {
                 "loss":ce,
-                "ent":entropy
+                "ent":entropy,
+                "mse":0
                 }
 
             return loss, loss_dict
@@ -107,7 +110,7 @@ def dual(
             logits = output[0]  # (b, o)
             zk_f = output[2]  # (b, f, d)
             logits_all = output[3]  # (b, f, o)
-            mask = jax.lax.stop_gradient(output[4])  # (b, f, 1)
+            # mask = jax.lax.stop_gradient(output[4])  # (b, f, 1)
             one_hot = jax.nn.one_hot(labels, classes)
             probs = jax.nn.softmax(logits)
             probs_all = jax.nn.softmax(logits_all)
@@ -119,13 +122,13 @@ def dual(
                         + (1-labels) * jnp.log(1 - probs + 1e-7)).sum(-1)
 
             ce = cross_entropy(probs, one_hot).mean()
-            ce_all = (cross_entropy(probs_all, one_hot[:, None, :])
-                      * mask).mean()
-            entropy = p_drop * jnp.log(1.0 - p_drop + 1e-4)
+            ce_all = (cross_entropy(probs_all, one_hot[:, None, :])).mean()
+            entropy = p_drop * jnp.log(p_drop + 1e-4)
             entropy += (1.0 - p_drop) * jnp.log(1.0 - p_drop + 1e-4)
             entropy = entropy.mean()
-            mse = jnp.mean(jnp.square(zk_f))
-            loss = ce + ce_all + dropout_reg*entropy + msereg*mse
+            # mse = jnp.mean(jnp.square(zk_f))
+            mse = l2_norm(params["outnet"])
+            loss = ce + dropout_reg*entropy + msereg*mse + ce_all
 
             loss_dict = {
                 "loss":ce,

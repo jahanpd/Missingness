@@ -111,9 +111,6 @@ def MaskedNeuralNet(
         embed_hidden_size=64,
         embed_hidden_layers=5,
         embed_activation=relu,
-        net_hidden_size=64,
-        net_hidden_layers=5,
-        net_activation=relu,
         out_size=1,
         W_init = glorot_uniform(),
         b_init = zeros,
@@ -122,22 +119,13 @@ def MaskedNeuralNet(
         **kwargs
     ):
     init_fk, fk = ConcDropNeuralNet(
-        features, embed_hidden_size, d_model, embed_hidden_layers, W_init=W_init, b_init=b_init, activation=embed_activation
-    )
-    init_g, g = NeuralNet(
-        d_model, net_hidden_size, out_size, net_hidden_layers, W_init=W_init, b_init=b_init, activation=net_activation
+        features, embed_hidden_size, out_size, embed_hidden_layers, W_init=W_init, b_init=b_init, activation=embed_activation
     )
     def init_fun(rng):
 
         params = {}
         rng, key = random.split(rng)
         params["fk"] = init_fk(key)
-
-        rng, key = random.split(rng)
-        params["g"] = init_g(key)
-
-        rng, key = random.split(rng)
-        params["logits"] = jnp.zeros((features,))
 
         return params
 
@@ -171,8 +159,8 @@ def MaskedNeuralNet(
             mask = nan_mask
 
         rng, key = random.split(rng)
-        z = fk(params["fk"], inputs, mask1=mask, rng=key)
-        logits = g(params["g"], z)
+        logits, hiddens = fk(params["fk"], inputs, mask1=mask, rng=key)
+        z = hiddens[-1, ...]
         return jnp.squeeze(logits), z, z, z
 
     vapply = jax.vmap(apply_fun, in_axes=(None, 0, 0, None, None), out_axes=(0, 0, 0, 0) )
@@ -201,7 +189,7 @@ def AttentionModel2(
         features, d_model, W_init=jax.nn.initializers.ones, b_init=zeros
     )
     init_biject, bijectf, bijectr = Bijector(
-        features, d_model, embed_hidden_layers, W_init=W_init, b_init=b_init, tactivation=jax.nn.softplus, sactivation=jax.nn.tanh
+        1, d_model, embed_hidden_layers, W_init=W_init, b_init=b_init, tactivation=jax.nn.softplus, sactivation=jax.nn.tanh
     )
     init_attnblk, attnblock = AttentionBlock2(
         decoder_layers, d_model, decoder_heads, W_init=W_init, b_init=b_init, activation=dec_activation
@@ -238,16 +226,17 @@ def AttentionModel2(
 
         return params
 
-    def apply_fun(params, inputs, rng, dropout):
+    def apply_fun(params, inputs, rng, dropout, train):
         # mask missing variables through forward pass
-        nan_mask = jnp.where(jnp.isnan(inputs), 0.0, 1.0).reshape((1,-1))
-        # replace nans in data to -1 to preserve output, will still be masked
-        inputs = jnp.nan_to_num(inputs, nan=-1.0)
-        # use concrete dropout to further drop features (1 ,f)
+        rng, key = random.split(rng)
+        # replace nans in data with a placeholder
+        nan_mask = jnp.where(jnp.isnan(inputs), 0.0, 1.0).reshape((1, -1))
+        inputs = jnp.nan_to_num(inputs, nan=0.0)
+        # use concrete dropout to further drop features (f,)
         if dropout:
             probs = jax.nn.sigmoid(params["logits"])
             rng, unif_rng = random.split(rng)
-            unif_noise = random.uniform(unif_rng, (1, features))
+            unif_noise = random.uniform(unif_rng, params["logits"].shape)
             drop_prob = (jnp.log(probs + eps)
                             - jnp.log(1.0 - probs + eps)
                             + jnp.log(unif_noise + eps)
@@ -264,17 +253,19 @@ def AttentionModel2(
         # apply embedding to input of (features)
         x = inputs[..., None]
         z0_f = embedf(params["embed"], x) # (f, ndim)
-        zk_f = bijectf(params["bijector"], z0_f) #  (f, ndim)
-        all_logits = outnet(params["outnet"], zk_f * jnp.transpose(mask, (1,0)))  # (f, o)
+        zk_f = bijectf(params["bijector"], z0_f + params["feat"]) #  (f, ndim)
+        rand_noise = random.normal(key, zk_f.shape)
+        zk_f = jnp.where(jnp.transpose(mask, (1,0)) == 1, zk_f, rand_noise)
+        all_logits = outnet(params["outnet"], zk_f)  # (f, o)
         zkm, attn = attnblock(
             params["attnblk"],
-            zk_f + params["feat"],
+            zk_f,
             zk_f,
             mask=mask)
         logits = outnet(params["outnet"], zkm)
         return jnp.squeeze(logits), attn, zk_f, all_logits, zkm
 
-    vapply = jax.vmap(apply_fun, in_axes=(None, 0, 0, None), out_axes=(0, 0, 0, 0, 0) )
+    vapply = jax.vmap(apply_fun, in_axes=(None, 0, 0, None, None), out_axes=(0, 0, 0, 0, 0) )
 
     return init_fun, vapply
 
@@ -339,16 +330,22 @@ def MixtureModel(
         attention_weights = scaled_attention / (scaled_attention.sum(-1, keepdims=True) + 1e-4)
         return attention_weights
 
-    def apply_fun(params, inputs, rng, dropout):
+    def apply_fun(params, inputs, rng, dropout, train):
         # mask missing variables through forward pass
-        nan_mask = jnp.where(jnp.isnan(inputs), 0.0, 1.0).reshape((1,-1))
-        # replace nans in data to -1 to preserve output, will still be masked
-        inputs = jnp.nan_to_num(inputs, nan=-1.0)
-        # use concrete dropout to further drop features (1 ,f)
+        rng, key = random.split(rng)
+        rand_noise = random.normal(key, inputs.shape)
+        # replace nans in data to with random noise if training
+        if train:
+            inputs = jnp.where(jnp.isnan(inputs), rand_noise, inputs)
+            nan_mask = jnp.ones(inputs.shape).reshape((1,-1))
+        else:
+            nan_mask = jnp.where(jnp.isnan(inputs), 0.0, 1.0).reshape((1, -1))
+            inputs = jnp.nan_to_num(inputs, nan=-1.0)
+        # use concrete dropout to further drop features (f,)
         if dropout:
             probs = jax.nn.sigmoid(params["logits"])
             rng, unif_rng = random.split(rng)
-            unif_noise = random.uniform(unif_rng, (1, features))
+            unif_noise = random.uniform(unif_rng, params["logits"].shape)
             drop_prob = (jnp.log(probs + eps)
                             - jnp.log(1.0 - probs + eps)
                             + jnp.log(unif_noise + eps)
@@ -379,7 +376,7 @@ def MixtureModel(
         logits = outnet(params["outnet"], zkm + fkm)
         return jnp.squeeze(logits), attn, zk_f, all_logits, mask, zkm
 
-    vapply = jax.vmap(apply_fun, in_axes=(None, 0, 0, None), out_axes=(0, 0, 0, 0, 0, 0) )
+    vapply = jax.vmap(apply_fun, in_axes=(None, 0, 0, None, None), out_axes=(0, 0, 0, 0, 0, 0) )
 
     return init_fun, vapply
 

@@ -23,8 +23,8 @@ def get_list(
         missing,
         min_features=20,
         max_features=250,
-        min_instances=2000,
-        max_instances=200000,
+        min_instances=1000,
+        max_instances=100000,
         key=42,
         test=lambda x, m: x > m
         ):

@@ -97,9 +97,9 @@ def run(
                 test_complete=test_complete,
                 split=0.2,
                 rng_key=key,
-                prop=0.8,
+                prop=0.7,
                 corrupt=corrupt,
-                cols_miss=int(X.shape[1] * 0.80)
+                cols_miss=int(X.shape[1] * 0.95)
             )
         print(diagnostics)
         count += 1

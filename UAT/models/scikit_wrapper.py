@@ -11,10 +11,10 @@ from jax.nn.initializers import glorot_normal, normal, ones, zeros
 from jax.experimental.optimizers import l2_norm
 # from UAT.models.models import EnsembleModel
 # from UAT.models.models import AttentionModel as Model
-# from UAT.models.models import AttentionModel2 as Model
+from UAT.models.models import AttentionModel2 as Model
 # from UAT.models.models import MixtureModel as Model
 # from UAT.models.models import CentroidCluster as Model
-from UAT.models.models import MaskedNeuralNet as Model
+# from UAT.models.models import MaskedNeuralNet as Model
 from UAT.training.train import training_loop
 from UAT.training.gradinit import gradinit_loop
 from UAT.training.unsupervised import unsupervised_loop
@@ -225,8 +225,12 @@ class UAT:
                 out = self.batch_forward(X)
 
             logits = out[0][..., None] if len(out[0].shape) == 1 else out[0]
+            print(logits.shape)
             if logits.shape[1] > 1:
+                print("softmax")
                 probs = jax.nn.softmax(logits)
+                print(jnp.max(logits), jnp.min(logits))
+                print(jnp.max(probs), jnp.min(probs))
             else:
                 probs = jax.nn.sigmoid(logits)
         

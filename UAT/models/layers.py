@@ -411,8 +411,9 @@ def NeuralNet(
     ):
     init_l1, layer_1 = Dense(
         in_dim, hidden_dim, W_init=W_init, b_init=b_init)
-    init_hidden, layer_h = Dense(
-        hidden_dim, hidden_dim, W_init=W_init, b_init=b_init)
+    if num_hidden > 0:
+        init_hidden, layer_h = Dense(
+            hidden_dim, hidden_dim, W_init=W_init, b_init=b_init)
     init_out, layer_out = Dense(
         hidden_dim, out_dim, W_init=W_init, b_init=b_init)
     
@@ -420,18 +421,18 @@ def NeuralNet(
         params = {}
         rng, key = random.split(rng)
         params["l1"] = init_l1(key)
-        
-        hw, hb = [], []
-        for _ in range(num_hidden):
-            rng, key = random.split(rng, 2)
-            W, b = init_hidden(key)
-            hw.append(W)
-            hb.append(b)
-        
-        params["hidden"] = {
-            "hw":jnp.stack(hw, axis=0),
-            "hb":jnp.stack(hb, axis=0)
-        }
+        if num_hidden > 0:
+            hw, hb = [], []
+            for _ in range(num_hidden):
+                rng, key = random.split(rng, 2)
+                W, b = init_hidden(key)
+                hw.append(W)
+                hb.append(b)
+            
+            params["hidden"] = {
+                "hw":jnp.stack(hw, axis=0),
+                "hb":jnp.stack(hb, axis=0)
+            }
 
         rng, key = random.split(rng)
         params["out"] = init_out(key)
@@ -441,12 +442,13 @@ def NeuralNet(
     def apply_fun(params, inputs, rng=None):
         h = activation(layer_1(params["l1"], inputs))
 
-        def body(carry, x):
-            # note x is actually the params
-            temp = activation(layer_h(x, carry, scan=True))
-            return temp, None
-        
-        h, _ = jax.lax.scan(body, h, params["hidden"])
+        if num_hidden > 0:
+            def body(carry, x):
+                # note x is actually the params
+                temp = activation(layer_h(x, carry, scan=True))
+                return temp, None
+            
+            h, _ = jax.lax.scan(body, h, params["hidden"])
 
         out = layer_out(params["out"], h)
         return out
@@ -476,20 +478,25 @@ def ConcDropNeuralNet(
         rng, key = random.split(rng)
         params["l1"] = init_l1(key)
         params["l1_logit"] = jnp.zeros((in_dim,hidden_dim))
+        
+        if num_hidden > 0:
+            hw, hb, lgts = [], [], []
+            for _ in range(num_hidden):
+                rng, key = random.split(rng, 2)
+                W, b = init_hidden(key)
+                hw.append(W)
+                hb.append(b)
+                lgts.append(jnp.zeros((hidden_dim,hidden_dim)))
 
-        hw, hb, lgts = [], [], []
-        for _ in range(num_hidden):
-            rng, key = random.split(rng, 2)
-            W, b = init_hidden(key)
-            hw.append(W)
-            hb.append(b)
-            lgts.append(jnp.zeros((hidden_dim,hidden_dim)))
-
-        params["hidden"] = {
-            "hw":jnp.stack(hw, axis=0),
-            "hb":jnp.stack(hb, axis=0),
-            "lgts":jnp.stack(lgts, axis=0)
-        }
+            params["hidden"] = {
+                "hw":jnp.stack(hw, axis=0),
+                "hb":jnp.stack(hb, axis=0),
+                "lgts":jnp.stack(lgts, axis=0)
+            }
+        else:
+            params["hidden"] = {
+                "lgts": jnp.array([])
+            }
 
         rng, key = random.split(rng)
         params["out"] = init_out(key)
@@ -512,21 +519,25 @@ def ConcDropNeuralNet(
 
     def apply_fun(params, inputs, mask1, rng):
 
-        h = activation(layer_1(params["l1"], inputs, mask=mask1))
+        l1 = activation(layer_1(params["l1"], inputs, mask=mask1))
 
-        def body(carry, x):
-            # note x is actually the params
-            mask = masksamp(x["lgts"], x["rng"])
-            temp = activation(layer_h(x, carry, mask=mask, scan=True))
-            return temp, None
+        if num_hidden > 0:
+            def body(carry, x):
+                # note x is actually the params
+                mask = masksamp(x["lgts"], x["rng"])
+                temp = activation(layer_h(x, carry, mask=mask, scan=True))
+                return temp, temp
 
-        rng = random.split(rng, num_hidden)
-        params["hidden"]["rng"] = rng
+            rng = random.split(rng, num_hidden)
+            params["hidden"]["rng"] = rng
 
-        h, _ = jax.lax.scan(body, h, params["hidden"])
-
+            h, hiddens = jax.lax.scan(body, l1, params["hidden"])
+            hiddens = jnp.concatenate([l1[None, ...], hiddens], axis=0)
+        else:
+            hiddens = l1[None, ...]
+            h = l1
         out = layer_out(params["out"], h)
-        return out
+        return out, hiddens
 
     return init_fun, apply_fun
 

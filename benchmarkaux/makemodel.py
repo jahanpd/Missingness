@@ -69,12 +69,15 @@ def create_make_model(features, rows, task, key):
                 int(0.8 * epochs * steps_per_epoch):0.1,
             })
 
-        while epochs < 150:
-            if batch_size_base2 > 500:
-                break
-            batch_size_base2 *= 2
-            steps_per_epoch = max(rows // batch_size_base2, 1)
-            epochs = max_steps // steps_per_epoch
+        if max_steps // steps_per_epoch < 100:
+            max_steps = 100*steps_per_epoch
+            epochs = 100
+        #while epochs < 150:
+        #    if batch_size_base2 > 500:
+        #        break
+        #    batch_size_base2 *= 2
+        #    steps_per_epoch = max(rows // batch_size_base2, 1)
+        #    epochs = max_steps // steps_per_epoch
 
         freq = 5
         print("lr: {}, depth: {}, d_model: {}, width: {}".format(
@@ -88,11 +91,11 @@ def create_make_model(features, rows, task, key):
                 encoder_layers=int(depth),  # attn
                 encoder_heads=5,
                 enc_activation=jax.nn.gelu,
-                decoder_layers=int(depth),  # attn
+                decoder_layers=int(nndepth),  # attn
                 decoder_heads=5,
                 dec_activation=jax.nn.gelu,
                 net_hidden_size=int(d_model),  # output
-                net_hidden_layers=int(nndepth),  # output or mixture attn
+                net_hidden_layers=int(1),  # output or mixture attn
                 net_activation=jax.nn.gelu,
                 last_layer_size=d_model // 2,
                 out_size=classes,
@@ -123,8 +126,8 @@ def create_make_model(features, rows, task, key):
                 )
         if task == "Supervised Classification":
             # loss_fun = cross_entropy(classes, l2_reg=0, dropout_reg=dropreg)
-            loss_fun = cross_entropy_conc(classes, dropout_reg=dropreg)
-            # loss_fun = dual(classes, dropout_reg=dropreg, msereg=msereg)
+            # loss_fun = cross_entropy_conc(classes, l2_reg=msereg, dropout_reg=dropreg)
+            loss_fun = dual(classes, dropout_reg=dropreg, msereg=msereg)
             # loss_fun = brier(l2_reg=0.0, dropout_reg=1e-7)
         elif task == "Supervised Regression":
             loss_fun = mse(l2_reg=0.0, dropout_reg=5e-1)
