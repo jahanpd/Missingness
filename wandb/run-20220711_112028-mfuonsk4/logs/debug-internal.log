@@ -1,0 +1,69 @@
+2022-07-11 11:20:28,987 INFO    MainThread:267616 [internal.py:wandb_internal():90] W&B internal server running at pid: 267616, started at: 2022-07-11 11:20:28.987514
+2022-07-11 11:20:28,989 INFO    WriterThread:267616 [datastore.py:open_for_write():75] open: /home/jahan/Missingness/wandb/run-20220711_112028-mfuonsk4/run-mfuonsk4.wandb
+2022-07-11 11:20:28,991 DEBUG   SenderThread:267616 [sender.py:send():236] send: header
+2022-07-11 11:20:28,991 DEBUG   SenderThread:267616 [sender.py:send():236] send: run
+2022-07-11 11:20:29,447 INFO    SenderThread:267616 [dir_watcher.py:__init__():216] watching files in: /home/jahan/Missingness/wandb/run-20220711_112028-mfuonsk4/files
+2022-07-11 11:20:29,447 INFO    SenderThread:267616 [sender.py:_start_run_threads():815] run started: mfuonsk4 with start time 1657502428
+2022-07-11 11:20:29,447 DEBUG   SenderThread:267616 [sender.py:send():236] send: summary
+2022-07-11 11:20:29,448 INFO    SenderThread:267616 [sender.py:_save_file():952] saving file wandb-summary.json with policy end
+2022-07-11 11:20:29,454 DEBUG   HandlerThread:267616 [handler.py:handle_request():140] handle_request: check_version
+2022-07-11 11:20:29,454 DEBUG   SenderThread:267616 [sender.py:send_request():250] send_request: check_version
+2022-07-11 11:20:29,547 DEBUG   HandlerThread:267616 [handler.py:handle_request():140] handle_request: run_start
+2022-07-11 11:20:29,551 DEBUG   HandlerThread:267616 [meta.py:__init__():35] meta init
+2022-07-11 11:20:29,551 DEBUG   HandlerThread:267616 [meta.py:__init__():49] meta init done
+2022-07-11 11:20:29,551 DEBUG   HandlerThread:267616 [meta.py:probe():209] probe
+2022-07-11 11:20:29,558 DEBUG   HandlerThread:267616 [meta.py:_setup_git():199] setup git
+2022-07-11 11:20:29,567 DEBUG   HandlerThread:267616 [meta.py:_setup_git():206] setup git done
+2022-07-11 11:20:29,567 DEBUG   HandlerThread:267616 [meta.py:_save_pip():53] save pip
+2022-07-11 11:20:29,568 DEBUG   HandlerThread:267616 [meta.py:_save_pip():67] save pip done
+2022-07-11 11:20:29,568 DEBUG   HandlerThread:267616 [meta.py:_save_conda():74] save conda
+2022-07-11 11:20:30,449 INFO    Thread-7  :267616 [dir_watcher.py:_on_file_created():269] file/dir created: /home/jahan/Missingness/wandb/run-20220711_112028-mfuonsk4/files/requirements.txt
+2022-07-11 11:20:30,450 INFO    Thread-7  :267616 [dir_watcher.py:_on_file_created():269] file/dir created: /home/jahan/Missingness/wandb/run-20220711_112028-mfuonsk4/files/wandb-summary.json
+2022-07-11 11:20:30,450 INFO    Thread-7  :267616 [dir_watcher.py:_on_file_created():269] file/dir created: /home/jahan/Missingness/wandb/run-20220711_112028-mfuonsk4/files/conda-environment.yaml
+2022-07-11 11:20:31,944 DEBUG   HandlerThread:267616 [meta.py:_save_conda():84] save conda done
+2022-07-11 11:20:31,944 DEBUG   HandlerThread:267616 [meta.py:probe():247] probe done
+2022-07-11 11:20:31,949 DEBUG   SenderThread:267616 [sender.py:send():236] send: files
+2022-07-11 11:20:31,950 INFO    SenderThread:267616 [sender.py:_save_file():952] saving file wandb-metadata.json with policy now
+2022-07-11 11:20:31,958 DEBUG   HandlerThread:267616 [handler.py:handle_request():140] handle_request: stop_status
+2022-07-11 11:20:31,958 DEBUG   SenderThread:267616 [sender.py:send_request():250] send_request: stop_status
+2022-07-11 11:20:32,270 DEBUG   SenderThread:267616 [sender.py:send():236] send: telemetry
+2022-07-11 11:20:32,271 DEBUG   SenderThread:267616 [sender.py:send():236] send: config
+2022-07-11 11:20:32,271 DEBUG   SenderThread:267616 [sender.py:send():236] send: config
+2022-07-11 11:20:32,448 INFO    Thread-7  :267616 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220711_112028-mfuonsk4/files/conda-environment.yaml
+2022-07-11 11:20:32,448 INFO    Thread-7  :267616 [dir_watcher.py:_on_file_created():269] file/dir created: /home/jahan/Missingness/wandb/run-20220711_112028-mfuonsk4/files/wandb-metadata.json
+2022-07-11 11:20:32,448 INFO    Thread-7  :267616 [dir_watcher.py:_on_file_created():269] file/dir created: /home/jahan/Missingness/wandb/run-20220711_112028-mfuonsk4/files/output.log
+2022-07-11 11:20:32,900 INFO    Thread-11 :267616 [upload_job.py:push():138] Uploaded file /tmp/tmpy3302wruwandb/2iz5j099-wandb-metadata.json
+2022-07-11 11:20:34,448 INFO    Thread-7  :267616 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220711_112028-mfuonsk4/files/output.log
+2022-07-11 11:20:38,450 INFO    Thread-7  :267616 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220711_112028-mfuonsk4/files/output.log
+2022-07-11 11:20:40,450 INFO    Thread-7  :267616 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220711_112028-mfuonsk4/files/output.log
+2022-07-11 11:20:42,451 INFO    Thread-7  :267616 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220711_112028-mfuonsk4/files/output.log
+2022-07-11 11:20:47,271 DEBUG   HandlerThread:267616 [handler.py:handle_request():140] handle_request: stop_status
+2022-07-11 11:20:47,272 DEBUG   SenderThread:267616 [sender.py:send_request():250] send_request: stop_status
+2022-07-11 11:20:50,454 INFO    Thread-7  :267616 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220711_112028-mfuonsk4/files/output.log
+2022-07-11 11:20:52,454 INFO    Thread-7  :267616 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220711_112028-mfuonsk4/files/output.log
+2022-07-11 11:20:54,455 INFO    Thread-7  :267616 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220711_112028-mfuonsk4/files/output.log
+2022-07-11 11:20:56,456 INFO    Thread-7  :267616 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220711_112028-mfuonsk4/files/output.log
+2022-07-11 11:20:58,033 DEBUG   SenderThread:267616 [sender.py:send():236] send: stats
+2022-07-11 11:20:58,457 INFO    Thread-7  :267616 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220711_112028-mfuonsk4/files/output.log
+2022-07-11 11:20:59,458 INFO    Thread-7  :267616 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220711_112028-mfuonsk4/files/config.yaml
+2022-07-11 11:21:02,018 WARNING MainThread:267616 [internal.py:is_dead():387] Internal process exiting, parent pid 267436 disappeared
+2022-07-11 11:21:02,019 ERROR   MainThread:267616 [internal.py:wandb_internal():149] Internal process shutdown.
+2022-07-11 11:21:02,034 INFO    WriterThread:267616 [datastore.py:close():279] close: /home/jahan/Missingness/wandb/run-20220711_112028-mfuonsk4/run-mfuonsk4.wandb
+2022-07-11 11:21:02,042 INFO    HandlerThread:267616 [handler.py:finish():806] shutting down handler
+2022-07-11 11:21:02,370 INFO    SenderThread:267616 [sender.py:finish():1114] shutting down sender
+2022-07-11 11:21:02,370 INFO    SenderThread:267616 [dir_watcher.py:finish():353] shutting down directory watcher
+2022-07-11 11:21:02,459 INFO    SenderThread:267616 [dir_watcher.py:finish():383] scan: /home/jahan/Missingness/wandb/run-20220711_112028-mfuonsk4/files
+2022-07-11 11:21:02,459 INFO    SenderThread:267616 [dir_watcher.py:finish():397] scan save: /home/jahan/Missingness/wandb/run-20220711_112028-mfuonsk4/files/config.yaml config.yaml
+2022-07-11 11:21:02,459 INFO    SenderThread:267616 [dir_watcher.py:finish():397] scan save: /home/jahan/Missingness/wandb/run-20220711_112028-mfuonsk4/files/wandb-summary.json wandb-summary.json
+2022-07-11 11:21:02,465 INFO    SenderThread:267616 [dir_watcher.py:finish():397] scan save: /home/jahan/Missingness/wandb/run-20220711_112028-mfuonsk4/files/requirements.txt requirements.txt
+2022-07-11 11:21:02,468 INFO    SenderThread:267616 [dir_watcher.py:finish():397] scan save: /home/jahan/Missingness/wandb/run-20220711_112028-mfuonsk4/files/conda-environment.yaml conda-environment.yaml
+2022-07-11 11:21:02,468 INFO    SenderThread:267616 [dir_watcher.py:finish():397] scan save: /home/jahan/Missingness/wandb/run-20220711_112028-mfuonsk4/files/wandb-metadata.json wandb-metadata.json
+2022-07-11 11:21:02,468 INFO    SenderThread:267616 [dir_watcher.py:finish():397] scan save: /home/jahan/Missingness/wandb/run-20220711_112028-mfuonsk4/files/output.log output.log
+2022-07-11 11:21:02,474 INFO    SenderThread:267616 [file_pusher.py:finish():171] shutting down file pusher
+2022-07-11 11:21:02,480 INFO    SenderThread:267616 [file_pusher.py:join():176] waiting for file pusher
+2022-07-11 11:21:03,565 INFO    Thread-15 :267616 [upload_job.py:push():138] Uploaded file /home/jahan/Missingness/wandb/run-20220711_112028-mfuonsk4/files/conda-environment.yaml
+2022-07-11 11:21:03,570 INFO    Thread-12 :267616 [upload_job.py:push():138] Uploaded file /home/jahan/Missingness/wandb/run-20220711_112028-mfuonsk4/files/config.yaml
+2022-07-11 11:21:03,571 INFO    Thread-14 :267616 [upload_job.py:push():138] Uploaded file /home/jahan/Missingness/wandb/run-20220711_112028-mfuonsk4/files/requirements.txt
+2022-07-11 11:21:03,571 INFO    Thread-16 :267616 [upload_job.py:push():138] Uploaded file /home/jahan/Missingness/wandb/run-20220711_112028-mfuonsk4/files/output.log
+2022-07-11 11:21:03,571 INFO    Thread-13 :267616 [upload_job.py:push():138] Uploaded file /home/jahan/Missingness/wandb/run-20220711_112028-mfuonsk4/files/wandb-summary.json
+2022-07-11 11:21:04,279 INFO    MainThread:267616 [internal.py:handle_exit():80] Internal process exited

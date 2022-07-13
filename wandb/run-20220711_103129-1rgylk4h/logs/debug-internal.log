@@ -1,0 +1,115 @@
+2022-07-11 10:31:30,298 INFO    MainThread:258863 [internal.py:wandb_internal():90] W&B internal server running at pid: 258863, started at: 2022-07-11 10:31:30.298597
+2022-07-11 10:31:30,300 INFO    WriterThread:258863 [datastore.py:open_for_write():75] open: /home/jahan/Missingness/wandb/run-20220711_103129-1rgylk4h/run-1rgylk4h.wandb
+2022-07-11 10:31:30,302 DEBUG   SenderThread:258863 [sender.py:send():236] send: header
+2022-07-11 10:31:30,302 DEBUG   SenderThread:258863 [sender.py:send():236] send: run
+2022-07-11 10:31:39,308 WARNING MainThread:258863 [internal.py:is_dead():387] Internal process exiting, parent pid 258683 disappeared
+2022-07-11 10:31:39,308 ERROR   MainThread:258863 [internal.py:wandb_internal():149] Internal process shutdown.
+2022-07-11 10:31:39,310 INFO    HandlerThread:258863 [handler.py:finish():806] shutting down handler
+2022-07-11 10:31:40,302 INFO    WriterThread:258863 [datastore.py:close():279] close: /home/jahan/Missingness/wandb/run-20220711_103129-1rgylk4h/run-1rgylk4h.wandb
+2022-07-11 10:32:04,324 ERROR   SenderThread:258863 [retry.py:__call__():132] Retry attempt failed:
+Traceback (most recent call last):
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/urllib3/connectionpool.py", line 449, in _make_request
+    six.raise_from(e, None)
+  File "<string>", line 3, in raise_from
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/urllib3/connectionpool.py", line 444, in _make_request
+    httplib_response = conn.getresponse()
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/http/client.py", line 1374, in getresponse
+    response.begin()
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/http/client.py", line 318, in begin
+    version, status, reason = self._read_status()
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/http/client.py", line 279, in _read_status
+    line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/socket.py", line 705, in readinto
+    return self._sock.recv_into(b)
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/ssl.py", line 1274, in recv_into
+    return self.read(nbytes, buffer)
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/ssl.py", line 1130, in read
+    return self._sslobj.read(len, buffer)
+TimeoutError: The read operation timed out
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/requests/adapters.py", line 489, in send
+    resp = conn.urlopen(
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/urllib3/connectionpool.py", line 785, in urlopen
+    retries = retries.increment(
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/urllib3/util/retry.py", line 550, in increment
+    raise six.reraise(type(error), error, _stacktrace)
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/urllib3/packages/six.py", line 770, in reraise
+    raise value
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/urllib3/connectionpool.py", line 703, in urlopen
+    httplib_response = self._make_request(
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/urllib3/connectionpool.py", line 451, in _make_request
+    self._raise_timeout(err=e, url=url, timeout_value=read_timeout)
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/urllib3/connectionpool.py", line 340, in _raise_timeout
+    raise ReadTimeoutError(
+urllib3.exceptions.ReadTimeoutError: HTTPSConnectionPool(host='api.wandb.ai', port=443): Read timed out. (read timeout=10)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/wandb/sdk/lib/retry.py", line 108, in __call__
+    result = self._call_fn(*args, **kwargs)
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/wandb/sdk/internal/internal_api.py", line 158, in execute
+    return self.client.execute(*args, **kwargs)
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/wandb/vendor/gql-0.2.0/wandb_gql/client.py", line 52, in execute
+    result = self._get_result(document, *args, **kwargs)
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/wandb/vendor/gql-0.2.0/wandb_gql/client.py", line 60, in _get_result
+    return self.transport.execute(document, *args, **kwargs)
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/wandb/vendor/gql-0.2.0/wandb_gql/transport/requests.py", line 38, in execute
+    request = requests.post(self.url, **post_args)
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/requests/api.py", line 115, in post
+    return request("post", url, data=data, json=json, **kwargs)
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/requests/api.py", line 59, in request
+    return session.request(method=method, url=url, **kwargs)
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/requests/sessions.py", line 587, in request
+    resp = self.send(prep, **send_kwargs)
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/requests/sessions.py", line 701, in send
+    r = adapter.send(request, **kwargs)
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/requests/adapters.py", line 578, in send
+    raise ReadTimeout(e, request=request)
+requests.exceptions.ReadTimeout: HTTPSConnectionPool(host='api.wandb.ai', port=443): Read timed out. (read timeout=10)
+2022-07-11 10:33:49,125 ERROR   SenderThread:258863 [internal_api.py:execute():161] 500 response executing GraphQL.
+2022-07-11 10:33:49,125 ERROR   SenderThread:258863 [internal_api.py:execute():162] {"error":"internal database error"}
+2022-07-11 10:35:01,893 ERROR   SenderThread:258863 [internal_api.py:execute():161] 409 response executing GraphQL.
+2022-07-11 10:35:01,894 ERROR   SenderThread:258863 [internal_api.py:execute():162] {"errors":[{"message":"Error 1062: Duplicate entry '1117068-1rgylk4h' for key 'PRIMARY'","path":["upsertBucket"]}],"data":{"upsertBucket":null}}
+2022-07-11 10:35:01,894 ERROR   MainThread:258863 [internal.py:wandb_internal():165] Thread SenderThread:
+Traceback (most recent call last):
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/wandb/apis/normalize.py", line 25, in wrapper
+    return func(*args, **kwargs)
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/wandb/sdk/internal/internal_api.py", line 1341, in upsert_run
+    response = self.gql(mutation, variable_values=variable_values, **kwargs)
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/wandb/sdk/lib/retry.py", line 108, in __call__
+    result = self._call_fn(*args, **kwargs)
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/wandb/sdk/internal/internal_api.py", line 158, in execute
+    return self.client.execute(*args, **kwargs)
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/wandb/vendor/gql-0.2.0/wandb_gql/client.py", line 52, in execute
+    result = self._get_result(document, *args, **kwargs)
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/wandb/vendor/gql-0.2.0/wandb_gql/client.py", line 60, in _get_result
+    return self.transport.execute(document, *args, **kwargs)
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/wandb/vendor/gql-0.2.0/wandb_gql/transport/requests.py", line 39, in execute
+    request.raise_for_status()
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/requests/models.py", line 1021, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 409 Client Error: Conflict for url: https://api.wandb.ai/graphql
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/wandb/sdk/internal/internal_util.py", line 51, in run
+    self._run()
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/wandb/sdk/internal/internal_util.py", line 102, in _run
+    self._process(record)
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/wandb/sdk/internal/internal.py", line 310, in _process
+    self._sm.send(record)
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/wandb/sdk/internal/sender.py", line 238, in send
+    send_handler(record)
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/wandb/sdk/internal/sender.py", line 696, in send_run
+    self._init_run(run, config_value_dict)
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/wandb/sdk/internal/sender.py", line 720, in _init_run
+    server_run, inserted = self._api.upsert_run(
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/wandb/apis/normalize.py", line 27, in wrapper
+    raise CommError(err.response, err)
+wandb.errors.CommError: <Response [409]>
+2022-07-11 10:35:03,926 INFO    MainThread:258863 [internal.py:handle_exit():80] Internal process exited

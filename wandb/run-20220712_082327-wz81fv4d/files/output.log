@@ -1,0 +1,55 @@
+name: Supervised Regression, features: house_prices_nominal
+{'X_train': {'cols': 0.04915993443390704, 'rows': 1.0}, 'X_valid': {'cols': 0.04806228778831518, 'rows': 1.0}, 'X_test': {'cols': 0.04678609062170706, 'rows': 0.9972602739726028}}
+dataset sizes
+(876, 78) (219, 78) (365, 78)
+no rows left in dropped dataset...
+key: 6368, k: 1/4, dataset: 42563, missing: None, impute: None
+{'d_model': 60, 'embedding_size': 121, 'embedding_layers': 1, 'encoder_heads': 1, 'encoder_layers': 1, 'decoder_heads': 1, 'decoder_layers': 7, 'net_size': 41, 'net_layers': 1, 'max_steps': 3838, 'learning_rate': 0.0001, 'batch_size': 64, 'early_stop': 0.9296799688922476, 'noise_std': 1.1951928565066532}
+MAP
+2 device(s)
+optimizer: adam, lr: 9.999999747378752e-05, batch_size=64
+  0%|                                                                                                                                                                                                                                                                                               | 0/295 [00:00<?, ?it/s]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 69%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████                                                                         | 203/295 [01:12<00:24,  3.73it/s, l=0.271, tl=inf, tlc=0.157, tc=0, e=-.693]
+
+
+
+
+
+ 95%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▎           | 280/295 [01:32<00:04,  3.62it/s, l=0.248, tl=0.229, tlc=0.292, tc=11, e=-.693]
+  File "/home/jahan/Missingness/train.py", line 143, in <module>
+    metrics_df, perc_missing = run(
+  File "/home/jahan/Missingness/benchmarkaux/openmlrun.py", line 149, in run
+    output = model.predict(X_test, sample=False)
+  File "/home/jahan/Missingness/UAT/models/scikit_wrapper.py", line 246, in predict
+    out = self.batch_forward(X, sample)
+  File "/home/jahan/Missingness/UAT/models/scikit_wrapper.py", line 200, in batch_forward
+    X.shape[0] // batch_size)
+ZeroDivisionError: integer division or modulo by zero
+Final test loss: 0.1899179220199585, epoch: 294, time: 0:01:33.735785

@@ -6,9 +6,9 @@ from sklearn.model_selection import train_test_split
 from scipy.stats import t
 import jax
 import jax.numpy as jnp
-from UAT import UAT, Ensemble, create_early_stopping
-from UAT import binary_cross_entropy
-import UAT.datasets as data
+from LSAM import LSAM, Ensemble, create_early_stopping
+from LSAM import binary_cross_entropy
+import LSAM.datasets as data
 import os
 
 # jax.config.update("jax_debug_nans", True)
@@ -66,7 +66,7 @@ def run(iterations, missing="None", epochs=10):
         training_kwargs_uat["y_test"] = y_test
         training_kwargs_uat["early_stopping"] = early_stopping
         key = rng.integers(9999)
-        model1 = UAT(
+        model1 = LSAM(
             model_kwargs=model_kwargs_uat,
             training_kwargs=training_kwargs_uat,
             loss_fun=loss_fun,
@@ -114,8 +114,8 @@ def run(iterations, missing="None", epochs=10):
 
     print(d1_uat)
     print(d2_uat)
-    # d1_uat.to_csv("results/latent_space/UAT_Distances1_{}.csv".format(missing))
-    # d2_uat.to_csv("results/latent_space/UAT_Distances2_{}.csv".format(missing))
+    # d1_uat.to_csv("results/latent_space/LSAM_Distances1_{}.csv".format(missing))
+    # d2_uat.to_csv("results/latent_space/LSAM_Distances2_{}.csv".format(missing))
     return d1_uat, d2_uat, drop_probs
 
 
@@ -140,5 +140,5 @@ if __name__ == "__main__":
 
     print( pd.DataFrame(d1, index=d1_uat.index.values))
     print( pd.DataFrame(probs, index=["x1", "x2", "x3", "signal"]))
-    pd.DataFrame(d1, index=d1_uat.index.values).to_csv("results/latent_space/UAT_Distances1_missingness_{}.csv".format(args.missing))
-    pd.DataFrame(probs, index=["x1", "x2", "x3", "signal"]).to_csv("results/latent_space/UAT_drop_probs_missingness_{}.csv".format(args.missing))
+    pd.DataFrame(d1, index=d1_uat.index.values).to_csv("results/latent_space/LSAM_Distances1_missingness_{}.csv".format(args.missing))
+    pd.DataFrame(probs, index=["x1", "x2", "x3", "signal"]).to_csv("results/latent_space/LSAM_drop_probs_missingness_{}.csv".format(args.missing))

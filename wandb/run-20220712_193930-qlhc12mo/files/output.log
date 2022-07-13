@@ -1,0 +1,64 @@
+/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/lightgbm/engine.py:177: UserWarning: Found `num_iterations` in params. Will use it instead of argument
+  _log_warning(f"Found `{alias}` in params. Will use it instead of argument")
+/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/lightgbm/engine.py:177: UserWarning: Found `num_iterations` in params. Will use it instead of argument
+  _log_warning(f"Found `{alias}` in params. Will use it instead of argument")
+name: Supervised Classification, features: cylinder-bands
+{'X_train': {'cols': 0.05510161324114813, 'rows': 0.5038759689922481}, 'X_valid': {'cols': 0.0557258289217052, 'rows': 0.5051546391752577}, 'X_test': {'cols': 0.05785785785785786, 'rows': 0.4962962962962963}}
+dataset sizes
+(388, 37) (97, 37) (135, 37)
+dropped dataset sizes
+(193, 37) (48, 37) (68, 37)
+key: 9286, k: 1/4, dataset: 6332, missing: None, impute: None
+training gbm for 5000 epochs
+{'num_leaves': 16, 'max_bin': 126, 'max_depth': 25, 'min_data_in_leaf': 29, 'learning_rate': 8.901394492705321e-05, 'num_iterations': 604, 'objective': 'softmax', 'verbose': -1, 'num_class': 2}
+Training until validation scores don't improve for 100 rounds
+Did not meet early stopping. Best iteration is:
+[604]	valid_0's multi_logloss: 0.681107
+strategy:None, acc gbm: 0.6518518518518519
+strategy:None, nll xbg:1.3564077615737915
+name: Supervised Classification, features: cylinder-bands
+{'X_train': {'cols': 0.056183901292596934, 'rows': 0.4891304347826087}, 'X_valid': {'cols': 0.07109283196239717, 'rows': 0.5217391304347826}, 'X_test': {'cols': 0.03903903903903903, 'rows': 0.4888888888888889}}
+dataset sizes
+(382, 37) (92, 37) (135, 37)
+dropped dataset sizes
+(191, 37) (44, 37) (69, 37)
+key: 5391, k: 2/4, dataset: 6332, missing: None, impute: None
+training gbm for 5000 epochs
+{'num_leaves': 16, 'max_bin': 126, 'max_depth': 25, 'min_data_in_leaf': 29, 'learning_rate': 8.901394492705321e-05, 'num_iterations': 604, 'objective': 'softmax', 'verbose': -1, 'num_class': 2}
+Training until validation scores don't improve for 100 rounds
+/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/lightgbm/engine.py:177: UserWarning: Found `num_iterations` in params. Will use it instead of argument
+  _log_warning(f"Found `{alias}` in params. Will use it instead of argument")
+/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/lightgbm/engine.py:177: UserWarning: Found `num_iterations` in params. Will use it instead of argument
+  _log_warning(f"Found `{alias}` in params. Will use it instead of argument")
+Did not meet early stopping. Best iteration is:
+[604]	valid_0's multi_logloss: 0.67713
+strategy:None, acc gbm: 0.7185185185185186
+strategy:None, nll xbg:1.3577823638916016
+name: Supervised Classification, features: cylinder-bands
+{'X_train': {'cols': 0.05800747556066704, 'rows': 0.5026595744680851}, 'X_valid': {'cols': 0.04974123059229442, 'rows': 0.5106382978723404}, 'X_test': {'cols': 0.05245245245245245, 'rows': 0.4666666666666667}}
+dataset sizes
+(380, 37) (94, 37) (135, 37)
+dropped dataset sizes
+(190, 37) (46, 37) (72, 37)
+key: 3477, k: 3/4, dataset: 6332, missing: None, impute: None
+training gbm for 5000 epochs
+{'num_leaves': 16, 'max_bin': 126, 'max_depth': 25, 'min_data_in_leaf': 29, 'learning_rate': 8.901394492705321e-05, 'num_iterations': 604, 'objective': 'softmax', 'verbose': -1, 'num_class': 2}
+Training until validation scores don't improve for 100 rounds
+Did not meet early stopping. Best iteration is:
+[604]	valid_0's multi_logloss: 0.680341
+strategy:None, acc gbm: 0.6814814814814815
+strategy:None, nll xbg:1.3559746742248535
+name: Supervised Classification, features: cylinder-bands
+{'X_train': {'cols': 0.05575247378526066, 'rows': 0.4918032786885246}, 'X_valid': {'cols': 0.05170387779083431, 'rows': 0.5}, 'X_test': {'cols': 0.05065065065065066, 'rows': 0.4962962962962963}}
+dataset sizes
+(368, 37) (92, 37) (135, 37)
+dropped dataset sizes
+(186, 37) (46, 37) (68, 37)
+key: 7487, k: 4/4, dataset: 6332, missing: None, impute: None
+training gbm for 5000 epochs
+{'num_leaves': 16, 'max_bin': 126, 'max_depth': 25, 'min_data_in_leaf': 29, 'learning_rate': 8.901394492705321e-05, 'num_iterations': 604, 'objective': 'softmax', 'verbose': -1, 'num_class': 2}
+Training until validation scores don't improve for 100 rounds
+Did not meet early stopping. Best iteration is:
+[604]	valid_0's multi_logloss: 0.677979
+strategy:None, acc gbm: 0.762962962962963
+strategy:None, nll xbg:1.3500818014144897

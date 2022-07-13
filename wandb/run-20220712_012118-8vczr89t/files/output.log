@@ -1,0 +1,64 @@
+name: Supervised Classification, features: cylinder-bands
+{'X_train': {'cols': 0.05147007472588868, 'rows': 0.4754521963824289}, 'X_valid': {'cols': 0.03761493452215101, 'rows': 0.5154639175257731}, 'X_test': {'cols': 0.05785785785785786, 'rows': 0.4962962962962963}}
+dataset sizes
+(390, 37) (97, 37) (135, 37)
+dropped dataset sizes
+(204, 37) (47, 37) (68, 37)
+key: 9801, k: 1/4, dataset: 6332, missing: None, impute: None
+training gbm for 5000 epochs
+{'num_leaves': 31, 'max_bin': 57, 'max_depth': 5, 'min_data_in_leaf': 28, 'learning_rate': 0.005727478496735716, 'num_iterations': 434, 'objective': 'softmax', 'verbose': -1, 'num_class': 2}
+Training until validation scores don't improve for 100 rounds
+Did not meet early stopping. Best iteration is:
+[434]	valid_0's multi_logloss: 0.464843
+strategy:None, acc gbm: 0.7555555555555555
+strategy:None, nll xbg:0.999021053314209
+name: Supervised Classification, features: cylinder-bands
+{'X_train': {'cols': 0.05831374853113986, 'rows': 0.5163043478260869}, 'X_valid': {'cols': 0.04259694477085782, 'rows': 0.391304347826087}, 'X_test': {'cols': 0.03903903903903903, 'rows': 0.4888888888888889}}
+dataset sizes
+(372, 37) (92, 37) (135, 37)
+dropped dataset sizes
+(179, 37) (56, 37) (69, 37)
+key: 7662, k: 2/4, dataset: 6332, missing: None, impute: None
+training gbm for 5000 epochs
+{'num_leaves': 31, 'max_bin': 57, 'max_depth': 5, 'min_data_in_leaf': 28, 'learning_rate': 0.005727478496735716, 'num_iterations': 434, 'objective': 'softmax', 'verbose': -1, 'num_class': 2}
+Training until validation scores don't improve for 100 rounds
+Did not meet early stopping. Best iteration is:
+[434]	valid_0's multi_logloss: 0.428243
+strategy:None, acc gbm: 0.7777777777777778
+strategy:None, nll xbg:0.9597821235656738
+name: Supervised Classification, features: cylinder-bands
+{'X_train': {'cols': 0.05089131684876366, 'rows': 0.4920212765957447}, 'X_valid': {'cols': 0.051178838412880956, 'rows': 0.46808510638297873}, 'X_test': {'cols': 0.05245245245245245, 'rows': 0.4666666666666667}}
+dataset sizes
+(384, 37) (94, 37) (135, 37)
+dropped dataset sizes
+(196, 37) (50, 37) (72, 37)
+key: 573, k: 3/4, dataset: 6332, missing: None, impute: None
+training gbm for 5000 epochs
+{'num_leaves': 31, 'max_bin': 57, 'max_depth': 5, 'min_data_in_leaf': 28, 'learning_rate': 0.005727478496735716, 'num_iterations': 434, 'objective': 'softmax', 'verbose': -1, 'num_class': 2}
+Training until validation scores don't improve for 100 rounds
+/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/lightgbm/engine.py:177: UserWarning: Found `num_iterations` in params. Will use it instead of argument
+  _log_warning(f"Found `{alias}` in params. Will use it instead of argument")
+/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/lightgbm/engine.py:177: UserWarning: Found `num_iterations` in params. Will use it instead of argument
+  _log_warning(f"Found `{alias}` in params. Will use it instead of argument")
+/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/lightgbm/engine.py:177: UserWarning: Found `num_iterations` in params. Will use it instead of argument
+  _log_warning(f"Found `{alias}` in params. Will use it instead of argument")
+Did not meet early stopping. Best iteration is:
+[434]	valid_0's multi_logloss: 0.451971
+strategy:None, acc gbm: 0.7111111111111111
+strategy:None, nll xbg:1.0222432613372803
+name: Supervised Classification, features: cylinder-bands
+{'X_train': {'cols': 0.051764879633732094, 'rows': 0.4808743169398907}, 'X_valid': {'cols': 0.04582843713278496, 'rows': 0.42391304347826086}, 'X_test': {'cols': 0.05065065065065066, 'rows': 0.4962962962962963}}
+dataset sizes
+(372, 37) (92, 37) (135, 37)
+dropped dataset sizes
+(193, 37) (53, 37) (68, 37)
+key: 3770, k: 4/4, dataset: 6332, missing: None, impute: None
+training gbm for 5000 epochs
+{'num_leaves': 31, 'max_bin': 57, 'max_depth': 5, 'min_data_in_leaf': 28, 'learning_rate': 0.005727478496735716, 'num_iterations': 434, 'objective': 'softmax', 'verbose': -1, 'num_class': 2}
+Training until validation scores don't improve for 100 rounds
+Did not meet early stopping. Best iteration is:
+[434]	valid_0's multi_logloss: 0.446569
+strategy:None, acc gbm: 0.7851851851851852
+strategy:None, nll xbg:0.9588282704353333
+/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/lightgbm/engine.py:177: UserWarning: Found `num_iterations` in params. Will use it instead of argument
+  _log_warning(f"Found `{alias}` in params. Will use it instead of argument")

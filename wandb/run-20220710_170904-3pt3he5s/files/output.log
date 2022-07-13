@@ -1,0 +1,40 @@
+name: Supervised Regression, features: tecator
+{'X_train': {'cols': 0.0, 'rows': 0.0}, 'X_valid': {'cols': 0.0, 'rows': 0.0}, 'X_test': {'cols': 0.0, 'rows': 0.0}}
+dataset sizes
+(153, 124) (39, 124) (48, 124)
+dropped dataset sizes
+(153, 124) (39, 124) (48, 124)
+key: 3572, k: 1/20, dataset: 505, missing: None, impute: None
+{'d_model': 32, 'embedding_size': 32, 'embedding_layers': 2, 'encoder_heads': 5, 'encoder_layers': 2, 'decoder_heads': 5, 'decoder_layers': 2, 'net_size': 32, 'net_layers': 2, 'max_steps': 5000, 'learning_rate': 0.001, 'early_stop': 0.5, 'noise_std': 5.0}
+MAP
+  0%|                                                                                                                                                                                                                                                             | 0/100 [00:00<?, ?it/s]
+2 device(s)
+optimizer: adabelief, lr: 0.001, batch_size=32
+  0%|                                                                                                                                                                                                                                                               | 0/4 [00:00<?, ?it/s]
+early stop or epoch
+2 device(s)
+
+optimizer: adam, lr: 0.0010000000474974513, batch_size=32
+
+  6%|████████████▊                                                                                                                                                                                           | 80/1250 [00:18<01:22, 14.17it/s, l=0.165, tl=inf, tlc=0.225, tc=0, e=-.693]
+
+ 17%|█████████████████████████████████▎                                                                                                                                                                    | 210/1250 [00:28<01:10, 14.74it/s, l=0.045, tl=inf, tlc=0.0567, tc=0, e=-.693]
+
+ 34%|███████████████████████████████████████████████████████████████████▉                                                                                                                                 | 431/1250 [00:44<00:56, 14.44it/s, l=0.0251, tl=inf, tlc=0.0162, tc=0, e=-.693]
+
+ 41%|████████████████████████████████████████████████████████████████████████████████▍                                                                                                                    | 510/1250 [00:50<00:52, 14.22it/s, l=0.0218, tl=inf, tlc=0.0228, tc=0, e=-.693]
+
+ 46%|██████████████████████████████████████████████████████████████████████████████████████████▌                                                                                                           | 572/1250 [00:54<00:46, 14.52it/s, l=0.0114, tl=inf, tlc=0.025, tc=0, e=-.693]
+
+ 73%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▍                                                  | 917/1250 [01:22<00:29, 11.10it/s, l=0.00682, tl=0.00694, tlc=0.0225, tc=144, e=-.692]
+  0%|                                                                                                                                                                                                                                                               | 0/4 [00:00<?, ?it/s]
+
+
+Traceback (most recent call last):
+  File "/home/jahan/Missingness/train.py", line 139, in <module>
+    metrics_df, perc_missing = run(
+  File "/home/jahan/Missingness/benchmarkaux/openmlrun.py", line 159, in run
+    output = meanRepeats(model.predict(dimRepeat(X_test), sample=True))
+  File "/home/jahan/Missingness/benchmarkaux/openmlrun.py", line 26, in meanRepeats
+    return jnp.mean(x.reshape((t, -1, x.shape[1])), 0)
+IndexError: tuple index out of range

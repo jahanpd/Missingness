@@ -1,11 +1,7 @@
-from UAT import UAT, create_early_stopping
-from UAT import binary_cross_entropy, cross_entropy, mse, brier, dual, cross_entropy_conc
-from UAT.aux import oversampled_Kfold
-from UAT.training.lr_schedule import attention_lr, linear_increase
+from LSAM import LSAM, create_early_stopping
+from LSAM import binary_cross_entropy, cross_entropy, mse, brier, dual, dual2, cross_entropy_conc
 from optax import linear_onecycle_schedule, join_schedules, piecewise_constant_schedule, linear_schedule
 import jax
-import jax.numpy as jnp
-import numpy as np
 
 def create_make_model(features, rows, task, key):
     """
@@ -23,17 +19,22 @@ def create_make_model(features, rows, task, key):
             y_valid,
             classes,
             d_model=32,
-            max_steps=1e4,
-            lr_max=None,
+            embedding_size=32,
+            embedding_layers=2,
+            encoder_heads=5,
+            encoder_layers=5,
+            decoder_heads=5,
+            decoder_layers=5,
+            net_size=32,
+            net_layers=2,
+            max_steps=1e-4,
+            learning_rate=1e-3,
+            early_stop=0.5,
             batch_size=32,
-            depth=4,  #bij
-            nndepth=2,
-            nnwidth=4,
-            early_stop=True,
-            reg=1e-10,
-            msereg=1e-5,
+            noise_std=0.1,
             dropreg=1e-5,
-            start_es=0.5
+            msereg=1e-5,
+            weight_decay=1e-5,
         ):
         """
         Args:
@@ -60,85 +61,79 @@ def create_make_model(features, rows, task, key):
         batch_size_base2 = batch_size
         steps_per_epoch = max(rows // batch_size_base2, 1)
         epochs = max_steps // steps_per_epoch
-        nnwidth = d_model
         decay = piecewise_constant_schedule(
-            lr_max,
-            # 1e-3,
+            learning_rate,
             boundaries_and_scales={
-                int(start_es * epochs * steps_per_epoch):0.1,
+                int(0.5 * epochs * steps_per_epoch):0.1,
                 int(0.8 * epochs * steps_per_epoch):0.1,
             })
-
-        if max_steps // steps_per_epoch < 100:
-            max_steps = 100*steps_per_epoch
-            epochs = 100
-        #while epochs < 150:
-        #    if batch_size_base2 > 500:
-        #        break
-        #    batch_size_base2 *= 2
-        #    steps_per_epoch = max(rows // batch_size_base2, 1)
-        #    epochs = max_steps // steps_per_epoch
-
+        
         freq = 5
-        print("lr: {}, depth: {}, d_model: {}, width: {}".format(
-            lr_max, int(depth), int(d_model), nnwidth))
         model_kwargs_uat = dict(
                 features=features,
                 d_model=d_model,
-                embed_hidden_size=int(d_model),
-                embed_hidden_layers=int(depth),  # bij
+                embed_hidden_size=embedding_size,
+                embed_hidden_layers=embedding_layers,
                 embed_activation=jax.nn.gelu,
-                encoder_layers=int(depth),  # attn
-                encoder_heads=5,
+                encoder_layers=encoder_layers,
+                encoder_heads=encoder_heads,
                 enc_activation=jax.nn.gelu,
-                decoder_layers=int(nndepth),  # attn
-                decoder_heads=5,
+                decoder_layers=decoder_layers,
+                decoder_heads=decoder_heads,
                 dec_activation=jax.nn.gelu,
-                net_hidden_size=int(d_model),  # output
-                net_hidden_layers=int(1),  # output or mixture attn
+                net_hidden_size=net_size,
+                net_hidden_layers=net_layers,
                 net_activation=jax.nn.gelu,
-                last_layer_size=d_model // 2,
+                last_layer_size=d_model,
                 out_size=classes,
                 W_init = jax.nn.initializers.he_normal(),
                 b_init = jax.nn.initializers.zeros,
+                noise_std = noise_std
                 )
-        epochs = int(max_steps // steps_per_epoch)
-        start_steps = int(start_es*epochs*steps_per_epoch) # wait at least X epochs before early stopping
+        start_steps = int(early_stop*epochs*steps_per_epoch) # wait at least X epochs before early stopping
         stop_steps_ = steps_per_epoch * (epochs // 8) / min(steps_per_epoch, freq)
 
         optim_kwargs=dict(
             b1=0.9, b2=0.99,
             eps=1e-9,
-            weight_decay=reg,
+            weight_decay=weight_decay,
         )
         early_stopping = create_early_stopping(start_steps, stop_steps_, metric_name="loss", tol=1e-8)
+        early_stop_bool = True if early_stop >= 0 else False 
+
         training_kwargs_uat = dict(
                     optim="adam",
                     frequency=min(steps_per_epoch, freq),
                     batch_size=batch_size_base2,
                     lr=decay,
-                    #lr=1e-4,
-                    epochs=epochs,
+                    epochs=int(epochs),
                     early_stopping=early_stopping,
                     optim_kwargs=optim_kwargs,
-                    early_stop=early_stop,
+                    early_stop=early_stop_bool,
                     steps_til_samp=-1
                 )
         if task == "Supervised Classification":
             # loss_fun = cross_entropy(classes, l2_reg=0, dropout_reg=dropreg)
             # loss_fun = cross_entropy_conc(classes, l2_reg=msereg, dropout_reg=dropreg)
-            loss_fun = dual(classes, dropout_reg=dropreg, msereg=msereg)
+            # loss_fun = dual(classes, dropout_reg=dropreg, msereg=msereg)
+            loss_fun = dual2(classes, dropout_reg=0.0, msereg=0.0)
             # loss_fun = brier(l2_reg=0.0, dropout_reg=1e-7)
         elif task == "Supervised Regression":
             loss_fun = mse(l2_reg=0.0, dropout_reg=5e-1)
         training_kwargs_uat["X_test"] = X_valid
         training_kwargs_uat["y_test"] = y_valid
-        model = UAT(
+        model = LSAM(
             model_kwargs=model_kwargs_uat,
             training_kwargs=training_kwargs_uat,
             loss_fun=loss_fun,
             rng_key=key,
             classes=classes,
+            unsupervised_pretraining=None
+            #unsupervised_pretraining=dict(
+            #    lr=1e-4,
+            #    batch_size=batch_size_base2,
+            #    cut_off=100
+            #    )
             )
         return model, batch_size_base2, loss_fun
     return make_model

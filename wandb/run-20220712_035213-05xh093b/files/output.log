@@ -1,0 +1,92 @@
+name: Supervised Classification, features: eucalyptus
+{'X_train': {'cols': 0.03061900033101622, 'rows': 0.12106918238993711}, 'X_valid': {'cols': 0.013902681231380337, 'rows': 0.06918238993710692}, 'X_test': {'cols': 0.03175057208237986, 'rows': 0.1358695652173913}}
+dataset sizes
+(660, 19) (159, 19) (184, 19)
+dropped dataset sizes
+(583, 19) (148, 19) (159, 19)
+key: 708, k: 1/4, dataset: 188, missing: None, impute: None
+{'d_model': 71, 'embedding_size': 126, 'embedding_layers': 1, 'encoder_heads': 5, 'encoder_layers': 1, 'decoder_heads': 4, 'decoder_layers': 5, 'net_size': 57, 'net_layers': 3, 'max_steps': 2059, 'learning_rate': 0.0001, 'batch_size': 128, 'early_stop': 0.3887066795252519, 'noise_std': 0.6698358018659967}
+MAP
+2 device(s)
+optimizer: adam, lr: 9.999999747378752e-05, batch_size=128
+  0%|                                                                                                                                                                                                                                                                                               | 0/411 [00:00<?, ?it/s]
+  0%|                                                                                                                                                                                                                                                                                                 | 0/5 [00:00<?, ?it/s]
+
+Final test loss: 1.356860637664795, epoch: 247, time: 0:00:38.201858
+(184, 5)
+
+softmax
+15.768943 -6.35922
+0.99998355 2.6256042e-09
+strategy:None, acc lsam:0.6684782608695652
+strategy:None, nll lsam:0.8263521790504456
+name: Supervised Classification, features: eucalyptus
+{'X_train': {'cols': 0.025907159202353713, 'rows': 0.10403726708074534}, 'X_valid': {'cols': 0.026806145799280815, 'rows': 0.16149068322981366}, 'X_test': {'cols': 0.028318077803203664, 'rows': 0.11413043478260869}}
+dataset sizes
+(665, 19) (161, 19) (184, 19)
+dropped dataset sizes
+(597, 19) (135, 19) (163, 19)
+key: 5805, k: 2/4, dataset: 188, missing: None, impute: None
+{'d_model': 71, 'embedding_size': 126, 'embedding_layers': 1, 'encoder_heads': 5, 'encoder_layers': 1, 'decoder_heads': 4, 'decoder_layers': 5, 'net_size': 57, 'net_layers': 3, 'max_steps': 2059, 'learning_rate': 0.0001, 'batch_size': 128, 'early_stop': 0.3887066795252519, 'noise_std': 0.6698358018659967}
+MAP
+2 device(s)
+optimizer: adam, lr: 9.999999747378752e-05, batch_size=128
+  0%|                                                                                                                                                                                                                                                                                               | 0/411 [00:00<?, ?it/s]
+
+ 45%|████████████████████████████████████████████████████████████████████████████████████████████████████████▋                                                                                                                                  | 183/411 [00:25<00:21, 10.63it/s, l=1.48, tl=1.57, tlc=1.65, tc=7, e=-.693]
+  0%|                                                                                                                                                                                                                                                                                                 | 0/5 [00:00<?, ?it/s]
+Final test loss: 1.4120625257492065, epoch: 314, time: 0:00:36.455678
+(184, 5)
+softmax
+9.768221 -7.107352
+0.9999088 4.644949e-06
+strategy:None, acc lsam:0.6413043478260869
+strategy:None, nll lsam:0.8422371745109558
+name: Supervised Classification, features: eucalyptus
+{'X_train': {'cols': 0.02898067954696869, 'rows': 0.12341772151898735}, 'X_valid': {'cols': 0.027648234510326452, 'rows': 0.13291139240506328}, 'X_test': {'cols': 0.02974828375286041, 'rows': 0.11956521739130435}}
+dataset sizes
+(670, 19) (158, 19) (184, 19)
+dropped dataset sizes
+(589, 19) (137, 19) (162, 19)
+key: 6994, k: 3/4, dataset: 188, missing: None, impute: None
+{'d_model': 71, 'embedding_size': 126, 'embedding_layers': 1, 'encoder_heads': 5, 'encoder_layers': 1, 'decoder_heads': 4, 'decoder_layers': 5, 'net_size': 57, 'net_layers': 3, 'max_steps': 2059, 'learning_rate': 0.0001, 'batch_size': 128, 'early_stop': 0.3887066795252519, 'noise_std': 0.6698358018659967}
+MAP
+2 device(s)
+
+optimizer: adam, lr: 9.999999747378752e-05, batch_size=128
+
+ 32%|██████████████████████████████████████████████████████████████████████████▋                                                                                                                                                                 | 130/411 [00:20<00:25, 11.18it/s, l=1.57, tl=inf, tlc=1.68, tc=0, e=-.693]
+
+  0%|                                                                                                                                                                                                                                                                                                 | 0/5 [00:00<?, ?it/s]
+
+  0%|                                                                                                                                                                                                                                                                                                 | 0/2 [00:00<?, ?it/s]
+(184, 5)
+softmax
+9.291932 -6.911444
+0.9999951 9.496866e-08
+strategy:None, acc lsam:0.5760869565217391
+strategy:None, nll lsam:0.9421130418777466
+name: Supervised Classification, features: eucalyptus
+{'X_train': {'cols': 0.026075096277278564, 'rows': 0.12195121951219512}, 'X_valid': {'cols': 0.03273427471116817, 'rows': 0.12195121951219512}, 'X_test': {'cols': 0.03832951945080091, 'rows': 0.14673913043478262}}
+dataset sizes
+(695, 19) (164, 19) (184, 19)
+dropped dataset sizes
+(606, 19) (144, 19) (157, 19)
+key: 8849, k: 4/4, dataset: 188, missing: None, impute: None
+{'d_model': 71, 'embedding_size': 126, 'embedding_layers': 1, 'encoder_heads': 5, 'encoder_layers': 1, 'decoder_heads': 4, 'decoder_layers': 5, 'net_size': 57, 'net_layers': 3, 'max_steps': 2059, 'learning_rate': 0.0001, 'batch_size': 128, 'early_stop': 0.3887066795252519, 'noise_std': 0.6698358018659967}
+MAP
+2 device(s)
+
+  0%|                                                                                                                                                                                                                                                                                               | 0/411 [00:00<?, ?it/s]
+
+  6%|██████████████▉                                                                                                                                                                                                                              | 26/411 [00:11<00:42,  9.05it/s, l=2.67, tl=inf, tlc=2.45, tc=0, e=-.693]
+
+  0%|                                                                                                                                                                                                                                                                                                 | 0/5 [00:00<?, ?it/s]
+Final test loss: 1.288374662399292, epoch: 354, time: 0:00:40.696833
+(184, 5)
+softmax
+7.073079 -7.8826547
+0.99998 3.7438033e-07
+strategy:None, acc lsam:0.6358695652173914
+
+strategy:None, nll lsam:0.7790020704269409

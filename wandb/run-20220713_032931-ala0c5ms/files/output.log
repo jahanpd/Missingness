@@ -1,0 +1,66 @@
+name: Supervised Regression, features: us_crime
+{'X_train': {'cols': 0.153859425598556, 'rows': 0.9347826086956522}, 'X_valid': {'cols': 0.16218081435472742, 'rows': 0.9498327759197325}, 'X_test': {'cols': 0.15755320164137798, 'rows': 0.9398797595190381}}
+dataset sizes
+(1196, 126) (299, 126) (499, 126)
+dropped dataset sizes
+(78, 126) (15, 126) (30, 126)
+key: 7016, k: 1/4, dataset: 42730, missing: None, impute: None
+{'d_model': 50, 'embedding_size': 50, 'embedding_layers': 8, 'encoder_heads': 5, 'encoder_layers': 2, 'decoder_heads': 5, 'decoder_layers': 1, 'net_size': 50, 'net_layers': 6, 'max_steps': 3396, 'learning_rate': 0.0001452138724397464, 'batch_size': 32, 'early_stop': 0.8398709528973892, 'noise_std': 0.10974972869977774}
+MAP
+2 device(s)
+optimizer: adam, lr: 0.0001452138676540926, batch_size=32
+  0%|                                                                                                                                                                                                                                                                                                | 0/91 [00:00<?, ?it/s]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 24%|████████████████████████████████████████████████████████████████████                                                                                                                                                                                                                    | 9/37 [00:00<00:00, 37.53it/s]
+  File "/home/jahan/Missingness/train.py", line 143, in <module>
+    metrics_df, perc_missing = run(
+  File "/home/jahan/Missingness/benchmarkaux/openmlrun.py", line 149, in run
+    output = model.predict(X_test, sample=False)
+  File "/home/jahan/Missingness/UAT/models/scikit_wrapper.py", line 209, in predict
+    out = self.batch_forward(X, sample)
+  File "/home/jahan/Missingness/UAT/models/scikit_wrapper.py", line 163, in batch_forward
+    X.shape[0] // batch_size)
+ZeroDivisionError: integer division or modulo by zero

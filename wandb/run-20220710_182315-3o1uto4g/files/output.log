@@ -1,0 +1,75 @@
+name: Supervised Regression, features: tecator
+{'X_train': {'cols': 0.0, 'rows': 0.0}, 'X_valid': {'cols': 0.0, 'rows': 0.0}, 'X_test': {'cols': 0.0, 'rows': 0.0}}
+dataset sizes
+(153, 124) (39, 124) (48, 124)
+dropped dataset sizes
+(153, 124) (39, 124) (48, 124)
+key: 1164, k: 1/20, dataset: 505, missing: None, impute: None
+{'d_model': 32, 'embedding_size': 32, 'embedding_layers': 2, 'encoder_heads': 5, 'encoder_layers': 2, 'decoder_heads': 5, 'decoder_layers': 2, 'net_size': 32, 'net_layers': 2, 'max_steps': 5000, 'learning_rate': 0.001, 'early_stop': 0.5, 'noise_std': 5.0}
+MAP
+2 device(s)
+optimizer: adabelief, lr: 0.001, batch_size=32
+  0%|                                                                                                                                                                                                                                                             | 0/100 [00:00<?, ?it/s]
+
+  0%|                                                                                                                                                                                                                                                               | 0/4 [00:00<?, ?it/s]
+early stop or epoch
+2 device(s)
+optimizer: adam, lr: 0.0010000000474974513, batch_size=32
+  0%|                                                                                                                                                                                                                                                            | 0/1250 [00:00<?, ?it/s]
+
+
+  9%|██████████████████▍                                                                                                                                                                                    | 116/1250 [00:21<01:25, 13.25it/s, l=0.984, tl=inf, tlc=0.835, tc=0, e=-.693]
+
+
+ 17%|█████████████████████████████████▉                                                                                                                                                                     | 213/1250 [00:29<01:33, 11.06it/s, l=0.633, tl=inf, tlc=0.328, tc=0, e=-.693]
+
+ 32%|███████████████████████████████████████████████████████████████▊                                                                                                                                     | 405/1250 [00:45<01:11, 11.81it/s, l=0.0503, tl=inf, tlc=0.0784, tc=0, e=-.693]
+
+ 36%|███████████████████████████████████████████████████████████████████████▋                                                                                                                             | 455/1250 [00:49<01:10, 11.21it/s, l=0.0312, tl=inf, tlc=0.0266, tc=0, e=-.693]
+  0%|                                                                                                                                                                                                                                                               | 0/4 [00:00<?, ?it/s]
+
+Final test loss: 0.005315519869327545, epoch: 970, time: 0:01:30.591692
+strategy:None, rmse lsam:1.2783597707748413
+training gbm for 5000 epochs
+{'num_leaves': 31, 'max_bin': 155, 'max_depth': -1, 'min_data_in_leaf': 20, 'learning_rate': 0.001, 'num_iterations': 100, 'objective': 'regression', 'verbose': -1, 'num_class': 1}
+Training until validation scores don't improve for 100 rounds
+Did not meet early stopping. Best iteration is:
+[100]	valid_0's l2: 0.660092
+strategy:None, rmse xbg:0.9254141554431198
+name: Supervised Regression, features: tecator
+{'X_train': {'cols': 0.0, 'rows': 0.0}, 'X_valid': {'cols': 0.0, 'rows': 0.0}, 'X_test': {'cols': 0.0, 'rows': 0.0}}
+dataset sizes
+(153, 124) (39, 124) (48, 124)
+dropped dataset sizes
+(153, 124) (39, 124) (48, 124)
+key: 880, k: 2/20, dataset: 505, missing: None, impute: None
+{'d_model': 32, 'embedding_size': 32, 'embedding_layers': 2, 'encoder_heads': 5, 'encoder_layers': 2, 'decoder_heads': 5, 'decoder_layers': 2, 'net_size': 32, 'net_layers': 2, 'max_steps': 5000, 'learning_rate': 0.001, 'early_stop': 0.5, 'noise_std': 5.0}
+MAP
+2 device(s)
+optimizer: adabelief, lr: 0.001, batch_size=32
+                                                                                                                                                                                                                                                                                          /home/jahan/.conda/envs/jax/lib/python3.10/site-packages/lightgbm/engine.py:177: UserWarning: Found `num_iterations` in params. Will use it instead of argument
+  _log_warning(f"Found `{alias}` in params. Will use it instead of argument")
+/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/lightgbm/basic.py:179: UserWarning: Converting column-vector to 1d array
+  _log_warning('Converting column-vector to 1d array')
+  0%|                                                                                                                                                                                                                                                             | 0/100 [00:00<?, ?it/s]
+  0%|                                                                                                                                                                                                                                                               | 0/4 [00:00<?, ?it/s]
+early stop or epoch
+2 device(s)
+
+optimizer: adam, lr: 0.0010000000474974513, batch_size=32
+
+  3%|█████▉                                                                                                                                                                                                   | 37/1250 [00:11<01:26, 13.96it/s, l=0.804, tl=inf, tlc=1.47, tc=0, e=-.693]
+
+
+ 29%|█████████████████████████████████████████████████████████▎                                                                                                                                           | 364/1250 [00:34<01:04, 13.73it/s, l=0.0503, tl=inf, tlc=0.0581, tc=0, e=-.693]
+  File "/home/jahan/Missingness/train.py", line 139, in <module>                                                                                                                                                                                                    | 0/4 [00:00<?, ?it/s]
+    metrics_df, perc_missing = run(
+  File "/home/jahan/Missingness/benchmarkaux/openmlrun.py", line 155, in run
+    model.fit(X_train, y_train)
+  File "/home/jahan/Missingness/UAT/models/scikit_wrapper.py", line 152, in fit
+    params, history, rng = training_loop(
+  File "/home/jahan/Missingness/UAT/training/train.py", line 293, in training_loop
+    params_ = jax.device_get(jax.tree_map(lambda x: x[0], params))
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/jax/_src/api.py", line 2967, in device_get
+    y.copy_to_host_async()
+KeyboardInterrupt

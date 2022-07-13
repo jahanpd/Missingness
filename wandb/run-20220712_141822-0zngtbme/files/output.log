@@ -1,0 +1,216 @@
+name: Supervised Classification, features: dresses-sales
+{'X_train': {'cols': 0.139367816091954, 'rows': 0.8160919540229885}, 'X_valid': {'cols': 0.13825757575757577, 'rows': 0.7840909090909091}, 'X_test': {'cols': 0.14733333333333334, 'rows': 0.8}}
+dataset sizes
+(356, 12) (88, 12) (125, 12)
+dropped dataset sizes
+(66, 12) (19, 12) (25, 12)
+key: 2298, k: 1/4, dataset: 23381, missing: None, impute: None
+{'d_model': 77, 'embedding_size': 77, 'embedding_layers': 5, 'encoder_heads': 2, 'encoder_layers': 10, 'decoder_heads': 1, 'decoder_layers': 10, 'net_size': 77, 'net_layers': 1, 'max_steps': 4248, 'learning_rate': 0.00010131316316484512, 'batch_size': 32, 'early_stop': 0.2743385087276503, 'noise_std': 0.2016151645989345}
+MAP
+2 device(s)
+  0%|                                                                                                                                                                                                                                                                                               | 0/386 [00:00<?, ?it/s]
+optimizer: adam, lr: 0.00010131316230399534, batch_size=32
+
+
+
+
+
+
+
+
+
+ 13%|███████████████████████████████▉                                                                                                                                                                                                             | 52/386 [00:34<01:47,  3.10it/s, l=1.39, tl=inf, tlc=1.43, tc=0, e=-.693]
+
+
+
+
+
+
+
+
+
+
+
+
+ 34%|███████████████████████████████████████████████████████████████████████████████▊                                                                                                                                                           | 131/386 [01:00<01:29,  2.86it/s, l=1.4, tl=1.34, tlc=1.45, tc=25, e=-.693]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  0%|                                                                                                                                                                                                                                                                                                | 0/11 [00:00<?, ?it/s]
+
+  0%|                                                                                                                                                                                                                                                                                                 | 0/1 [00:00<?, ?it/s]
+(125, 2)
+softmax
+1.2605563 0.7479516
+0.6069503 0.39304963
+strategy:None, acc lsam:0.576
+strategy:None, nll lsam:1.3563848733901978
+name: Supervised Classification, features: dresses-sales
+{'X_train': {'cols': 0.1386574074074074, 'rows': 0.7972222222222223}, 'X_valid': {'cols': 0.1361111111111111, 'rows': 0.7666666666666667}, 'X_test': {'cols': 0.146, 'rows': 0.832}}
+dataset sizes
+(364, 12) (90, 12) (125, 12)
+dropped dataset sizes
+(74, 12) (21, 12) (21, 12)
+key: 3240, k: 2/4, dataset: 23381, missing: None, impute: None
+{'d_model': 77, 'embedding_size': 77, 'embedding_layers': 5, 'encoder_heads': 2, 'encoder_layers': 10, 'decoder_heads': 1, 'decoder_layers': 10, 'net_size': 77, 'net_layers': 1, 'max_steps': 4248, 'learning_rate': 0.00010131316316484512, 'batch_size': 32, 'early_stop': 0.2743385087276503, 'noise_std': 0.2016151645989345}
+MAP
+2 device(s)
+
+  0%|                                                                                                                                                                                                                                                                                               | 0/386 [00:00<?, ?it/s]
+
+
+
+
+
+
+
+
+
+
+ 22%|███████████████████████████████████████████████████▏                                                                                                                                                                                          | 83/386 [00:36<01:41,  2.98it/s, l=1.38, tl=inf, tlc=1.4, tc=0, e=-.693]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 45%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▎                                                                                                                                                        | 5/11 [00:00<00:00, 38.18it/s]
+
+Final test loss: 1.2853795289993286, epoch: 224, time: 0:01:24.291161
+(125, 2)
+softmax
+-0.15563351 -0.6941899
+0.6286673 0.37133276
+strategy:None, acc lsam:0.576
+strategy:None, nll lsam:1.384094476699829
+name: Supervised Classification, features: dresses-sales
+{'X_train': {'cols': 0.1441375968992248, 'rows': 0.813953488372093}, 'X_valid': {'cols': 0.15697674418604654, 'rows': 0.8372093023255814}, 'X_test': {'cols': 0.12533333333333332, 'rows': 0.792}}
+dataset sizes
+(350, 12) (86, 12) (125, 12)
+dropped dataset sizes
+(65, 12) (14, 12) (26, 12)
+key: 6654, k: 3/4, dataset: 23381, missing: None, impute: None
+{'d_model': 77, 'embedding_size': 77, 'embedding_layers': 5, 'encoder_heads': 2, 'encoder_layers': 10, 'decoder_heads': 1, 'decoder_layers': 10, 'net_size': 77, 'net_layers': 1, 'max_steps': 4248, 'learning_rate': 0.00010131316316484512, 'batch_size': 32, 'early_stop': 0.2743385087276503, 'noise_std': 0.2016151645989345}
+MAP
+2 device(s)
+optimizer: adam, lr: 0.00010131316230399534, batch_size=32
+
+
+  2%|████▍                                                                                                                                                                                                                                         | 8/424 [00:12<03:42,  1.87it/s, l=1.47, tl=inf, tlc=1.41, tc=0, e=-.693]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  0%|                                                                                                                                                                                                                                                                                                | 0/10 [00:00<?, ?it/s]
+
+Final test loss: 1.3160533905029297, epoch: 174, time: 0:01:02.123699
+(125, 2)
+softmax
+1.3382546 0.047451157
+0.6692347 0.3307653
+strategy:None, acc lsam:0.616
+strategy:None, nll lsam:1.3134371042251587
+name: Supervised Classification, features: dresses-sales
+{'X_train': {'cols': 0.1428220255653884, 'rows': 0.8141592920353983}, 'X_valid': {'cols': 0.13137254901960785, 'rows': 0.788235294117647}, 'X_test': {'cols': 0.13799999999999998, 'rows': 0.784}}
+dataset sizes
+(344, 12) (85, 12) (125, 12)
+dropped dataset sizes
+(65, 12) (18, 12) (27, 12)
+key: 582, k: 4/4, dataset: 23381, missing: None, impute: None
+{'d_model': 77, 'embedding_size': 77, 'embedding_layers': 5, 'encoder_heads': 2, 'encoder_layers': 10, 'decoder_heads': 1, 'decoder_layers': 10, 'net_size': 77, 'net_layers': 1, 'max_steps': 4248, 'learning_rate': 0.00010131316316484512, 'batch_size': 32, 'early_stop': 0.2743385087276503, 'noise_std': 0.2016151645989345}
+MAP
+2 device(s)
+  0%|                                                                                                                                                                                                                                                                                               | 0/424 [00:00<?, ?it/s]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 33%|█████████████████████████████████████████████████████████████████████████████▌                                                                                                                                                             | 140/424 [00:52<01:29,  3.17it/s, l=1.38, tl=1.32, tlc=1.36, tc=3, e=-.693]
+
+
+
+
+ 40%|██████████████████████████████████████████████████████████████████████████████████████████████▎                                                                                                                                           | 171/424 [01:01<01:22,  3.06it/s, l=1.35, tl=1.31, tlc=1.38, tc=39, e=-.693]
+
+
+
+
+
+
+
+
+
+
+
+ 50%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████                                                                                                                                            | 5/10 [00:00<00:00, 45.82it/s]
+Final test loss: 1.2884680032730103, epoch: 253, time: 0:01:26.782693
+(125, 2)
+softmax
+-1.5884445 -2.5622473
+0.7008567 0.29914337
+strategy:None, acc lsam:0.512
+
+strategy:None, nll lsam:1.3688993453979492

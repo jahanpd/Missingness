@@ -1,0 +1,30 @@
+wandb_version: 1
+
+batch_size:
+  value: 64
+d_model:
+  value: 25
+decoder_heads:
+  value: 5
+decoder_layers:
+  value: 5
+early_stopping:
+  value: 0.3008247423464888
+embedding_layers:
+  value: 2
+embedding_size:
+  value: 26
+encoder_heads:
+  value: 1
+encoder_layers:
+  value: 4
+learning_rate:
+  value: 0.0001
+max_steps:
+  value: 5808
+net_layers:
+  value: 1
+net_size:
+  value: 44
+noise_std:
+  value: 0.403663878965206

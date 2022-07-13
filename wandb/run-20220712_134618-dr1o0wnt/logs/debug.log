@@ -1,0 +1,28 @@
+2022-07-12 13:46:18,817 INFO    MainThread:735098 [wandb_setup.py:_flush():76] Configure stats pid to 735098
+2022-07-12 13:46:18,817 INFO    MainThread:735098 [wandb_setup.py:_flush():76] Loading settings from /home/jahan/.config/wandb/settings
+2022-07-12 13:46:18,817 INFO    MainThread:735098 [wandb_setup.py:_flush():76] Loading settings from wandb/settings
+2022-07-12 13:46:18,817 INFO    MainThread:735098 [wandb_setup.py:_flush():76] Loading settings from environment variables: {'project': 'missingness', 'entity': 'cardiac-ml', 'sweep_id': 'yzmp0e3l', 'root_dir': '/home/jahan/Missingness', 'run_id': 'dr1o0wnt', 'sweep_param_path': '/home/jahan/Missingness/wandb/sweep-yzmp0e3l/config-dr1o0wnt.yaml'}
+2022-07-12 13:46:18,817 INFO    MainThread:735098 [wandb_setup.py:_flush():76] Inferring run settings from compute environment: {'program_relpath': 'train.py', 'program': '/home/jahan/Missingness/train.py'}
+2022-07-12 13:46:18,817 INFO    MainThread:735098 [wandb_init.py:_log_setup():461] Logging user logs to /home/jahan/Missingness/wandb/run-20220712_134618-dr1o0wnt/logs/debug.log
+2022-07-12 13:46:18,817 INFO    MainThread:735098 [wandb_init.py:_log_setup():462] Logging internal logs to /home/jahan/Missingness/wandb/run-20220712_134618-dr1o0wnt/logs/debug-internal.log
+2022-07-12 13:46:18,817 INFO    MainThread:735098 [wandb_init.py:init():495] calling init triggers
+2022-07-12 13:46:18,818 INFO    MainThread:735098 [wandb_init.py:init():498] wandb.init called with sweep_config: {'batch_size': 64, 'd_model': 13, 'decoder_heads': 3, 'decoder_layers': 2, 'early_stopping': 0.0997798246748554, 'embedding_layers': 6, 'encoder_heads': 3, 'encoder_layers': 3, 'learning_rate': 0.008736843649771906, 'max_steps': 2554, 'net_layers': 3, 'noise_std': 0.011772348145632572}
+config: {'dataset': 0, 'corrupt': False, 'missing': 'None', 'imputation': 'None', 'p_missing_per_col': 0.5, 'p_cols_missing': 0.9, 'min_p_missing': 0.2, 'model': 'LSAM', 'd_model': 13, 'embedding_size': 32, 'embedding_layers': 6, 'encoder_heads': 3, 'encoder_layers': 3, 'decoder_heads': 3, 'decoder_layers': 2, 'net_size': 32, 'net_layers': 3, 'max_steps': 2554, 'learning_rate': 0.008736843649771906, 'early_stopping': 0.0997798246748554, 'batch_size': 64, 'noise_std': 0.011772348145632572, 'num_leaves': 31, 'max_bin': 155, 'max_depth': -1, 'min_data_in_leaf': 20, 'lightgbm_learning_rate': 0.001, 'num_iterations': 100, 'k': 4, 'repeats': 1, 'seed': 0, 'notes': 'hyperparameter search'}
+2022-07-12 13:46:18,818 INFO    MainThread:735098 [wandb_init.py:init():548] starting backend
+2022-07-12 13:46:18,818 INFO    MainThread:735098 [backend.py:_multiprocessing_setup():97] multiprocessing start_methods=fork,spawn,forkserver, using: spawn
+2022-07-12 13:46:18,822 INFO    MainThread:735098 [backend.py:ensure_launched():217] starting backend process...
+2022-07-12 13:46:18,823 INFO    MainThread:735098 [backend.py:ensure_launched():222] started backend process with pid: 735279
+2022-07-12 13:46:18,824 INFO    MainThread:735098 [wandb_init.py:init():558] backend started and connected
+2022-07-12 13:46:18,828 INFO    MainThread:735098 [wandb_run.py:_config_callback():1131] config_cb None None {'batch_size': 64, 'd_model': 13, 'decoder_heads': 3, 'decoder_layers': 2, 'early_stopping': 0.0997798246748554, 'embedding_layers': 6, 'encoder_heads': 3, 'encoder_layers': 3, 'learning_rate': 0.008736843649771906, 'max_steps': 2554, 'net_layers': 3, 'noise_std': 0.011772348145632572}
+2022-07-12 13:46:18,831 INFO    MainThread:735098 [wandb_init.py:init():634] updated telemetry
+2022-07-12 13:46:18,837 INFO    MainThread:735098 [wandb_init.py:init():665] communicating run to backend with 30 second timeout
+2022-07-12 13:46:19,723 INFO    MainThread:735098 [wandb_run.py:_on_init():1919] communicating current version
+2022-07-12 13:46:19,812 INFO    MainThread:735098 [wandb_run.py:_on_init():1923] got version response 
+2022-07-12 13:46:19,812 INFO    MainThread:735098 [wandb_init.py:init():700] starting run threads in backend
+2022-07-12 13:46:22,323 INFO    MainThread:735098 [wandb_run.py:_console_start():1893] atexit reg
+2022-07-12 13:46:22,324 INFO    MainThread:735098 [wandb_run.py:_redirect():1766] redirect: SettingsConsole.REDIRECT
+2022-07-12 13:46:22,325 INFO    MainThread:735098 [wandb_run.py:_redirect():1771] Redirecting console.
+2022-07-12 13:46:22,327 INFO    MainThread:735098 [wandb_run.py:_redirect():1827] Redirects installed.
+2022-07-12 13:46:22,328 INFO    MainThread:735098 [wandb_init.py:init():732] run started, returning control to user process
+2022-07-12 13:46:22,329 INFO    MainThread:735098 [wandb_run.py:_config_callback():1131] config_cb None None {'dataset_name': 'dresses-sales'}
+2022-07-12 13:46:22,329 INFO    MainThread:735098 [wandb_run.py:_config_callback():1131] config_cb None None {'seed': 1825}

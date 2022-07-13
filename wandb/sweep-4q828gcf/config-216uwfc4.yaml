@@ -1,0 +1,14 @@
+wandb_version: 1
+
+lightgbm_learning_rate:
+  value: 0.01302052007518284
+max_bin:
+  value: 204
+max_depth:
+  value: 27
+min_data_in_leaf:
+  value: 22
+num_iterations:
+  value: 733
+num_leaves:
+  value: 38

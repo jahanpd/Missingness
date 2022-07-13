@@ -1,0 +1,64 @@
+name: Supervised Classification, features: dresses-sales
+{'X_train': {'cols': 0.1396072796934866, 'rows': 0.7988505747126436}, 'X_valid': {'cols': 0.12878787878787878, 'rows': 0.7727272727272727}, 'X_test': {'cols': 0.14733333333333334, 'rows': 0.8}}
+dataset sizes
+(354, 12) (88, 12) (125, 12)
+dropped dataset sizes
+(72, 12) (20, 12) (25, 12)
+key: 1626, k: 1/4, dataset: 23381, missing: None, impute: None
+training gbm for 5000 epochs
+{'num_leaves': 17, 'max_bin': 203, 'max_depth': 5, 'min_data_in_leaf': 21, 'learning_rate': 0.00226160369169732, 'num_iterations': 748, 'objective': 'softmax', 'verbose': -1, 'num_class': 2}
+Training until validation scores don't improve for 100 rounds
+Early stopping, best iteration is:
+[93]	valid_0's multi_logloss: 0.688622
+strategy:None, acc gbm: 0.528
+strategy:None, nll xbg:1.383600115776062
+name: Supervised Classification, features: dresses-sales
+{'X_train': {'cols': 0.1412037037037037, 'rows': 0.7861111111111111}, 'X_valid': {'cols': 0.14351851851851852, 'rows': 0.8}, 'X_test': {'cols': 0.146, 'rows': 0.832}}
+dataset sizes
+(362, 12) (90, 12) (125, 12)
+dropped dataset sizes
+(78, 12) (18, 12) (21, 12)
+key: 8515, k: 2/4, dataset: 23381, missing: None, impute: None
+training gbm for 5000 epochs
+{'num_leaves': 17, 'max_bin': 203, 'max_depth': 5, 'min_data_in_leaf': 21, 'learning_rate': 0.00226160369169732, 'num_iterations': 748, 'objective': 'softmax', 'verbose': -1, 'num_class': 2}
+Training until validation scores don't improve for 100 rounds
+/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/lightgbm/engine.py:177: UserWarning: Found `num_iterations` in params. Will use it instead of argument
+  _log_warning(f"Found `{alias}` in params. Will use it instead of argument")
+/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/lightgbm/engine.py:177: UserWarning: Found `num_iterations` in params. Will use it instead of argument
+  _log_warning(f"Found `{alias}` in params. Will use it instead of argument")
+Did not meet early stopping. Best iteration is:
+[748]	valid_0's multi_logloss: 0.606881
+strategy:None, acc gbm: 0.56
+strategy:None, nll xbg:1.413438320159912
+name: Supervised Classification, features: dresses-sales
+{'X_train': {'cols': 0.14462209302325582, 'rows': 0.7790697674418605}, 'X_valid': {'cols': 0.14147286821705427, 'rows': 0.8604651162790697}, 'X_test': {'cols': 0.12533333333333332, 'rows': 0.792}}
+dataset sizes
+(348, 12) (86, 12) (125, 12)
+dropped dataset sizes
+(77, 12) (12, 12) (26, 12)
+key: 999, k: 3/4, dataset: 23381, missing: None, impute: None
+training gbm for 5000 epochs
+{'num_leaves': 17, 'max_bin': 203, 'max_depth': 5, 'min_data_in_leaf': 21, 'learning_rate': 0.00226160369169732, 'num_iterations': 748, 'objective': 'softmax', 'verbose': -1, 'num_class': 2}
+Training until validation scores don't improve for 100 rounds
+Early stopping, best iteration is:
+[175]	valid_0's multi_logloss: 0.670772
+strategy:None, acc gbm: 0.64
+strategy:None, nll xbg:1.3398751020431519
+name: Supervised Classification, features: dresses-sales
+{'X_train': {'cols': 0.14478859390363816, 'rows': 0.8230088495575221}, 'X_valid': {'cols': 0.11078431372549019, 'rows': 0.7176470588235294}, 'X_test': {'cols': 0.13799999999999998, 'rows': 0.784}}
+dataset sizes
+(346, 12) (85, 12) (125, 12)
+dropped dataset sizes
+(64, 12) (24, 12) (27, 12)
+key: 1281, k: 4/4, dataset: 23381, missing: None, impute: None
+training gbm for 5000 epochs
+{'num_leaves': 17, 'max_bin': 203, 'max_depth': 5, 'min_data_in_leaf': 21, 'learning_rate': 0.00226160369169732, 'num_iterations': 748, 'objective': 'softmax', 'verbose': -1, 'num_class': 2}
+Training until validation scores don't improve for 100 rounds
+Early stopping, best iteration is:
+[148]	valid_0's multi_logloss: 0.689198
+strategy:None, acc gbm: 0.56
+strategy:None, nll xbg:1.3589485883712769
+/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/lightgbm/engine.py:177: UserWarning: Found `num_iterations` in params. Will use it instead of argument
+  _log_warning(f"Found `{alias}` in params. Will use it instead of argument")
+/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/lightgbm/engine.py:177: UserWarning: Found `num_iterations` in params. Will use it instead of argument
+  _log_warning(f"Found `{alias}` in params. Will use it instead of argument")

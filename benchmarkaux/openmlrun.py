@@ -1,5 +1,5 @@
-from UAT.aux import oversampled_Kfold
-import UAT.datasets as data
+from LSAM.aux import oversampled_Kfold
+import LSAM.datasets as data
 from .makemodel import create_make_model
 import numpy as np
 import pandas as pd
@@ -16,16 +16,6 @@ if IN_COLAB:
 else:
   from tqdm import tqdm
 
-def dimRepeat(x, t = 10):
-    return jnp.reshape(
-        jnp.repeat(x[None, ...], t, 0),
-        (-1, x.shape[1])
-    )
-
-def meanRepeats(x, t = 10):
-    return jnp.mean(x.reshape((t, -1, x.shape[1])), 0)
-
-
 def run(
     dataset=61,  # iris
     task="Supervised Classification",
@@ -34,12 +24,15 @@ def run(
     train_complete=True,
     test_complete=True,
     rng_init=12345,
-    trans_params = None,
+    lsam_params = None,
     gbm_params =  None,
     corrupt = False,
     row_data=None,
     folds=5,
-    repeats=1
+    repeats=1,
+    cols_miss=0.9,
+    perc_missing=0.8,
+    wandb=None
     ):
     """
     Args:
@@ -50,22 +43,22 @@ def run(
         train_complete: bool, whether the training set is to be complete if corrupting data
         test_complete: bool, whether the test set is to be complete if corrupting data
         rng_init: int, initial rng key
-        trans_params: dict, hyperparams for the transformer
+        lsam_params: dict, hyperparams for the transformer
         gbm_params: dict, hyperparams for the GBM (light gbm)
         corrupt: bool, whether we are corrupting the OpenML dataset with missingness
         row_data: optional basic information about the dataset for printing/debugging,
-        folds: number for K folds,
-        models: one of "attn", "gbm", "both"
+        folds: int, number for K folds,
+        repeats: int, number of repeats for validation 
     Returns:
         Pandas Dataframe: performance data
         Float: percentage missing (for diagnostic purposes)
     """
     metrics = {
-        ("accuracy", "attn"):[],
+        ("accuracy", "lsam"):[],
         ("accuracy", "gbm"):[],
-        ("nll", "attn"):[],
+        ("nll", "lsam"):[],
         ("nll", "gbm"):[],
-        ("rmse", "attn"):[],
+        ("rmse", "lsam"):[],
         ("rmse", "gbm"):[],
     }
     rng = np.random.default_rng(rng_init)
@@ -97,9 +90,9 @@ def run(
                 test_complete=test_complete,
                 split=0.2,
                 rng_key=key,
-                prop=0.7,
+                prop=perc_missing,
                 corrupt=corrupt,
-                cols_miss=int(X.shape[1] * 0.95)
+                cols_miss=int(X.shape[1] * cols_miss)
             )
         print(diagnostics)
         count += 1
@@ -140,23 +133,23 @@ def run(
             empty=False
         key = rng.integers(9999)
         print("key: {}, k: {}/{}, dataset: {}, missing: {}, impute: {}".format(key, count, len(splits), dataset, missing, imputation))
-        # MAKE AND TRAIN ATTN
-        if trans_params is not None:
+        # MAKE AND TRAIN lsam
+        if lsam_params is not None:
             make_model = create_make_model(X_train.shape[1], X_train.shape[0], task, key)
-            print(trans_params)
+            print(lsam_params)
             model, batch_size_base2, loss_fun = make_model(
                     X_valid=X_valid, y_valid=y_valid, classes=classes,
-                    **trans_params
+                    **lsam_params
             )
 
             model.fit(X_train, y_train)
             # assess performance of models on test set and store metrics
             # predict prob will output 
             if task == "Supervised Regression":
-                output = meanRepeats(model.predict(dimRepeat(X_test), sample=True))
+                output = model.predict(X_test, sample=False)
                 # output = model.predict(X_test)
             elif task == "Supervised Classification":
-                output = meanRepeats(model.predict_proba(dimRepeat(X_test), sample=True))
+                output = model.predict_proba(X_test, sample=False)
                 # output = model.predict_proba(X_test)
             # calculate performance metrics
             for rm in relevant_metrics:
@@ -164,18 +157,24 @@ def run(
                     class_o = np.argmax(output, axis=1)
                     correct_o = class_o == y_test
                     acc = np.sum(correct_o) / y_test.shape[0]
-                    metrics[("accuracy","attn")].append(acc)
-                    tqdm.write("strategy:{}, acc attn:{}".format(imputation, acc))
+                    metrics[("accuracy","lsam")].append(acc)
+                    if wandb is not None:
+                        wandb.log({"lsam_accuracy_fold{}".format(count):acc}, commit=False)
+                    tqdm.write("strategy:{}, acc lsam:{}".format(imputation, acc))
                 if rm == "nll":
                     nll = -(jnp.log(output + 1e-8) * jax.nn.one_hot(y_test, classes) +
                             jnp.log(1 - output + 1e-8) * jax.nn.one_hot(1 - y_test, classes)
                             ).sum(axis=-1).mean()
-                    metrics[("nll","attn")].append(nll)
-                    tqdm.write("strategy:{}, nll attn:{}".format(imputation, nll))
+                    metrics[("nll","lsam")].append(nll)
+                    if wandb is not None:
+                        wandb.log({"lsam_nll_fold{}".format(count):nll}, commit=False)
+                    tqdm.write("strategy:{}, nll lsam:{}".format(imputation, nll))
                 if rm == "rmse":
                     rmse = np.sqrt(np.square(output - y_test).mean())
-                    metrics[("rmse","attn")].append(rmse)
-                    tqdm.write("strategy:{}, rmse attn:{}".format(imputation, rmse))
+                    metrics[("rmse","lsam")].append(rmse)
+                    if wandb is not None:
+                        wandb.log({"lsam_rmse_fold{}".format(count):rmse}, commit=False)
+                    tqdm.write("strategy:{}, rmse lsam:{}".format(imputation, rmse))
 
         if gbm_params is not None:
             # turn off verbosity for LGB
@@ -208,16 +207,22 @@ def run(
                     correct_x = class_x == y_test
                     acc_gbm = np.sum(correct_x) / y_test.shape[0]
                     metrics[("accuracy","gbm")].append(acc_gbm)
+                    if wandb is not None:
+                        wandb.log({"gbm_accuracy_fold{}".format(count):acc_gbm}, commit=False)
                     tqdm.write("strategy:{}, acc gbm: {}".format(imputation, acc_gbm))
                 if rm == "nll":
                     nll_gbm = -(jnp.log(output_gbm + 1e-8) * jax.nn.one_hot(y_test, classes) +
                                 jnp.log(1 - output_gbm + 1e-8) * jax.nn.one_hot(1 - y_test, classes)
                                 ).sum(axis=-1).mean()
                     metrics[("nll","gbm")].append(nll_gbm)
+                    if wandb is not None:
+                        wandb.log({"gbm_nll_fold{}".format(count):nll_gbm}, commit=False)
                     tqdm.write("strategy:{}, nll xbg:{}".format(imputation, nll_gbm))
                 if rm == "rmse":
                     rmse_gbm = np.sqrt(np.square(output_gbm - y_test).mean())
                     metrics[("rmse","gbm")].append(rmse_gbm)
+                    if wandb is not None:
+                        wandb.log({"gbm_rmse_fold{}".format(count):rmse_gbm}, commit=False)
                     tqdm.write("strategy:{}, rmse xbg:{}".format(imputation, rmse_gbm))
         
     # convert metrics dict to dataframe and determine % change

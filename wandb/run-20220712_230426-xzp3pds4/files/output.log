@@ -1,0 +1,64 @@
+name: Supervised Classification, features: eucalyptus
+{'X_train': {'cols': 0.031446540880503145, 'rows': 0.139937106918239}, 'X_valid': {'cols': 0.017212843429328037, 'rows': 0.06918238993710692}, 'X_test': {'cols': 0.03175057208237986, 'rows': 0.1358695652173913}}
+dataset sizes
+(670, 19) (159, 19) (184, 19)
+dropped dataset sizes
+(575, 19) (148, 19) (159, 19)
+key: 5637, k: 1/4, dataset: 188, missing: None, impute: None
+training gbm for 5000 epochs
+{'num_leaves': 35, 'max_bin': 237, 'max_depth': 7, 'min_data_in_leaf': 30, 'learning_rate': 0.08846013124334061, 'num_iterations': 757, 'objective': 'softmax', 'verbose': -1, 'num_class': 5}
+Training until validation scores don't improve for 100 rounds
+Early stopping, best iteration is:
+[62]	valid_0's multi_logloss: 0.502792
+strategy:None, acc gbm: 0.6413043478260869
+strategy:None, nll xbg:0.9648197293281555
+name: Supervised Classification, features: eucalyptus
+{'X_train': {'cols': 0.02435436417129781, 'rows': 0.10714285714285714}, 'X_valid': {'cols': 0.03269042170644001, 'rows': 0.14285714285714285}, 'X_test': {'cols': 0.028318077803203664, 'rows': 0.11413043478260869}}
+dataset sizes
+(660, 19) (161, 19) (184, 19)
+dropped dataset sizes
+(589, 19) (138, 19) (163, 19)
+key: 4178, k: 2/4, dataset: 188, missing: None, impute: None
+training gbm for 5000 epochs
+{'num_leaves': 35, 'max_bin': 237, 'max_depth': 7, 'min_data_in_leaf': 30, 'learning_rate': 0.08846013124334061, 'num_iterations': 757, 'objective': 'softmax', 'verbose': -1, 'num_class': 5}
+Training until validation scores don't improve for 100 rounds
+/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/lightgbm/engine.py:177: UserWarning: Found `num_iterations` in params. Will use it instead of argument
+  _log_warning(f"Found `{alias}` in params. Will use it instead of argument")
+/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/lightgbm/engine.py:177: UserWarning: Found `num_iterations` in params. Will use it instead of argument
+  _log_warning(f"Found `{alias}` in params. Will use it instead of argument")
+Early stopping, best iteration is:
+[73]	valid_0's multi_logloss: 0.444989
+strategy:None, acc gbm: 0.657608695652174
+strategy:None, nll xbg:0.8208895325660706
+name: Supervised Classification, features: eucalyptus
+{'X_train': {'cols': 0.023567621585609596, 'rows': 0.10759493670886076}, 'X_valid': {'cols': 0.04197201865423052, 'rows': 0.1518987341772152}, 'X_test': {'cols': 0.02974828375286041, 'rows': 0.11956521739130435}}
+dataset sizes
+(655, 19) (158, 19) (184, 19)
+dropped dataset sizes
+(582, 19) (134, 19) (162, 19)
+key: 8332, k: 3/4, dataset: 188, missing: None, impute: None
+training gbm for 5000 epochs
+{'num_leaves': 35, 'max_bin': 237, 'max_depth': 7, 'min_data_in_leaf': 30, 'learning_rate': 0.08846013124334061, 'num_iterations': 757, 'objective': 'softmax', 'verbose': -1, 'num_class': 5}
+Training until validation scores don't improve for 100 rounds
+Early stopping, best iteration is:
+[65]	valid_0's multi_logloss: 0.510078
+strategy:None, acc gbm: 0.6195652173913043
+strategy:None, nll xbg:0.9769416451454163
+name: Supervised Classification, features: eucalyptus
+{'X_train': {'cols': 0.026075096277278564, 'rows': 0.11280487804878049}, 'X_valid': {'cols': 0.022785622593068038, 'rows': 0.09146341463414634}, 'X_test': {'cols': 0.03832951945080091, 'rows': 0.14673913043478262}}
+dataset sizes
+(680, 19) (164, 19) (184, 19)
+dropped dataset sizes
+(606, 19) (149, 19) (157, 19)
+key: 957, k: 4/4, dataset: 188, missing: None, impute: None
+training gbm for 5000 epochs
+{'num_leaves': 35, 'max_bin': 237, 'max_depth': 7, 'min_data_in_leaf': 30, 'learning_rate': 0.08846013124334061, 'num_iterations': 757, 'objective': 'softmax', 'verbose': -1, 'num_class': 5}
+Training until validation scores don't improve for 100 rounds
+Early stopping, best iteration is:
+[86]	valid_0's multi_logloss: 0.496112
+strategy:None, acc gbm: 0.625
+strategy:None, nll xbg:0.991051971912384
+/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/lightgbm/engine.py:177: UserWarning: Found `num_iterations` in params. Will use it instead of argument
+  _log_warning(f"Found `{alias}` in params. Will use it instead of argument")
+/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/lightgbm/engine.py:177: UserWarning: Found `num_iterations` in params. Will use it instead of argument
+  _log_warning(f"Found `{alias}` in params. Will use it instead of argument")

@@ -1,0 +1,21 @@
+name: Supervised Regression, features: house_prices_nominal
+{'X_train': {'cols': 0.04875014635288608, 'rows': 1.0}, 'X_valid': {'cols': 0.04970144011239901, 'rows': 1.0}, 'X_test': {'cols': 0.04678609062170706, 'rows': 0.9972602739726028}}
+dataset sizes
+(876, 78) (219, 78) (365, 78)
+no rows left in dropped dataset...
+key: 2456, k: 1/4, dataset: 42563, missing: None, impute: None
+training gbm for 5000 epochs
+{'num_leaves': 26, 'max_bin': 40, 'max_depth': 30, 'min_data_in_leaf': 27, 'learning_rate': 0.3935701643993976, 'num_iterations': 725, 'objective': 'regression', 'verbose': -1, 'num_class': 1}
+Training until validation scores don't improve for 100 rounds
+Early stopping, best iteration is:
+[5]	valid_0's l2: 0.141101
+/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/lightgbm/engine.py:177: UserWarning: Found `num_iterations` in params. Will use it instead of argument
+  _log_warning(f"Found `{alias}` in params. Will use it instead of argument")
+/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/lightgbm/basic.py:179: UserWarning: Converting column-vector to 1d array
+  _log_warning('Converting column-vector to 1d array')
+Traceback (most recent call last):
+  File "/home/jahan/Missingness/train.py", line 143, in <module>
+    metrics_df, perc_missing = run(
+  File "/home/jahan/Missingness/benchmarkaux/openmlrun.py", line 225, in run
+    wandb.log({"gbm_rmse_fold{}".format(count):rmse}, commit=False)
+UnboundLocalError: local variable 'rmse' referenced before assignment

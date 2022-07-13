@@ -1,0 +1,11 @@
+name: Supervised Classification, features: dresses-sales
+{'X_train': {'cols': 0.1357758620689655, 'rows': 0.8103448275862069}, 'X_valid': {'cols': 0.14488636363636365, 'rows': 0.8181818181818182}, 'X_test': {'cols': 0.14733333333333334, 'rows': 0.8}}
+dataset sizes
+(356, 12) (88, 12) (125, 12)
+dropped dataset sizes
+(67, 12) (16, 12) (25, 12)
+key: 7493, k: 1/4, dataset: 23381, missing: None, impute: None
+{'d_model': 37, 'embedding_size': 128, 'embedding_layers': 3, 'encoder_heads': 4, 'encoder_layers': 5, 'decoder_heads': 3, 'decoder_layers': 7, 'net_size': 26, 'net_layers': 2, 'max_steps': 1219, 'learning_rate': 0.0005, 'batch_size': 4, 'early_stop': 0.3326364403571648, 'noise_std': 0.18936166354594233}
+MAP
+2 device(s)
+  0%|                                                                                                                                                                                                                                                                                                | 0/13 [00:00<?, ?it/s]

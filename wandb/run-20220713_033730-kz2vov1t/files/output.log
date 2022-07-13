@@ -1,0 +1,63 @@
+name: Supervised Regression, features: us_crime
+{'X_train': {'cols': 0.15535913362000323, 'rows': 0.9381270903010034}, 'X_valid': {'cols': 0.15618198226893878, 'rows': 0.9364548494983278}, 'X_test': {'cols': 0.15755320164137798, 'rows': 0.9398797595190381}}
+dataset sizes
+(1196, 126) (299, 126) (499, 126)
+dropped dataset sizes
+(74, 126) (19, 126) (30, 126)
+key: 216, k: 1/4, dataset: 42730, missing: None, impute: None
+{'d_model': 103, 'embedding_size': 103, 'embedding_layers': 3, 'encoder_heads': 1, 'encoder_layers': 3, 'decoder_heads': 4, 'decoder_layers': 7, 'net_size': 103, 'net_layers': 4, 'max_steps': 4442, 'learning_rate': 0.0001030128567912684, 'batch_size': 64, 'early_stop': 0.02332760324035371, 'noise_std': 0.19421277267031123}
+MAP
+2 device(s)
+  0%|                                                                                                                                                                                                                                                                                               | 0/246 [00:00<?, ?it/s]
+optimizer: adam, lr: 0.00010301285510649905, batch_size=64
+
+
+
+
+
+
+
+
+
+  6%|██████████████▎                                                                                                                                                                                                                           | 15/246 [00:34<04:13,  1.10s/it, l=0.388, tl=0.447, tlc=0.53, tc=4, e=-.693]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  File "/home/jahan/Missingness/train.py", line 143, in <module>
+    metrics_df, perc_missing = run(
+  File "/home/jahan/Missingness/benchmarkaux/openmlrun.py", line 149, in run
+    output = model.predict(X_test, sample=False)
+  File "/home/jahan/Missingness/UAT/models/scikit_wrapper.py", line 209, in predict
+    out = self.batch_forward(X, sample)
+  File "/home/jahan/Missingness/UAT/models/scikit_wrapper.py", line 163, in batch_forward
+    X.shape[0] // batch_size)
+ZeroDivisionError: integer division or modulo by zero
+Final test loss: 0.39271605014801025, epoch: 78, time: 0:01:38.064208

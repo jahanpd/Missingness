@@ -1,0 +1,164 @@
+name: Supervised Classification, features: MiceProtein
+{'X_train': {'cols': 0.013966828781643598, 'rows': 0.45267489711934156}, 'X_valid': {'cols': 0.0210063160882833, 'rows': 0.5136612021857924}, 'X_test': {'cols': 0.018518518518518517, 'rows': 0.5222222222222223}}
+dataset sizes
+(776, 77) (183, 77) (270, 77)
+dropped dataset sizes
+(430, 77) (89, 77) (129, 77)
+key: 4672, k: 1/4, dataset: 40966, missing: None, impute: None
+{'d_model': 7, 'embedding_size': 84, 'embedding_layers': 2, 'encoder_heads': 1, 'encoder_layers': 1, 'decoder_heads': 1, 'decoder_layers': 5, 'net_size': 115, 'net_layers': 2, 'max_steps': 3177, 'learning_rate': 0.0001, 'batch_size': 64, 'early_stop': 0.07976030792640121, 'noise_std': 0.35033482022536994}
+MAP
+2 device(s)
+optimizer: adam, lr: 9.999999747378752e-05, batch_size=64
+  0%|                                                                                                                                                                                                                                                                                               | 0/264 [00:00<?, ?it/s]
+
+
+
+
+
+
+ 22%|███████████████████████████████████████████████████▊                                                                                                                                                                                        | 58/264 [00:29<00:44,  4.65it/s, l=1.97, tl=1.94, tlc=2.07, tc=2, e=-.693]
+
+
+
+
+
+
+
+
+
+ 63%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▏                                                                                      | 166/264 [00:53<00:21,  4.50it/s, l=1.57, tl=1.67, tlc=1.85, tc=51, e=-.693]
+
+ 58%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▎                                                                                                                    | 7/12 [00:00<00:00, 68.55it/s]
+
+Final test loss: 1.6710911989212036, epoch: 177, time: 0:00:54.068369
+(270, 8)
+softmax
+6.6795464 -6.4549894
+0.92173856 1.4696396e-05
+
+strategy:None, acc lsam:0.6851851851851852
+strategy:None, nll lsam:0.8628110289573669
+name: Supervised Classification, features: MiceProtein
+{'X_train': {'cols': 0.016919700018291566, 'rows': 0.4943661971830986}, 'X_valid': {'cols': 0.017145775572741866, 'rows': 0.449438202247191}, 'X_test': {'cols': 0.014718614718614718, 'rows': 0.48148148148148145}}
+dataset sizes
+(744, 77) (178, 77) (270, 77)
+dropped dataset sizes
+(376, 77) (98, 77) (140, 77)
+key: 214, k: 2/4, dataset: 40966, missing: None, impute: None
+{'d_model': 7, 'embedding_size': 84, 'embedding_layers': 2, 'encoder_heads': 1, 'encoder_layers': 1, 'decoder_heads': 1, 'decoder_layers': 5, 'net_size': 115, 'net_layers': 2, 'max_steps': 3177, 'learning_rate': 0.0001, 'batch_size': 64, 'early_stop': 0.07976030792640121, 'noise_std': 0.35033482022536994}
+MAP
+2 device(s)
+optimizer: adam, lr: 9.999999747378752e-05, batch_size=64
+  0%|                                                                                                                                                                                                                                                                                               | 0/288 [00:00<?, ?it/s]
+
+ 16%|█████████████████████████████████████▋                                                                                                                                                                                                      | 46/288 [00:17<00:51,  4.71it/s, l=3.02, tl=3.01, tlc=3.01, tc=0, e=-.693]
+
+
+ 26%|████████████████████████████████████████████████████████████▋                                                                                                                                                                               | 74/288 [00:23<00:44,  4.80it/s, l=2.98, tl=2.93, tlc=2.93, tc=0, e=-.693]
+
+
+
+
+
+
+
+
+
+
+
+
+
+  0%|                                                                                                                                                                                                                                                                                                | 0/11 [00:00<?, ?it/s]
+
+Final test loss: 1.9067788124084473, epoch: 219, time: 0:00:51.561701
+(270, 8)
+softmax
+6.7966857 -8.300128
+0.75288707 1.4220308e-06
+strategy:None, acc lsam:0.5185185185185185
+strategy:None, nll lsam:1.1132097244262695
+name: Supervised Classification, features: MiceProtein
+{'X_train': {'cols': 0.016141481257760326, 'rows': 0.4780361757105943}, 'X_valid': {'cols': 0.01814165216227072, 'rows': 0.4896907216494845}, 'X_test': {'cols': 0.017075517075517074, 'rows': 0.4703703703703704}}
+dataset sizes
+(808, 77) (194, 77) (270, 77)
+dropped dataset sizes
+(422, 77) (99, 77) (143, 77)
+key: 104, k: 3/4, dataset: 40966, missing: None, impute: None
+{'d_model': 7, 'embedding_size': 84, 'embedding_layers': 2, 'encoder_heads': 1, 'encoder_layers': 1, 'decoder_heads': 1, 'decoder_layers': 5, 'net_size': 115, 'net_layers': 2, 'max_steps': 3177, 'learning_rate': 0.0001, 'batch_size': 64, 'early_stop': 0.07976030792640121, 'noise_std': 0.35033482022536994}
+MAP
+2 device(s)
+
+  0%|                                                                                                                                                                                                                                                                                               | 0/264 [00:00<?, ?it/s]
+
+
+
+
+
+ 16%|██████████████████████████████████████▊                                                                                                                                                                                                       | 43/264 [00:17<00:46,  4.72it/s, l=2.6, tl=2.47, tlc=2.5, tc=2, e=-.693]
+
+
+
+
+
+ 37%|███████████████████████████████████████████████████████████████████████████████████████▌                                                                                                                                                    | 98/264 [00:29<00:37,  4.46it/s, l=1.71, tl=1.68, tlc=1.79, tc=6, e=-.693]
+
+
+
+
+
+
+
+
+
+
+ 58%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▎                                                                                                                    | 7/12 [00:00<00:00, 67.95it/s]
+
+  0%|                                                                                                                                                                                                                                                                                               | 0/264 [00:00<?, ?it/s]
+(270, 8)
+softmax
+8.449264 -7.354403
+0.98423195 6.492034e-05
+strategy:None, acc lsam:0.7037037037037037
+strategy:None, nll lsam:0.8481759428977966
+name: Supervised Classification, features: MiceProtein
+{'X_train': {'cols': 0.016269057029926592, 'rows': 0.48233695652173914}, 'X_valid': {'cols': 0.014892715979672502, 'rows': 0.4673913043478261}, 'X_test': {'cols': 0.01683501683501683, 'rows': 0.48148148148148145}}
+dataset sizes
+(768, 77) (184, 77) (270, 77)
+dropped dataset sizes
+(401, 77) (98, 77) (140, 77)
+key: 361, k: 4/4, dataset: 40966, missing: None, impute: None
+{'d_model': 7, 'embedding_size': 84, 'embedding_layers': 2, 'encoder_heads': 1, 'encoder_layers': 1, 'decoder_heads': 1, 'decoder_layers': 5, 'net_size': 115, 'net_layers': 2, 'max_steps': 3177, 'learning_rate': 0.0001, 'batch_size': 64, 'early_stop': 0.07976030792640121, 'noise_std': 0.35033482022536994}
+MAP
+2 device(s)
+optimizer: adam, lr: 9.999999747378752e-05, batch_size=64
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  0%|                                                                                                                                                                                                                                                                                                | 0/12 [00:00<?, ?it/s]
+
+Final test loss: 1.7151447534561157, epoch: 261, time: 0:01:04.383938
+(270, 8)
+softmax
+6.657802 -11.579253
+0.96217793 4.8407543e-08
+strategy:None, acc lsam:0.6222222222222222
+
+strategy:None, nll lsam:0.9973487854003906

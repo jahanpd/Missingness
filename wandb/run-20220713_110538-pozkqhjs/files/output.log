@@ -1,0 +1,152 @@
+name: Supervised Regression, features: Moneyball
+{'X_train': {'cols': 0.20626329016044848, 'rows': 0.9039242219215156}, 'X_valid': {'cols': 0.2138996138996139, 'rows': 0.8972972972972973}, 'X_test': {'cols': 0.21150278293135436, 'rows': 0.922077922077922}}
+dataset sizes
+(739, 14) (185, 14) (308, 14)
+dropped dataset sizes
+(71, 14) (19, 14) (24, 14)
+key: 6605, k: 1/4, dataset: 41021, missing: None, impute: None
+{'d_model': 63, 'embedding_size': 63, 'embedding_layers': 6, 'encoder_heads': 3, 'encoder_layers': 4, 'decoder_heads': 1, 'decoder_layers': 9, 'net_size': 63, 'net_layers': 6, 'max_steps': 4135, 'learning_rate': 0.0004125094821551161, 'batch_size': 32, 'early_stop': 0.6327963094344837, 'noise_std': 0.21553801035335024}
+MAP
+2 device(s)
+optimizer: adam, lr: 0.0004125094856135547, batch_size=32
+  0%|                                                                                                                                                                                                                                                                                               | 0/179 [00:00<?, ?it/s]
+
+
+
+
+
+  8%|██████████████████▍                                                                                                                                                                                                                        | 14/179 [00:28<01:39,  1.65it/s, l=0.245, tl=inf, tlc=0.271, tc=0, e=-.693]
+
+
+
+
+
+
+
+ 24%|████████████████████████████████████████████████████████▍                                                                                                                                                                                  | 43/179 [00:45<01:18,  1.73it/s, l=0.123, tl=inf, tlc=0.183, tc=0, e=-.693]
+
+
+
+
+
+
+
+
+
+ 44%|██████████████████████████████████████████████████████████████████████████████████████████████████████▍                                                                                                                                    | 78/179 [01:05<00:53,  1.89it/s, l=0.11, tl=inf, tlc=0.0992, tc=0, e=-.692]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 39%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████▌                                                                                                                                                                          | 9/23 [00:00<00:00, 34.19it/s]
+
+Final test loss: 0.06252806633710861, epoch: 151, time: 0:01:43.823906
+strategy:None, rmse lsam:1.3351701498031616
+name: Supervised Regression, features: Moneyball
+{'X_train': {'cols': 0.2103228300792577, 'rows': 0.9039242219215156}, 'X_valid': {'cols': 0.20386100386100386, 'rows': 0.8918918918918919}, 'X_test': {'cols': 0.2077922077922078, 'rows': 0.9253246753246753}}
+dataset sizes
+(739, 14) (185, 14) (308, 14)
+dropped dataset sizes
+(71, 14) (20, 14) (23, 14)
+key: 7399, k: 2/4, dataset: 41021, missing: None, impute: None
+{'d_model': 63, 'embedding_size': 63, 'embedding_layers': 6, 'encoder_heads': 3, 'encoder_layers': 4, 'decoder_heads': 1, 'decoder_layers': 9, 'net_size': 63, 'net_layers': 6, 'max_steps': 4135, 'learning_rate': 0.0004125094821551161, 'batch_size': 32, 'early_stop': 0.6327963094344837, 'noise_std': 0.21553801035335024}
+MAP
+2 device(s)
+
+  0%|                                                                                                                                                                                                                                                                                               | 0/179 [00:00<?, ?it/s]
+
+
+  3%|███████▉                                                                                                                                                                                                                                    | 6/179 [00:14<03:16,  1.13s/it, l=0.634, tl=inf, tlc=0.294, tc=0, e=-.693]
+
+
+
+
+ 14%|████████████████████████████████▊                                                                                                                                                                                                          | 25/179 [00:24<01:26,  1.77it/s, l=0.191, tl=inf, tlc=0.209, tc=0, e=-.693]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  0%|                                                                                                                                                                                                                                                                                                | 0/23 [00:00<?, ?it/s]
+
+Final test loss: 0.06691256165504456, epoch: 142, time: 0:01:26.525519
+strategy:None, rmse lsam:1.4434045553207397
+name: Supervised Regression, features: Moneyball
+{'X_train': {'cols': 0.20838971583220567, 'rows': 0.9052774018944519}, 'X_valid': {'cols': 0.20694980694980694, 'rows': 0.9243243243243243}, 'X_test': {'cols': 0.2105751391465677, 'rows': 0.9025974025974026}}
+dataset sizes
+(739, 14) (185, 14) (308, 14)
+dropped dataset sizes
+(70, 14) (14, 14) (30, 14)
+key: 7597, k: 3/4, dataset: 41021, missing: None, impute: None
+{'d_model': 63, 'embedding_size': 63, 'embedding_layers': 6, 'encoder_heads': 3, 'encoder_layers': 4, 'decoder_heads': 1, 'decoder_layers': 9, 'net_size': 63, 'net_layers': 6, 'max_steps': 4135, 'learning_rate': 0.0004125094821551161, 'batch_size': 32, 'early_stop': 0.6327963094344837, 'noise_std': 0.21553801035335024}
+MAP
+2 device(s)
+
+  0%|                                                                                                                                                                                                                                                                                               | 0/179 [00:00<?, ?it/s]
+
+
+
+
+
+
+
+
+
+
+
+ 26%|████████████████████████████████████████████████████████████▋                                                                                                                                                                               | 46/179 [00:35<01:13,  1.80it/s, l=0.14, tl=inf, tlc=0.134, tc=0, e=-.693]
+
+
+
+
+
+
+
+
+
+
+
+
+
+

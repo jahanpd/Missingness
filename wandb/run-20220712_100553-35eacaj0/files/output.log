@@ -1,0 +1,107 @@
+name: Supervised Classification, features: sick
+{'X_train': {'cols': 0.013392857142857142, 'rows': 0.20127118644067796}, 'X_valid': {'cols': 0.015772128060263655, 'rows': 0.2278719397363465}, 'X_test': {'cols': 0.02109528859263748, 'rows': 0.28207847295864263}}
+dataset sizes
+(4268, 28) (1062, 28) (943, 28)
+dropped dataset sizes
+(3412, 28) (820, 28) (677, 28)
+key: 7900, k: 1/4, dataset: 38, missing: None, impute: None
+{'d_model': 110, 'embedding_size': 117, 'embedding_layers': 2, 'encoder_heads': 3, 'encoder_layers': 1, 'decoder_heads': 2, 'decoder_layers': 2, 'net_size': 96, 'net_layers': 4, 'max_steps': 1295, 'learning_rate': 0.001, 'batch_size': 16, 'early_stop': 0.44638464888223783, 'noise_std': 1.235509818606555}
+MAP
+2 device(s)
+optimizer: adam, lr: 0.0010000000474974513, batch_size=16
+  0%|                                                                                                                                                                                                                                                                                                 | 0/4 [00:00<?, ?it/s]
+
+
+
+
+
+
+ 63%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▉                                                                                                      | 168/266 [00:03<00:01, 51.46it/s]
+
+
+  7%|████████████████████                                                                                                                                                                                                                                                                    | 1/14 [00:01<00:21,  1.68s/it]
+(943, 2)
+softmax
+3.3967204 -1.8478148
+0.9545249 0.04547511
+
+  0%|                                                                                                                                                                                                                                                                                                 | 0/4 [00:00<?, ?it/s]
+strategy:None, nll lsam:0.4784867763519287
+name: Supervised Classification, features: sick
+{'X_train': {'cols': 0.013985015454911973, 'rows': 0.2041392285983067}, 'X_valid': {'cols': 0.013862781954887219, 'rows': 0.19360902255639098}, 'X_test': {'cols': 0.020565065899106196, 'rows': 0.29056203605514314}}
+dataset sizes
+(4310, 28) (1064, 28) (943, 28)
+dropped dataset sizes
+(3426, 28) (858, 28) (669, 28)
+key: 4866, k: 2/4, dataset: 38, missing: None, impute: None
+{'d_model': 110, 'embedding_size': 117, 'embedding_layers': 2, 'encoder_heads': 3, 'encoder_layers': 1, 'decoder_heads': 2, 'decoder_layers': 2, 'net_size': 96, 'net_layers': 4, 'max_steps': 1295, 'learning_rate': 0.001, 'batch_size': 16, 'early_stop': 0.44638464888223783, 'noise_std': 1.235509818606555}
+MAP
+2 device(s)
+optimizer: adam, lr: 0.0010000000474974513, batch_size=16
+
+
+
+
+
+ 49%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▉                                                                                                                                            | 133/269 [00:02<00:02, 50.69it/s]
+
+Final test loss: 0.8670017719268799, epoch: 1, time: 0:00:18.562092
+(943, 2)
+softmax
+2.22151 -1.2453675
+0.95834726 0.041652706
+strategy:None, acc lsam:0.855779427359491
+strategy:None, nll lsam:1.0282169580459595
+name: Supervised Classification, features: sick
+{'X_train': {'cols': 0.01278504359490275, 'rows': 0.18403755868544602}, 'X_valid': {'cols': 0.012496649691771644, 'rows': 0.17636022514071295}, 'X_test': {'cols': 0.02238297227692774, 'rows': 0.3149522799575822}}
+dataset sizes
+(4278, 28) (1066, 28) (943, 28)
+dropped dataset sizes
+(3492, 28) (878, 28) (646, 28)
+key: 5170, k: 3/4, dataset: 38, missing: None, impute: None
+{'d_model': 110, 'embedding_size': 117, 'embedding_layers': 2, 'encoder_heads': 3, 'encoder_layers': 1, 'decoder_heads': 2, 'decoder_layers': 2, 'net_size': 96, 'net_layers': 4, 'max_steps': 1295, 'learning_rate': 0.001, 'batch_size': 16, 'early_stop': 0.44638464888223783, 'noise_std': 1.235509818606555}
+MAP
+2 device(s)
+
+  0%|                                                                                                                                                                                                                                                                                                 | 0/4 [00:00<?, ?it/s]
+
+
+
+
+
+ 54%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▍                                                                                                                              | 145/267 [00:02<00:02, 49.33it/s]
+
+Final test loss: 0.7665034532546997, epoch: 1, time: 0:00:18.555389
+(943, 2)
+softmax
+2.9376955 -2.9484797
+0.95884806 0.041151926
+strategy:None, acc lsam:0.9331919406150583
+strategy:None, nll lsam:0.5542705059051514
+name: Supervised Classification, features: sick
+{'X_train': {'cols': 0.013611064260414907, 'rows': 0.1985832349468713}, 'X_valid': {'cols': 0.012714150816133819, 'rows': 0.19169027384324835}, 'X_test': {'cols': 0.022761702772307223, 'rows': 0.30965005302226933}}
+dataset sizes
+(4270, 28) (1059, 28) (943, 28)
+dropped dataset sizes
+(3425, 28) (856, 28) (651, 28)
+key: 7704, k: 4/4, dataset: 38, missing: None, impute: None
+{'d_model': 110, 'embedding_size': 117, 'embedding_layers': 2, 'encoder_heads': 3, 'encoder_layers': 1, 'decoder_heads': 2, 'decoder_layers': 2, 'net_size': 96, 'net_layers': 4, 'max_steps': 1295, 'learning_rate': 0.001, 'batch_size': 16, 'early_stop': 0.44638464888223783, 'noise_std': 1.235509818606555}
+MAP
+2 device(s)
+
+  0%|                                                                                                                                                                                                                                                                                                 | 0/4 [00:00<?, ?it/s]
+
+
+
+
+
+
+ 56%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▏                                                                                                                        | 150/266 [00:03<00:02, 47.70it/s]
+
+Final test loss: 0.6816245317459106, epoch: 1, time: 0:00:17.260686
+(943, 2)
+softmax
+1.0087872 -5.947315
+0.9970788 0.0029212087
+strategy:None, acc lsam:0.9554612937433722
+strategy:None, nll lsam:0.7312003970146179

@@ -1,0 +1,22 @@
+/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/lightgbm/engine.py:177: UserWarning: Found `num_iterations` in params. Will use it instead of argument
+  _log_warning(f"Found `{alias}` in params. Will use it instead of argument")
+/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/lightgbm/basic.py:179: UserWarning: Converting column-vector to 1d array
+  _log_warning('Converting column-vector to 1d array')
+Traceback (most recent call last):
+  File "/home/jahan/Missingness/train.py", line 143, in <module>
+    metrics_df, perc_missing = run(
+  File "/home/jahan/Missingness/benchmarkaux/openmlrun.py", line 225, in run
+    wandb.log({"gbm_rmse_fold{}".format(count):rmse}, commit=False)
+UnboundLocalError: local variable 'rmse' referenced before assignment
+name: Supervised Regression, features: SAT11-HAND-runtime-regression
+{'X_train': {'cols': 0.052940871906389145, 'rows': 0.6141141141141141}, 'X_valid': {'cols': 0.05125815470643057, 'rows': 0.5945945945945946}, 'X_test': {'cols': 0.05304442373407891, 'rows': 0.6153153153153154}}
+dataset sizes
+(2664, 116) (666, 116) (1110, 116)
+dropped dataset sizes
+(1028, 116) (270, 116) (427, 116)
+key: 6387, k: 1/4, dataset: 41980, missing: None, impute: None
+training gbm for 5000 epochs
+{'num_leaves': 35, 'max_bin': 235, 'max_depth': 29, 'min_data_in_leaf': 10, 'learning_rate': 0.0001216396649985908, 'num_iterations': 243, 'objective': 'regression', 'verbose': -1, 'num_class': 1}
+Training until validation scores don't improve for 100 rounds
+Did not meet early stopping. Best iteration is:
+[243]	valid_0's l2: 0.966698

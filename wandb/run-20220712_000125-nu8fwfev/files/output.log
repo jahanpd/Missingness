@@ -1,0 +1,116 @@
+name: Supervised Classification, features: cylinder-bands
+{'X_train': {'cols': 0.052168447517284736, 'rows': 0.4806201550387597}, 'X_valid': {'cols': 0.06826414042908888, 'rows': 0.5360824742268041}, 'X_test': {'cols': 0.05785785785785786, 'rows': 0.4962962962962963}}
+dataset sizes
+(388, 37) (97, 37) (135, 37)
+dropped dataset sizes
+(201, 37) (45, 37) (68, 37)
+key: 5779, k: 1/4, dataset: 6332, missing: None, impute: None
+{'d_model': 10, 'embedding_size': 83, 'embedding_layers': 1, 'encoder_heads': 1, 'encoder_layers': 4, 'decoder_heads': 4, 'decoder_layers': 4, 'net_size': 80, 'net_layers': 1, 'max_steps': 3120, 'learning_rate': 0.001, 'batch_size': 4, 'early_stop': 0.08724171929174096, 'noise_std': 1.00889887265519}
+MAP
+2 device(s)
+optimizer: adam, lr: 0.0010000000474974513, batch_size=4
+  0%|                                                                                                                                                                                                                                                                                                | 0/32 [00:00<?, ?it/s]
+
+
+
+
+
+
+
+
+ 71%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▍                                                                                | 69/97 [00:01<00:00, 56.79it/s]
+
+Final test loss: 1.3842183351516724, epoch: 8, time: 0:00:27.818837
+(135, 2)
+softmax
+-0.0064747217 -0.16473407
+0.5345586 0.46544144
+
+  0%|                                                                                                                                                                                                                                                                                                | 0/33 [00:00<?, ?it/s]
+strategy:None, nll lsam:1.3856537342071533
+name: Supervised Classification, features: cylinder-bands
+{'X_train': {'cols': 0.053099294947121026, 'rows': 0.47282608695652173}, 'X_valid': {'cols': 0.05992949471210341, 'rows': 0.5}, 'X_test': {'cols': 0.03903903903903903, 'rows': 0.4888888888888889}}
+dataset sizes
+(372, 37) (92, 37) (135, 37)
+dropped dataset sizes
+(195, 37) (46, 37) (69, 37)
+key: 7457, k: 2/4, dataset: 6332, missing: None, impute: None
+{'d_model': 10, 'embedding_size': 83, 'embedding_layers': 1, 'encoder_heads': 1, 'encoder_layers': 4, 'decoder_heads': 4, 'decoder_layers': 4, 'net_size': 80, 'net_layers': 1, 'max_steps': 3120, 'learning_rate': 0.001, 'batch_size': 4, 'early_stop': 0.08724171929174096, 'noise_std': 1.00889887265519}
+MAP
+2 device(s)
+optimizer: adam, lr: 0.0010000000474974513, batch_size=4
+
+
+
+
+
+
+
+
+ 32%|██████████████████████████████████████████████████████████████████████████████████████████                                                                                                                                                                                             | 30/93 [00:00<00:01, 57.61it/s]
+
+Final test loss: 1.3776271343231201, epoch: 9, time: 0:00:24.499969
+(135, 2)
+softmax
+-0.40233406 -0.43368202
+0.5069102 0.49308977
+strategy:None, acc lsam:0.6074074074074074
+strategy:None, nll lsam:1.380477786064148
+name: Supervised Classification, features: cylinder-bands
+{'X_train': {'cols': 0.05908568142610695, 'rows': 0.4867021276595745}, 'X_valid': {'cols': 0.03479010925819437, 'rows': 0.5}, 'X_test': {'cols': 0.05245245245245245, 'rows': 0.4666666666666667}}
+dataset sizes
+(390, 37) (94, 37) (135, 37)
+dropped dataset sizes
+(201, 37) (47, 37) (72, 37)
+key: 8105, k: 3/4, dataset: 6332, missing: None, impute: None
+{'d_model': 10, 'embedding_size': 83, 'embedding_layers': 1, 'encoder_heads': 1, 'encoder_layers': 4, 'decoder_heads': 4, 'decoder_layers': 4, 'net_size': 80, 'net_layers': 1, 'max_steps': 3120, 'learning_rate': 0.001, 'batch_size': 4, 'early_stop': 0.08724171929174096, 'noise_std': 1.00889887265519}
+MAP
+2 device(s)
+
+  0%|                                                                                                                                                                                                                                                                                                | 0/32 [00:00<?, ?it/s]
+
+
+
+
+
+
+
+
+
+ 77%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▋                                                               | 75/97 [00:01<00:00, 50.73it/s]
+
+Final test loss: 1.356170415878296, epoch: 9, time: 0:00:23.697668
+(135, 2)
+softmax
+-0.19247474 -0.48659062
+0.5696894 0.43031058
+strategy:None, acc lsam:0.5703703703703704
+strategy:None, nll lsam:1.3658833503723145
+name: Supervised Classification, features: cylinder-bands
+{'X_train': {'cols': 0.0522079456505686, 'rows': 0.4781420765027322}, 'X_valid': {'cols': 0.05787309048178615, 'rows': 0.5}, 'X_test': {'cols': 0.05065065065065066, 'rows': 0.4962962962962963}}
+dataset sizes
+(368, 37) (92, 37) (135, 37)
+dropped dataset sizes
+(192, 37) (46, 37) (68, 37)
+key: 2648, k: 4/4, dataset: 6332, missing: None, impute: None
+{'d_model': 10, 'embedding_size': 83, 'embedding_layers': 1, 'encoder_heads': 1, 'encoder_layers': 4, 'decoder_heads': 4, 'decoder_layers': 4, 'net_size': 80, 'net_layers': 1, 'max_steps': 3120, 'learning_rate': 0.001, 'batch_size': 4, 'early_stop': 0.08724171929174096, 'noise_std': 1.00889887265519}
+MAP
+2 device(s)
+
+  0%|                                                                                                                                                                                                                                                                                                | 0/33 [00:00<?, ?it/s]
+
+
+
+
+
+
+ 40%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████▏                                                                                                                                                                      | 37/92 [00:00<00:00, 60.44it/s]
+
+Final test loss: 1.3821723461151123, epoch: 6, time: 0:00:19.599135
+(135, 2)
+softmax
+0.48856604 0.17368059
+0.5778837 0.42211628
+strategy:None, acc lsam:0.6148148148148148
+
+strategy:None, nll lsam:1.3390419483184814

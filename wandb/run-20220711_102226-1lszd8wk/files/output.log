@@ -1,0 +1,15 @@
+[34m[1mwandb[39m[22m: [32m[41mERROR[39m[49m Attempted to change value of key "seed" from 0 to 6454
+[34m[1mwandb[39m[22m: [32m[41mERROR[39m[49m If you really want to do this, pass allow_val_change=True to config.update()
+Traceback (most recent call last):
+  File "/home/jahan/Missingness/train.py", line 94, in <module>
+    wandb.config.update({"seed":seed})
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/wandb/sdk/wandb_config.py", line 178, in update
+    sanitized = self._update(d, allow_val_change)
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/wandb/sdk/wandb_config.py", line 171, in _update
+    sanitized = self._sanitize_dict(
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/wandb/sdk/wandb_config.py", line 231, in _sanitize_dict
+    k, v = self._sanitize(k, v, allow_val_change)
+  File "/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/wandb/sdk/wandb_config.py", line 251, in _sanitize
+    raise config_util.ConfigError(
+wandb.sdk.lib.config_util.ConfigError: Attempted to change value of key "seed" from 0 to 6454
+If you really want to do this, pass allow_val_change=True to config.update()

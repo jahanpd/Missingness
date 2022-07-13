@@ -1,0 +1,308 @@
+2022-07-12 03:40:08,137 INFO    MainThread:558770 [internal.py:wandb_internal():90] W&B internal server running at pid: 558770, started at: 2022-07-12 03:40:08.137574
+2022-07-12 03:40:08,139 INFO    WriterThread:558770 [datastore.py:open_for_write():75] open: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/run-c2y1rfjp.wandb
+2022-07-12 03:40:08,141 DEBUG   SenderThread:558770 [sender.py:send():236] send: header
+2022-07-12 03:40:08,141 DEBUG   SenderThread:558770 [sender.py:send():236] send: run
+2022-07-12 03:40:08,631 INFO    SenderThread:558770 [dir_watcher.py:__init__():216] watching files in: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files
+2022-07-12 03:40:08,632 INFO    SenderThread:558770 [sender.py:_start_run_threads():815] run started: c2y1rfjp with start time 1657561207
+2022-07-12 03:40:08,632 DEBUG   SenderThread:558770 [sender.py:send():236] send: summary
+2022-07-12 03:40:08,632 INFO    SenderThread:558770 [sender.py:_save_file():952] saving file wandb-summary.json with policy end
+2022-07-12 03:40:08,635 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: check_version
+2022-07-12 03:40:08,635 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: check_version
+2022-07-12 03:40:08,753 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: run_start
+2022-07-12 03:40:08,756 DEBUG   HandlerThread:558770 [meta.py:__init__():35] meta init
+2022-07-12 03:40:08,756 DEBUG   HandlerThread:558770 [meta.py:__init__():49] meta init done
+2022-07-12 03:40:08,756 DEBUG   HandlerThread:558770 [meta.py:probe():209] probe
+2022-07-12 03:40:08,762 DEBUG   HandlerThread:558770 [meta.py:_setup_git():199] setup git
+2022-07-12 03:40:08,770 DEBUG   HandlerThread:558770 [meta.py:_setup_git():206] setup git done
+2022-07-12 03:40:08,770 DEBUG   HandlerThread:558770 [meta.py:_save_pip():53] save pip
+2022-07-12 03:40:08,770 DEBUG   HandlerThread:558770 [meta.py:_save_pip():67] save pip done
+2022-07-12 03:40:08,770 DEBUG   HandlerThread:558770 [meta.py:_save_conda():74] save conda
+2022-07-12 03:40:09,633 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_created():269] file/dir created: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/requirements.txt
+2022-07-12 03:40:09,633 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_created():269] file/dir created: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/conda-environment.yaml
+2022-07-12 03:40:09,633 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_created():269] file/dir created: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/wandb-summary.json
+2022-07-12 03:40:11,181 DEBUG   HandlerThread:558770 [meta.py:_save_conda():84] save conda done
+2022-07-12 03:40:11,182 DEBUG   HandlerThread:558770 [meta.py:probe():247] probe done
+2022-07-12 03:40:11,184 DEBUG   SenderThread:558770 [sender.py:send():236] send: files
+2022-07-12 03:40:11,185 INFO    SenderThread:558770 [sender.py:_save_file():952] saving file wandb-metadata.json with policy now
+2022-07-12 03:40:11,196 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: stop_status
+2022-07-12 03:40:11,196 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: stop_status
+2022-07-12 03:40:11,583 DEBUG   SenderThread:558770 [sender.py:send():236] send: telemetry
+2022-07-12 03:40:11,583 DEBUG   SenderThread:558770 [sender.py:send():236] send: config
+2022-07-12 03:40:11,585 DEBUG   SenderThread:558770 [sender.py:send():236] send: config
+2022-07-12 03:40:11,633 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/conda-environment.yaml
+2022-07-12 03:40:11,633 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_created():269] file/dir created: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/wandb-metadata.json
+2022-07-12 03:40:11,633 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_created():269] file/dir created: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:40:12,294 INFO    Thread-11 :558770 [upload_job.py:push():138] Uploaded file /tmp/tmpcpvtbzrgwandb/1ffiain3-wandb-metadata.json
+2022-07-12 03:40:13,633 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:40:17,635 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:40:21,636 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:40:26,612 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: stop_status
+2022-07-12 03:40:26,612 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: stop_status
+2022-07-12 03:40:27,638 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:40:37,322 DEBUG   SenderThread:558770 [sender.py:send():236] send: stats
+2022-07-12 03:40:39,644 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:40:39,644 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/config.yaml
+2022-07-12 03:40:41,645 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:40:42,048 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: stop_status
+2022-07-12 03:40:42,048 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: stop_status
+2022-07-12 03:40:43,646 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:40:45,646 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:40:47,647 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:40:49,648 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:40:51,649 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:40:53,649 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:40:55,651 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:40:57,506 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: stop_status
+2022-07-12 03:40:57,506 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: stop_status
+2022-07-12 03:40:57,651 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:40:59,652 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:41:01,653 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:41:03,653 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:41:05,654 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:41:07,655 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:41:07,957 DEBUG   SenderThread:558770 [sender.py:send():236] send: stats
+2022-07-12 03:41:09,656 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:41:11,657 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:41:12,866 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: stop_status
+2022-07-12 03:41:12,867 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: stop_status
+2022-07-12 03:41:13,657 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:41:15,658 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:41:17,659 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:41:19,660 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:41:21,661 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:41:22,222 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: partial_history
+2022-07-12 03:41:22,856 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: partial_history
+2022-07-12 03:41:23,662 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:41:25,663 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:41:28,328 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: stop_status
+2022-07-12 03:41:28,328 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: stop_status
+2022-07-12 03:41:33,665 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:41:35,666 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:41:37,667 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:41:38,540 DEBUG   SenderThread:558770 [sender.py:send():236] send: stats
+2022-07-12 03:41:39,668 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:41:41,669 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:41:43,669 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:41:43,791 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: stop_status
+2022-07-12 03:41:43,791 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: stop_status
+2022-07-12 03:41:45,670 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:41:47,670 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:41:49,671 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:41:51,671 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:41:53,672 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:41:55,673 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:41:57,674 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:41:59,253 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: stop_status
+2022-07-12 03:41:59,253 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: stop_status
+2022-07-12 03:41:59,674 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:42:01,675 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:42:03,675 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:42:05,676 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:42:07,677 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:42:09,101 DEBUG   SenderThread:558770 [sender.py:send():236] send: stats
+2022-07-12 03:42:09,677 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:42:11,058 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: partial_history
+2022-07-12 03:42:11,059 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: partial_history
+2022-07-12 03:42:11,678 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:42:13,679 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:42:14,652 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: stop_status
+2022-07-12 03:42:14,652 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: stop_status
+2022-07-12 03:42:21,681 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:42:23,682 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:42:25,683 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:42:27,684 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:42:29,684 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:42:30,086 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: stop_status
+2022-07-12 03:42:30,086 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: stop_status
+2022-07-12 03:42:32,685 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:42:34,686 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:42:36,687 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:42:38,688 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:42:39,736 DEBUG   SenderThread:558770 [sender.py:send():236] send: stats
+2022-07-12 03:42:40,690 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:42:42,691 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:42:44,691 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:42:45,538 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: stop_status
+2022-07-12 03:42:45,538 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: stop_status
+2022-07-12 03:42:46,693 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:42:48,693 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:42:50,694 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:42:52,695 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:42:54,696 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:42:56,696 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:42:58,697 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:42:59,697 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:43:00,306 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: partial_history
+2022-07-12 03:43:00,310 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: partial_history
+2022-07-12 03:43:00,698 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:43:01,040 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: stop_status
+2022-07-12 03:43:01,040 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: stop_status
+2022-07-12 03:43:01,698 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:43:02,699 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:43:04,699 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:43:10,299 DEBUG   SenderThread:558770 [sender.py:send():236] send: stats
+2022-07-12 03:43:10,702 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:43:12,703 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:43:14,704 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:43:16,373 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: stop_status
+2022-07-12 03:43:16,373 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: stop_status
+2022-07-12 03:43:16,704 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:43:18,705 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:43:20,706 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:43:22,706 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:43:24,707 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:43:26,708 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:43:28,709 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:43:30,710 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:43:31,823 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: stop_status
+2022-07-12 03:43:31,823 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: stop_status
+2022-07-12 03:43:32,710 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:43:34,711 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:43:36,712 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:43:38,712 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:43:40,713 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:43:40,813 DEBUG   SenderThread:558770 [sender.py:send():236] send: stats
+2022-07-12 03:43:42,714 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:43:44,715 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:43:46,716 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:43:47,286 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: stop_status
+2022-07-12 03:43:47,287 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: stop_status
+2022-07-12 03:43:48,717 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:43:50,718 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:43:51,979 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: partial_history
+2022-07-12 03:43:51,980 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: partial_history
+2022-07-12 03:43:52,040 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: partial_history
+2022-07-12 03:43:52,043 DEBUG   SenderThread:558770 [sender.py:send():236] send: history
+2022-07-12 03:43:52,043 DEBUG   SenderThread:558770 [sender.py:send():236] send: summary
+2022-07-12 03:43:52,044 INFO    SenderThread:558770 [sender.py:_save_file():952] saving file wandb-summary.json with policy end
+2022-07-12 03:43:52,044 DEBUG   SenderThread:558770 [sender.py:send():236] send: telemetry
+2022-07-12 03:43:52,719 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:43:52,719 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/wandb-summary.json
+2022-07-12 03:43:53,719 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:43:54,123 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: poll_exit
+2022-07-12 03:43:54,124 DEBUG   SenderThread:558770 [sender.py:send():236] send: exit
+2022-07-12 03:43:54,124 INFO    SenderThread:558770 [sender.py:send_exit():372] handling exit code: 0
+2022-07-12 03:43:54,124 INFO    SenderThread:558770 [sender.py:send_exit():374] handling runtime: 225
+2022-07-12 03:43:54,124 INFO    SenderThread:558770 [sender.py:_save_file():952] saving file wandb-summary.json with policy end
+2022-07-12 03:43:54,124 INFO    SenderThread:558770 [sender.py:send_exit():380] send defer
+2022-07-12 03:43:54,125 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: poll_exit
+2022-07-12 03:43:54,125 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: defer
+2022-07-12 03:43:54,125 INFO    HandlerThread:558770 [handler.py:handle_request_defer():163] handle defer: 0
+2022-07-12 03:43:54,126 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: defer
+2022-07-12 03:43:54,126 INFO    SenderThread:558770 [sender.py:send_request_defer():389] handle sender defer: 0
+2022-07-12 03:43:54,126 INFO    SenderThread:558770 [sender.py:transition_state():393] send defer: 1
+2022-07-12 03:43:54,126 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: defer
+2022-07-12 03:43:54,126 INFO    HandlerThread:558770 [handler.py:handle_request_defer():163] handle defer: 1
+2022-07-12 03:43:54,204 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: defer
+2022-07-12 03:43:54,204 INFO    SenderThread:558770 [sender.py:send_request_defer():389] handle sender defer: 1
+2022-07-12 03:43:54,204 INFO    SenderThread:558770 [sender.py:transition_state():393] send defer: 2
+2022-07-12 03:43:54,205 DEBUG   SenderThread:558770 [sender.py:send():236] send: stats
+2022-07-12 03:43:54,205 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: defer
+2022-07-12 03:43:54,205 INFO    HandlerThread:558770 [handler.py:handle_request_defer():163] handle defer: 2
+2022-07-12 03:43:54,206 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: defer
+2022-07-12 03:43:54,206 INFO    SenderThread:558770 [sender.py:send_request_defer():389] handle sender defer: 2
+2022-07-12 03:43:54,206 INFO    SenderThread:558770 [sender.py:transition_state():393] send defer: 3
+2022-07-12 03:43:54,206 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: defer
+2022-07-12 03:43:54,206 INFO    HandlerThread:558770 [handler.py:handle_request_defer():163] handle defer: 3
+2022-07-12 03:43:54,207 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: defer
+2022-07-12 03:43:54,207 INFO    SenderThread:558770 [sender.py:send_request_defer():389] handle sender defer: 3
+2022-07-12 03:43:54,207 INFO    SenderThread:558770 [sender.py:transition_state():393] send defer: 4
+2022-07-12 03:43:54,207 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: defer
+2022-07-12 03:43:54,207 INFO    HandlerThread:558770 [handler.py:handle_request_defer():163] handle defer: 4
+2022-07-12 03:43:54,208 DEBUG   SenderThread:558770 [sender.py:send():236] send: summary
+2022-07-12 03:43:54,208 INFO    SenderThread:558770 [sender.py:_save_file():952] saving file wandb-summary.json with policy end
+2022-07-12 03:43:54,209 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: defer
+2022-07-12 03:43:54,209 INFO    SenderThread:558770 [sender.py:send_request_defer():389] handle sender defer: 4
+2022-07-12 03:43:54,209 INFO    SenderThread:558770 [sender.py:transition_state():393] send defer: 5
+2022-07-12 03:43:54,209 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: defer
+2022-07-12 03:43:54,209 INFO    HandlerThread:558770 [handler.py:handle_request_defer():163] handle defer: 5
+2022-07-12 03:43:54,209 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: defer
+2022-07-12 03:43:54,210 INFO    SenderThread:558770 [sender.py:send_request_defer():389] handle sender defer: 5
+2022-07-12 03:43:54,227 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: poll_exit
+2022-07-12 03:43:54,725 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:43:54,726 INFO    SenderThread:558770 [sender.py:transition_state():393] send defer: 6
+2022-07-12 03:43:54,726 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/config.yaml
+2022-07-12 03:43:54,726 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: poll_exit
+2022-07-12 03:43:54,727 INFO    Thread-7  :558770 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/wandb-summary.json
+2022-07-12 03:43:54,727 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: defer
+2022-07-12 03:43:54,728 INFO    HandlerThread:558770 [handler.py:handle_request_defer():163] handle defer: 6
+2022-07-12 03:43:54,728 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: defer
+2022-07-12 03:43:54,728 INFO    SenderThread:558770 [sender.py:send_request_defer():389] handle sender defer: 6
+2022-07-12 03:43:54,728 INFO    SenderThread:558770 [dir_watcher.py:finish():353] shutting down directory watcher
+2022-07-12 03:43:54,829 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: poll_exit
+2022-07-12 03:43:55,728 INFO    SenderThread:558770 [dir_watcher.py:finish():383] scan: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files
+2022-07-12 03:43:55,729 INFO    SenderThread:558770 [dir_watcher.py:finish():397] scan save: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/config.yaml config.yaml
+2022-07-12 03:43:55,729 INFO    SenderThread:558770 [dir_watcher.py:finish():397] scan save: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/wandb-summary.json wandb-summary.json
+2022-07-12 03:43:55,735 INFO    SenderThread:558770 [dir_watcher.py:finish():397] scan save: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/requirements.txt requirements.txt
+2022-07-12 03:43:55,735 INFO    SenderThread:558770 [dir_watcher.py:finish():397] scan save: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/conda-environment.yaml conda-environment.yaml
+2022-07-12 03:43:55,743 INFO    SenderThread:558770 [dir_watcher.py:finish():397] scan save: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/wandb-metadata.json wandb-metadata.json
+2022-07-12 03:43:55,743 INFO    SenderThread:558770 [dir_watcher.py:finish():397] scan save: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log output.log
+2022-07-12 03:43:55,743 INFO    SenderThread:558770 [sender.py:transition_state():393] send defer: 7
+2022-07-12 03:43:55,744 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: poll_exit
+2022-07-12 03:43:55,753 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: defer
+2022-07-12 03:43:55,754 INFO    HandlerThread:558770 [handler.py:handle_request_defer():163] handle defer: 7
+2022-07-12 03:43:55,754 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: defer
+2022-07-12 03:43:55,754 INFO    SenderThread:558770 [sender.py:send_request_defer():389] handle sender defer: 7
+2022-07-12 03:43:55,754 INFO    SenderThread:558770 [file_pusher.py:finish():171] shutting down file pusher
+2022-07-12 03:43:55,845 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: poll_exit
+2022-07-12 03:43:55,845 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: poll_exit
+2022-07-12 03:43:55,946 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: poll_exit
+2022-07-12 03:43:55,947 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: poll_exit
+2022-07-12 03:43:56,048 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: poll_exit
+2022-07-12 03:43:56,048 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: poll_exit
+2022-07-12 03:43:56,150 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: poll_exit
+2022-07-12 03:43:56,151 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: poll_exit
+2022-07-12 03:43:56,253 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: poll_exit
+2022-07-12 03:43:56,253 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: poll_exit
+2022-07-12 03:43:56,355 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: poll_exit
+2022-07-12 03:43:56,355 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: poll_exit
+2022-07-12 03:43:56,457 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: poll_exit
+2022-07-12 03:43:56,457 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: poll_exit
+2022-07-12 03:43:56,559 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: poll_exit
+2022-07-12 03:43:56,559 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: poll_exit
+2022-07-12 03:43:56,660 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: poll_exit
+2022-07-12 03:43:56,661 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: poll_exit
+2022-07-12 03:43:56,762 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: poll_exit
+2022-07-12 03:43:56,762 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: poll_exit
+2022-07-12 03:43:56,862 INFO    Thread-13 :558770 [upload_job.py:push():138] Uploaded file /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/wandb-summary.json
+2022-07-12 03:43:56,863 INFO    Thread-14 :558770 [upload_job.py:push():138] Uploaded file /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/requirements.txt
+2022-07-12 03:43:56,864 INFO    Thread-12 :558770 [upload_job.py:push():138] Uploaded file /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/config.yaml
+2022-07-12 03:43:56,866 INFO    Thread-15 :558770 [upload_job.py:push():138] Uploaded file /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/conda-environment.yaml
+2022-07-12 03:43:56,867 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: poll_exit
+2022-07-12 03:43:56,868 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: poll_exit
+2022-07-12 03:43:56,872 INFO    Thread-16 :558770 [upload_job.py:push():138] Uploaded file /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/files/output.log
+2022-07-12 03:43:56,970 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: poll_exit
+2022-07-12 03:43:56,970 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: poll_exit
+2022-07-12 03:43:57,072 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: poll_exit
+2022-07-12 03:43:57,072 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: poll_exit
+2022-07-12 03:43:57,073 INFO    Thread-6 (_thread_body):558770 [sender.py:transition_state():393] send defer: 8
+2022-07-12 03:43:57,073 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: defer
+2022-07-12 03:43:57,073 INFO    HandlerThread:558770 [handler.py:handle_request_defer():163] handle defer: 8
+2022-07-12 03:43:57,074 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: defer
+2022-07-12 03:43:57,074 INFO    SenderThread:558770 [sender.py:send_request_defer():389] handle sender defer: 8
+2022-07-12 03:43:57,174 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: poll_exit
+2022-07-12 03:43:57,820 INFO    SenderThread:558770 [sender.py:transition_state():393] send defer: 9
+2022-07-12 03:43:57,821 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: poll_exit
+2022-07-12 03:43:57,821 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: defer
+2022-07-12 03:43:57,822 INFO    HandlerThread:558770 [handler.py:handle_request_defer():163] handle defer: 9
+2022-07-12 03:43:57,822 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: defer
+2022-07-12 03:43:57,822 INFO    SenderThread:558770 [sender.py:send_request_defer():389] handle sender defer: 9
+2022-07-12 03:43:57,822 INFO    SenderThread:558770 [sender.py:transition_state():393] send defer: 10
+2022-07-12 03:43:57,823 DEBUG   SenderThread:558770 [sender.py:send():236] send: final
+2022-07-12 03:43:57,823 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: defer
+2022-07-12 03:43:57,823 DEBUG   SenderThread:558770 [sender.py:send():236] send: footer
+2022-07-12 03:43:57,823 INFO    HandlerThread:558770 [handler.py:handle_request_defer():163] handle defer: 10
+2022-07-12 03:43:57,824 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: defer
+2022-07-12 03:43:57,824 INFO    SenderThread:558770 [sender.py:send_request_defer():389] handle sender defer: 10
+2022-07-12 03:43:57,923 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: poll_exit
+2022-07-12 03:43:57,924 DEBUG   SenderThread:558770 [sender.py:send_request():250] send_request: poll_exit
+2022-07-12 03:43:57,924 INFO    SenderThread:558770 [file_pusher.py:join():176] waiting for file pusher
+2022-07-12 03:43:58,698 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: sampled_history
+2022-07-12 03:43:58,699 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: get_summary
+2022-07-12 03:43:58,700 DEBUG   HandlerThread:558770 [handler.py:handle_request():140] handle_request: shutdown
+2022-07-12 03:43:58,700 INFO    HandlerThread:558770 [handler.py:finish():806] shutting down handler
+2022-07-12 03:43:58,823 INFO    WriterThread:558770 [datastore.py:close():279] close: /home/jahan/Missingness/wandb/run-20220712_034007-c2y1rfjp/run-c2y1rfjp.wandb
+2022-07-12 03:43:59,597 INFO    SenderThread:558770 [sender.py:finish():1114] shutting down sender
+2022-07-12 03:43:59,597 INFO    SenderThread:558770 [file_pusher.py:finish():171] shutting down file pusher
+2022-07-12 03:43:59,597 INFO    SenderThread:558770 [file_pusher.py:join():176] waiting for file pusher
+2022-07-12 03:43:59,599 INFO    MainThread:558770 [internal.py:handle_exit():80] Internal process exited

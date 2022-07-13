@@ -1,0 +1,28 @@
+name: Supervised Regression, features: house_prices_nominal
+{'X_train': {'cols': 0.049247746165554385, 'rows': 1.0}, 'X_valid': {'cols': 0.04771104086172579, 'rows': 1.0}, 'X_test': {'cols': 0.04678609062170706, 'rows': 0.9972602739726028}}
+dataset sizes
+(876, 78) (219, 78) (365, 78)
+no rows left in dropped dataset...
+key: 4518, k: 1/4, dataset: 42563, missing: None, impute: None
+{'d_model': 42, 'embedding_size': 42, 'embedding_layers': 2, 'encoder_heads': 4, 'encoder_layers': 2, 'decoder_heads': 4, 'decoder_layers': 5, 'net_size': 42, 'net_layers': 3, 'max_steps': 2149, 'learning_rate': 0.000930291660166694, 'batch_size': 128, 'early_stop': 0.177718150999012, 'noise_std': 0.15946640068860515}
+MAP
+2 device(s)
+optimizer: adam, lr: 0.0009302916587330401, batch_size=128
+  0%|                                                                                                                                                                                                                                                                                               | 0/358 [00:00<?, ?it/s]
+
+
+
+
+
+
+
+  File "/home/jahan/Missingness/train.py", line 143, in <module>
+    metrics_df, perc_missing = run(
+  File "/home/jahan/Missingness/benchmarkaux/openmlrun.py", line 149, in run
+    output = model.predict(X_test, sample=False)
+  File "/home/jahan/Missingness/UAT/models/scikit_wrapper.py", line 209, in predict
+    out = self.batch_forward(X, sample)
+  File "/home/jahan/Missingness/UAT/models/scikit_wrapper.py", line 163, in batch_forward
+    X.shape[0] // batch_size)
+ZeroDivisionError: integer division or modulo by zero
+Final test loss: 0.08696801960468292, epoch: 126, time: 0:00:36.019615

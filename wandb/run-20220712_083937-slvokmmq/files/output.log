@@ -1,0 +1,40 @@
+name: Supervised Regression, features: us_crime
+{'X_train': {'cols': 0.156334607421564, 'rows': 0.939799331103679}, 'X_valid': {'cols': 0.15228008706269577, 'rows': 0.9297658862876255}, 'X_test': {'cols': 0.15755320164137798, 'rows': 0.9398797595190381}}
+dataset sizes
+(1196, 126) (299, 126) (499, 126)
+dropped dataset sizes
+(72, 126) (21, 126) (30, 126)
+key: 7786, k: 1/4, dataset: 42730, missing: None, impute: None
+{'d_model': 71, 'embedding_size': 125, 'embedding_layers': 1, 'encoder_heads': 5, 'encoder_layers': 6, 'decoder_heads': 1, 'decoder_layers': 5, 'net_size': 20, 'net_layers': 1, 'max_steps': 1651, 'learning_rate': 0.0001, 'batch_size': 32, 'early_stop': 0.02460147639557042, 'noise_std': 0.6744647286580923}
+MAP
+2 device(s)
+optimizer: adam, lr: 9.999999747378752e-05, batch_size=32
+  0%|                                                                                                                                                                                                                                                                                                | 0/44 [00:00<?, ?it/s]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 24%|████████████████████████████████████████████████████████████████████                                                                                                                                                                                                                    | 9/37 [00:00<00:01, 19.45it/s]
+  File "/home/jahan/Missingness/train.py", line 143, in <module>
+    metrics_df, perc_missing = run(
+  File "/home/jahan/Missingness/benchmarkaux/openmlrun.py", line 149, in run
+    output = model.predict(X_test, sample=False)
+  File "/home/jahan/Missingness/UAT/models/scikit_wrapper.py", line 246, in predict
+    out = self.batch_forward(X, sample)
+  File "/home/jahan/Missingness/UAT/models/scikit_wrapper.py", line 200, in batch_forward
+    X.shape[0] // batch_size)
+ZeroDivisionError: integer division or modulo by zero

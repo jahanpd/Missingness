@@ -1,0 +1,44 @@
+name: Supervised Classification, features: dresses-sales
+{'X_train': {'cols': 0.14032567049808428, 'rows': 0.8132183908045977}, 'X_valid': {'cols': 0.13352272727272727, 'rows': 0.7613636363636364}, 'X_test': {'cols': 0.14733333333333334, 'rows': 0.8}}
+dataset sizes
+(352, 12) (88, 12) (125, 12)
+dropped dataset sizes
+(65, 12) (21, 12) (25, 12)
+key: 6811, k: 1/4, dataset: 23381, missing: None, impute: None
+{'d_model': 32, 'embedding_size': 35, 'embedding_layers': 2, 'encoder_heads': 5, 'encoder_layers': 3, 'decoder_heads': 2, 'decoder_layers': 10, 'net_size': 25, 'net_layers': 5, 'max_steps': 8683, 'learning_rate': 0.0006010060588777084, 'early_stop': 0.8670114961845203, 'noise_std': 0.7725464784181794}
+MAP
+2 device(s)
+optimizer: adabelief, lr: 0.001, batch_size=32
+  0%|                                                                                                                                                                                                                                                                                               | 0/100 [00:00<?, ?it/s]
+
+
+  0%|                                                                                                                                                                                                                                                                                                | 0/11 [00:00<?, ?it/s]
+early stop or epoch
+2 device(s)
+
+optimizer: adam, lr: 0.0006010060315020382, batch_size=32
+
+
+
+
+
+
+  6%|███████████████▎                                                                                                                                                                                                                             | 51/789 [00:25<03:07,  3.93it/s, l=1.39, tl=inf, tlc=1.39, tc=0, e=-.693]
+
+
+
+ 11%|████████████████████████▉                                                                                                                                                                                                                    | 83/789 [00:33<02:56,  4.00it/s, l=1.39, tl=inf, tlc=1.39, tc=0, e=-.693]
+
+
+
+
+
+
+
+ 21%|██████████████████████████████████████████████████▌                                                                                                                                                                                         | 169/789 [00:52<02:24,  4.29it/s, l=1.39, tl=inf, tlc=1.38, tc=0, e=-.693]
+
+
+
+
+
+

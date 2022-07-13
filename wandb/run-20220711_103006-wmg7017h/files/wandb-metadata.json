@@ -1,0 +1,41 @@
+{
+    "os": "Linux-5.18.9-arch1-1-x86_64-with-glibc2.35",
+    "python": "3.10.5",
+    "heartbeatAt": "2022-07-11T00:30:07.372271",
+    "startedAt": "2022-07-11T00:30:06.275574",
+    "docker": null,
+    "gpu": "NVIDIA GeForce RTX 2060",
+    "gpu_count": 2,
+    "cpu_count": 16,
+    "cuda": null,
+    "args": [
+        "--model",
+        "LightGBM",
+        "--dataset",
+        "0",
+        "--k",
+        "4",
+        "--repeats",
+        "1",
+        "--notes",
+        "hyperparameter search",
+        "--lightgbm_learning_rate=7",
+        "--max_bin=101",
+        "--max_depth=2",
+        "--min_data_in_leaf=4",
+        "--num_iterations=4",
+        "--num_leaves=3"
+    ],
+    "state": "running",
+    "program": "/home/jahan/Missingness/train.py",
+    "codePath": "train.py",
+    "git": {
+        "remote": "https://github.com/jahanpd/Missingness.git",
+        "commit": "923e6cabb05efa86a63ddfd0189ad74f4b6c2983"
+    },
+    "email": "jahan.pd@gmail.com",
+    "root": "/home/jahan/Missingness",
+    "host": "jahan",
+    "username": "jahan",
+    "executable": "/home/jahan/.conda/envs/jax/bin/python"
+}

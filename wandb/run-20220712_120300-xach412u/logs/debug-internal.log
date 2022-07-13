@@ -1,0 +1,164 @@
+2022-07-12 12:03:00,829 INFO    MainThread:716657 [internal.py:wandb_internal():90] W&B internal server running at pid: 716657, started at: 2022-07-12 12:03:00.828944
+2022-07-12 12:03:00,830 INFO    WriterThread:716657 [datastore.py:open_for_write():75] open: /home/jahan/Missingness/wandb/run-20220712_120300-xach412u/run-xach412u.wandb
+2022-07-12 12:03:00,831 DEBUG   SenderThread:716657 [sender.py:send():236] send: header
+2022-07-12 12:03:00,831 DEBUG   SenderThread:716657 [sender.py:send():236] send: run
+2022-07-12 12:03:01,327 INFO    SenderThread:716657 [dir_watcher.py:__init__():216] watching files in: /home/jahan/Missingness/wandb/run-20220712_120300-xach412u/files
+2022-07-12 12:03:01,327 INFO    SenderThread:716657 [sender.py:_start_run_threads():815] run started: xach412u with start time 1657591380
+2022-07-12 12:03:01,327 DEBUG   SenderThread:716657 [sender.py:send():236] send: summary
+2022-07-12 12:03:01,328 INFO    SenderThread:716657 [sender.py:_save_file():952] saving file wandb-summary.json with policy end
+2022-07-12 12:03:01,331 DEBUG   HandlerThread:716657 [handler.py:handle_request():140] handle_request: check_version
+2022-07-12 12:03:01,331 DEBUG   SenderThread:716657 [sender.py:send_request():250] send_request: check_version
+2022-07-12 12:03:01,547 DEBUG   HandlerThread:716657 [handler.py:handle_request():140] handle_request: run_start
+2022-07-12 12:03:01,552 DEBUG   HandlerThread:716657 [meta.py:__init__():35] meta init
+2022-07-12 12:03:01,552 DEBUG   HandlerThread:716657 [meta.py:__init__():49] meta init done
+2022-07-12 12:03:01,552 DEBUG   HandlerThread:716657 [meta.py:probe():209] probe
+2022-07-12 12:03:01,559 DEBUG   HandlerThread:716657 [meta.py:_setup_git():199] setup git
+2022-07-12 12:03:01,568 DEBUG   HandlerThread:716657 [meta.py:_setup_git():206] setup git done
+2022-07-12 12:03:01,568 DEBUG   HandlerThread:716657 [meta.py:_save_pip():53] save pip
+2022-07-12 12:03:01,569 DEBUG   HandlerThread:716657 [meta.py:_save_pip():67] save pip done
+2022-07-12 12:03:01,569 DEBUG   HandlerThread:716657 [meta.py:_save_conda():74] save conda
+2022-07-12 12:03:02,330 INFO    Thread-7  :716657 [dir_watcher.py:_on_file_created():269] file/dir created: /home/jahan/Missingness/wandb/run-20220712_120300-xach412u/files/conda-environment.yaml
+2022-07-12 12:03:02,330 INFO    Thread-7  :716657 [dir_watcher.py:_on_file_created():269] file/dir created: /home/jahan/Missingness/wandb/run-20220712_120300-xach412u/files/wandb-summary.json
+2022-07-12 12:03:02,330 INFO    Thread-7  :716657 [dir_watcher.py:_on_file_created():269] file/dir created: /home/jahan/Missingness/wandb/run-20220712_120300-xach412u/files/requirements.txt
+2022-07-12 12:03:03,944 DEBUG   HandlerThread:716657 [meta.py:_save_conda():84] save conda done
+2022-07-12 12:03:03,944 DEBUG   HandlerThread:716657 [meta.py:probe():247] probe done
+2022-07-12 12:03:03,949 DEBUG   SenderThread:716657 [sender.py:send():236] send: files
+2022-07-12 12:03:03,949 INFO    SenderThread:716657 [sender.py:_save_file():952] saving file wandb-metadata.json with policy now
+2022-07-12 12:03:03,961 DEBUG   HandlerThread:716657 [handler.py:handle_request():140] handle_request: stop_status
+2022-07-12 12:03:03,961 DEBUG   SenderThread:716657 [sender.py:send_request():250] send_request: stop_status
+2022-07-12 12:03:04,258 DEBUG   SenderThread:716657 [sender.py:send():236] send: telemetry
+2022-07-12 12:03:04,258 DEBUG   SenderThread:716657 [sender.py:send():236] send: config
+2022-07-12 12:03:04,259 DEBUG   SenderThread:716657 [sender.py:send():236] send: config
+2022-07-12 12:03:04,259 DEBUG   SenderThread:716657 [sender.py:send():236] send: telemetry
+2022-07-12 12:03:04,328 INFO    Thread-7  :716657 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_120300-xach412u/files/conda-environment.yaml
+2022-07-12 12:03:04,328 INFO    Thread-7  :716657 [dir_watcher.py:_on_file_created():269] file/dir created: /home/jahan/Missingness/wandb/run-20220712_120300-xach412u/files/wandb-metadata.json
+2022-07-12 12:03:04,328 INFO    Thread-7  :716657 [dir_watcher.py:_on_file_created():269] file/dir created: /home/jahan/Missingness/wandb/run-20220712_120300-xach412u/files/output.log
+2022-07-12 12:03:04,883 INFO    Thread-11 :716657 [upload_job.py:push():138] Uploaded file /tmp/tmpm0uhys5hwandb/254tw02w-wandb-metadata.json
+2022-07-12 12:03:06,329 INFO    Thread-7  :716657 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_120300-xach412u/files/output.log
+2022-07-12 12:03:06,476 DEBUG   HandlerThread:716657 [handler.py:handle_request():140] handle_request: poll_exit
+2022-07-12 12:03:06,477 DEBUG   SenderThread:716657 [sender.py:send():236] send: exit
+2022-07-12 12:03:06,477 INFO    SenderThread:716657 [sender.py:send_exit():372] handling exit code: 1
+2022-07-12 12:03:06,477 INFO    SenderThread:716657 [sender.py:send_exit():374] handling runtime: 4
+2022-07-12 12:03:06,478 INFO    SenderThread:716657 [sender.py:_save_file():952] saving file wandb-summary.json with policy end
+2022-07-12 12:03:06,478 INFO    SenderThread:716657 [sender.py:send_exit():380] send defer
+2022-07-12 12:03:06,478 DEBUG   SenderThread:716657 [sender.py:send_request():250] send_request: poll_exit
+2022-07-12 12:03:06,479 DEBUG   HandlerThread:716657 [handler.py:handle_request():140] handle_request: defer
+2022-07-12 12:03:06,479 INFO    HandlerThread:716657 [handler.py:handle_request_defer():163] handle defer: 0
+2022-07-12 12:03:06,479 DEBUG   SenderThread:716657 [sender.py:send_request():250] send_request: defer
+2022-07-12 12:03:06,479 INFO    SenderThread:716657 [sender.py:send_request_defer():389] handle sender defer: 0
+2022-07-12 12:03:06,480 INFO    SenderThread:716657 [sender.py:transition_state():393] send defer: 1
+2022-07-12 12:03:06,480 DEBUG   HandlerThread:716657 [handler.py:handle_request():140] handle_request: defer
+2022-07-12 12:03:06,480 INFO    HandlerThread:716657 [handler.py:handle_request_defer():163] handle defer: 1
+2022-07-12 12:03:06,619 DEBUG   HandlerThread:716657 [handler.py:handle_request():140] handle_request: poll_exit
+2022-07-12 12:03:06,619 DEBUG   SenderThread:716657 [sender.py:send_request():250] send_request: defer
+2022-07-12 12:03:06,620 INFO    SenderThread:716657 [sender.py:send_request_defer():389] handle sender defer: 1
+2022-07-12 12:03:06,620 INFO    SenderThread:716657 [sender.py:transition_state():393] send defer: 2
+2022-07-12 12:03:06,620 DEBUG   SenderThread:716657 [sender.py:send_request():250] send_request: poll_exit
+2022-07-12 12:03:06,620 DEBUG   SenderThread:716657 [sender.py:send():236] send: stats
+2022-07-12 12:03:06,620 DEBUG   HandlerThread:716657 [handler.py:handle_request():140] handle_request: defer
+2022-07-12 12:03:06,621 INFO    HandlerThread:716657 [handler.py:handle_request_defer():163] handle defer: 2
+2022-07-12 12:03:06,621 DEBUG   SenderThread:716657 [sender.py:send_request():250] send_request: defer
+2022-07-12 12:03:06,621 INFO    SenderThread:716657 [sender.py:send_request_defer():389] handle sender defer: 2
+2022-07-12 12:03:06,622 INFO    SenderThread:716657 [sender.py:transition_state():393] send defer: 3
+2022-07-12 12:03:06,622 DEBUG   HandlerThread:716657 [handler.py:handle_request():140] handle_request: defer
+2022-07-12 12:03:06,622 INFO    HandlerThread:716657 [handler.py:handle_request_defer():163] handle defer: 3
+2022-07-12 12:03:06,622 DEBUG   SenderThread:716657 [sender.py:send_request():250] send_request: defer
+2022-07-12 12:03:06,622 INFO    SenderThread:716657 [sender.py:send_request_defer():389] handle sender defer: 3
+2022-07-12 12:03:06,622 INFO    SenderThread:716657 [sender.py:transition_state():393] send defer: 4
+2022-07-12 12:03:06,623 DEBUG   HandlerThread:716657 [handler.py:handle_request():140] handle_request: defer
+2022-07-12 12:03:06,623 INFO    HandlerThread:716657 [handler.py:handle_request_defer():163] handle defer: 4
+2022-07-12 12:03:06,623 DEBUG   SenderThread:716657 [sender.py:send():236] send: summary
+2022-07-12 12:03:06,624 INFO    SenderThread:716657 [sender.py:_save_file():952] saving file wandb-summary.json with policy end
+2022-07-12 12:03:06,624 DEBUG   SenderThread:716657 [sender.py:send_request():250] send_request: defer
+2022-07-12 12:03:06,624 INFO    SenderThread:716657 [sender.py:send_request_defer():389] handle sender defer: 4
+2022-07-12 12:03:06,624 INFO    SenderThread:716657 [sender.py:transition_state():393] send defer: 5
+2022-07-12 12:03:06,624 DEBUG   HandlerThread:716657 [handler.py:handle_request():140] handle_request: defer
+2022-07-12 12:03:06,625 INFO    HandlerThread:716657 [handler.py:handle_request_defer():163] handle defer: 5
+2022-07-12 12:03:06,625 DEBUG   SenderThread:716657 [sender.py:send_request():250] send_request: defer
+2022-07-12 12:03:06,625 INFO    SenderThread:716657 [sender.py:send_request_defer():389] handle sender defer: 5
+2022-07-12 12:03:06,722 DEBUG   HandlerThread:716657 [handler.py:handle_request():140] handle_request: poll_exit
+2022-07-12 12:03:07,087 INFO    SenderThread:716657 [sender.py:transition_state():393] send defer: 6
+2022-07-12 12:03:07,087 DEBUG   SenderThread:716657 [sender.py:send_request():250] send_request: poll_exit
+2022-07-12 12:03:07,088 DEBUG   HandlerThread:716657 [handler.py:handle_request():140] handle_request: defer
+2022-07-12 12:03:07,088 INFO    HandlerThread:716657 [handler.py:handle_request_defer():163] handle defer: 6
+2022-07-12 12:03:07,088 DEBUG   SenderThread:716657 [sender.py:send_request():250] send_request: defer
+2022-07-12 12:03:07,088 INFO    SenderThread:716657 [sender.py:send_request_defer():389] handle sender defer: 6
+2022-07-12 12:03:07,089 INFO    SenderThread:716657 [dir_watcher.py:finish():353] shutting down directory watcher
+2022-07-12 12:03:07,189 DEBUG   HandlerThread:716657 [handler.py:handle_request():140] handle_request: poll_exit
+2022-07-12 12:03:07,329 INFO    Thread-7  :716657 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_120300-xach412u/files/config.yaml
+2022-07-12 12:03:07,330 INFO    SenderThread:716657 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_120300-xach412u/files/wandb-summary.json
+2022-07-12 12:03:07,330 INFO    SenderThread:716657 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220712_120300-xach412u/files/output.log
+2022-07-12 12:03:07,330 INFO    SenderThread:716657 [dir_watcher.py:finish():383] scan: /home/jahan/Missingness/wandb/run-20220712_120300-xach412u/files
+2022-07-12 12:03:07,331 INFO    SenderThread:716657 [dir_watcher.py:finish():397] scan save: /home/jahan/Missingness/wandb/run-20220712_120300-xach412u/files/config.yaml config.yaml
+2022-07-12 12:03:07,331 INFO    SenderThread:716657 [dir_watcher.py:finish():397] scan save: /home/jahan/Missingness/wandb/run-20220712_120300-xach412u/files/wandb-summary.json wandb-summary.json
+2022-07-12 12:03:07,331 INFO    SenderThread:716657 [dir_watcher.py:finish():397] scan save: /home/jahan/Missingness/wandb/run-20220712_120300-xach412u/files/requirements.txt requirements.txt
+2022-07-12 12:03:07,342 INFO    SenderThread:716657 [dir_watcher.py:finish():397] scan save: /home/jahan/Missingness/wandb/run-20220712_120300-xach412u/files/conda-environment.yaml conda-environment.yaml
+2022-07-12 12:03:07,346 INFO    SenderThread:716657 [dir_watcher.py:finish():397] scan save: /home/jahan/Missingness/wandb/run-20220712_120300-xach412u/files/wandb-metadata.json wandb-metadata.json
+2022-07-12 12:03:07,346 INFO    SenderThread:716657 [dir_watcher.py:finish():397] scan save: /home/jahan/Missingness/wandb/run-20220712_120300-xach412u/files/output.log output.log
+2022-07-12 12:03:07,352 INFO    SenderThread:716657 [sender.py:transition_state():393] send defer: 7
+2022-07-12 12:03:07,352 DEBUG   SenderThread:716657 [sender.py:send_request():250] send_request: poll_exit
+2022-07-12 12:03:07,353 DEBUG   HandlerThread:716657 [handler.py:handle_request():140] handle_request: defer
+2022-07-12 12:03:07,353 INFO    HandlerThread:716657 [handler.py:handle_request_defer():163] handle defer: 7
+2022-07-12 12:03:07,353 DEBUG   SenderThread:716657 [sender.py:send_request():250] send_request: defer
+2022-07-12 12:03:07,358 INFO    SenderThread:716657 [sender.py:send_request_defer():389] handle sender defer: 7
+2022-07-12 12:03:07,358 INFO    SenderThread:716657 [file_pusher.py:finish():171] shutting down file pusher
+2022-07-12 12:03:07,454 DEBUG   HandlerThread:716657 [handler.py:handle_request():140] handle_request: poll_exit
+2022-07-12 12:03:07,454 DEBUG   SenderThread:716657 [sender.py:send_request():250] send_request: poll_exit
+2022-07-12 12:03:07,556 DEBUG   HandlerThread:716657 [handler.py:handle_request():140] handle_request: poll_exit
+2022-07-12 12:03:07,556 DEBUG   SenderThread:716657 [sender.py:send_request():250] send_request: poll_exit
+2022-07-12 12:03:07,658 DEBUG   HandlerThread:716657 [handler.py:handle_request():140] handle_request: poll_exit
+2022-07-12 12:03:07,658 DEBUG   SenderThread:716657 [sender.py:send_request():250] send_request: poll_exit
+2022-07-12 12:03:07,760 DEBUG   HandlerThread:716657 [handler.py:handle_request():140] handle_request: poll_exit
+2022-07-12 12:03:07,763 DEBUG   SenderThread:716657 [sender.py:send_request():250] send_request: poll_exit
+2022-07-12 12:03:07,865 DEBUG   HandlerThread:716657 [handler.py:handle_request():140] handle_request: poll_exit
+2022-07-12 12:03:07,866 DEBUG   SenderThread:716657 [sender.py:send_request():250] send_request: poll_exit
+2022-07-12 12:03:07,967 DEBUG   HandlerThread:716657 [handler.py:handle_request():140] handle_request: poll_exit
+2022-07-12 12:03:07,967 DEBUG   SenderThread:716657 [sender.py:send_request():250] send_request: poll_exit
+2022-07-12 12:03:08,069 DEBUG   HandlerThread:716657 [handler.py:handle_request():140] handle_request: poll_exit
+2022-07-12 12:03:08,069 DEBUG   SenderThread:716657 [sender.py:send_request():250] send_request: poll_exit
+2022-07-12 12:03:08,171 DEBUG   HandlerThread:716657 [handler.py:handle_request():140] handle_request: poll_exit
+2022-07-12 12:03:08,171 DEBUG   SenderThread:716657 [sender.py:send_request():250] send_request: poll_exit
+2022-07-12 12:03:08,273 DEBUG   HandlerThread:716657 [handler.py:handle_request():140] handle_request: poll_exit
+2022-07-12 12:03:08,273 DEBUG   SenderThread:716657 [sender.py:send_request():250] send_request: poll_exit
+2022-07-12 12:03:08,289 INFO    Thread-13 :716657 [upload_job.py:push():138] Uploaded file /home/jahan/Missingness/wandb/run-20220712_120300-xach412u/files/wandb-summary.json
+2022-07-12 12:03:08,371 INFO    Thread-15 :716657 [upload_job.py:push():138] Uploaded file /home/jahan/Missingness/wandb/run-20220712_120300-xach412u/files/conda-environment.yaml
+2022-07-12 12:03:08,375 INFO    Thread-12 :716657 [upload_job.py:push():138] Uploaded file /home/jahan/Missingness/wandb/run-20220712_120300-xach412u/files/config.yaml
+2022-07-12 12:03:08,375 DEBUG   HandlerThread:716657 [handler.py:handle_request():140] handle_request: poll_exit
+2022-07-12 12:03:08,376 DEBUG   SenderThread:716657 [sender.py:send_request():250] send_request: poll_exit
+2022-07-12 12:03:08,387 INFO    Thread-14 :716657 [upload_job.py:push():138] Uploaded file /home/jahan/Missingness/wandb/run-20220712_120300-xach412u/files/requirements.txt
+2022-07-12 12:03:08,391 INFO    Thread-16 :716657 [upload_job.py:push():138] Uploaded file /home/jahan/Missingness/wandb/run-20220712_120300-xach412u/files/output.log
+2022-07-12 12:03:08,477 DEBUG   HandlerThread:716657 [handler.py:handle_request():140] handle_request: poll_exit
+2022-07-12 12:03:08,478 DEBUG   SenderThread:716657 [sender.py:send_request():250] send_request: poll_exit
+2022-07-12 12:03:08,579 DEBUG   HandlerThread:716657 [handler.py:handle_request():140] handle_request: poll_exit
+2022-07-12 12:03:08,580 DEBUG   SenderThread:716657 [sender.py:send_request():250] send_request: poll_exit
+2022-07-12 12:03:08,592 INFO    Thread-6 (_thread_body):716657 [sender.py:transition_state():393] send defer: 8
+2022-07-12 12:03:08,593 DEBUG   HandlerThread:716657 [handler.py:handle_request():140] handle_request: defer
+2022-07-12 12:03:08,593 INFO    HandlerThread:716657 [handler.py:handle_request_defer():163] handle defer: 8
+2022-07-12 12:03:08,593 DEBUG   SenderThread:716657 [sender.py:send_request():250] send_request: defer
+2022-07-12 12:03:08,593 INFO    SenderThread:716657 [sender.py:send_request_defer():389] handle sender defer: 8
+2022-07-12 12:03:08,681 DEBUG   HandlerThread:716657 [handler.py:handle_request():140] handle_request: poll_exit
+2022-07-12 12:03:09,041 INFO    SenderThread:716657 [sender.py:transition_state():393] send defer: 9
+2022-07-12 12:03:09,041 DEBUG   SenderThread:716657 [sender.py:send_request():250] send_request: poll_exit
+2022-07-12 12:03:09,042 DEBUG   HandlerThread:716657 [handler.py:handle_request():140] handle_request: defer
+2022-07-12 12:03:09,042 INFO    HandlerThread:716657 [handler.py:handle_request_defer():163] handle defer: 9
+2022-07-12 12:03:09,042 DEBUG   SenderThread:716657 [sender.py:send_request():250] send_request: defer
+2022-07-12 12:03:09,043 INFO    SenderThread:716657 [sender.py:send_request_defer():389] handle sender defer: 9
+2022-07-12 12:03:09,043 INFO    SenderThread:716657 [sender.py:transition_state():393] send defer: 10
+2022-07-12 12:03:09,043 DEBUG   SenderThread:716657 [sender.py:send():236] send: final
+2022-07-12 12:03:09,044 DEBUG   SenderThread:716657 [sender.py:send():236] send: footer
+2022-07-12 12:03:09,044 DEBUG   HandlerThread:716657 [handler.py:handle_request():140] handle_request: defer
+2022-07-12 12:03:09,044 INFO    HandlerThread:716657 [handler.py:handle_request_defer():163] handle defer: 10
+2022-07-12 12:03:09,044 DEBUG   SenderThread:716657 [sender.py:send_request():250] send_request: defer
+2022-07-12 12:03:09,044 INFO    SenderThread:716657 [sender.py:send_request_defer():389] handle sender defer: 10
+2022-07-12 12:03:09,144 DEBUG   HandlerThread:716657 [handler.py:handle_request():140] handle_request: poll_exit
+2022-07-12 12:03:09,144 DEBUG   SenderThread:716657 [sender.py:send_request():250] send_request: poll_exit
+2022-07-12 12:03:09,144 INFO    SenderThread:716657 [file_pusher.py:join():176] waiting for file pusher
+2022-07-12 12:03:09,920 DEBUG   HandlerThread:716657 [handler.py:handle_request():140] handle_request: sampled_history
+2022-07-12 12:03:09,921 DEBUG   HandlerThread:716657 [handler.py:handle_request():140] handle_request: get_summary
+2022-07-12 12:03:09,922 DEBUG   HandlerThread:716657 [handler.py:handle_request():140] handle_request: shutdown
+2022-07-12 12:03:09,922 INFO    HandlerThread:716657 [handler.py:finish():806] shutting down handler
+2022-07-12 12:03:10,044 INFO    WriterThread:716657 [datastore.py:close():279] close: /home/jahan/Missingness/wandb/run-20220712_120300-xach412u/run-xach412u.wandb
+2022-07-12 12:03:10,818 INFO    SenderThread:716657 [sender.py:finish():1114] shutting down sender
+2022-07-12 12:03:10,818 INFO    SenderThread:716657 [file_pusher.py:finish():171] shutting down file pusher
+2022-07-12 12:03:10,818 INFO    SenderThread:716657 [file_pusher.py:join():176] waiting for file pusher
+2022-07-12 12:03:10,842 INFO    MainThread:716657 [internal.py:handle_exit():80] Internal process exited

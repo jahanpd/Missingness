@@ -1,0 +1,39 @@
+name: Supervised Regression, features: Moneyball
+{'X_train': {'cols': 0.20664991300985888, 'rows': 0.8998646820027063}, 'X_valid': {'cols': 0.21235521235521235, 'rows': 0.9135135135135135}, 'X_test': {'cols': 0.21150278293135436, 'rows': 0.922077922077922}}
+dataset sizes
+(739, 14) (185, 14) (308, 14)
+dropped dataset sizes
+(74, 14) (16, 14) (24, 14)
+key: 9406, k: 1/4, dataset: 41021, missing: None, impute: None
+{'d_model': 83, 'embedding_size': 83, 'embedding_layers': 3, 'encoder_heads': 2, 'encoder_layers': 11, 'decoder_heads': 3, 'decoder_layers': 10, 'net_size': 83, 'net_layers': 2, 'max_steps': 4607, 'learning_rate': 0.0001172170822573829, 'batch_size': 128, 'early_stop': 0.08436188162806137, 'noise_std': 2.5790682809606125}
+MAP
+2 device(s)
+  0%|                                                                                                                                                                                                                                                                                               | 0/921 [00:00<?, ?it/s]
+optimizer: adam, lr: 0.00011721708142431453, batch_size=128
+
+
+
+
+
+
+
+
+
+ 15%|███████████████████████████████████                                                                                                                                                                                                       | 138/921 [00:40<02:07,  6.13it/s, l=1.04, tl=1.03, tlc=1.06, tc=46, e=-.693]
+
+
+ 25%|███████████████████████████████████████████████████████████▏                                                                                                                                                                               | 232/921 [00:56<01:53,  6.09it/s, l=1.01, tl=1.03, tlc=1.03, tc=0, e=-.693]
+
+
+
+
+
+
+ 80%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▊                                                        | 4/5 [00:00<00:00, 32.96it/s]
+
+Traceback (most recent call last):
+  File "/home/jahan/Missingness/train.py", line 143, in <module>
+    metrics_df, perc_missing = run(
+  File "/home/jahan/Missingness/benchmarkaux/openmlrun.py", line 173, in run
+    rmse = np.sqrt(np.square(output - y_test).mean())
+ValueError: operands could not be broadcast together with shapes (4,77) (308,1)

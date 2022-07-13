@@ -1,0 +1,64 @@
+name: Supervised Classification, features: MiceProtein
+{'X_train': {'cols': 0.016674683341350006, 'rows': 0.48010973936899864}, 'X_valid': {'cols': 0.015116031509474132, 'rows': 0.4426229508196721}, 'X_test': {'cols': 0.018518518518518517, 'rows': 0.5222222222222223}}
+dataset sizes
+(768, 77) (183, 77) (270, 77)
+dropped dataset sizes
+(405, 77) (102, 77) (129, 77)
+key: 8497, k: 1/4, dataset: 40966, missing: None, impute: None
+training gbm for 5000 epochs
+{'num_leaves': 6, 'max_bin': 21, 'max_depth': 19, 'min_data_in_leaf': 13, 'learning_rate': 0.007265925310556476, 'num_iterations': 632, 'objective': 'softmax', 'verbose': -1, 'num_class': 8}
+Training until validation scores don't improve for 100 rounds
+/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/lightgbm/engine.py:177: UserWarning: Found `num_iterations` in params. Will use it instead of argument
+  _log_warning(f"Found `{alias}` in params. Will use it instead of argument")
+Did not meet early stopping. Best iteration is:
+[632]	valid_0's multi_logloss: 0.0829103
+strategy:None, acc gbm: 0.9888888888888889
+strategy:None, nll xbg:0.12738879024982452
+name: Supervised Classification, features: MiceProtein
+{'X_train': {'cols': 0.01713919882933967, 'rows': 0.4887323943661972}, 'X_valid': {'cols': 0.015248796147672553, 'rows': 0.46629213483146065}, 'X_test': {'cols': 0.014718614718614718, 'rows': 0.48148148148148145}}
+dataset sizes
+(760, 77) (178, 77) (270, 77)
+dropped dataset sizes
+(394, 77) (95, 77) (140, 77)
+key: 3330, k: 2/4, dataset: 40966, missing: None, impute: None
+training gbm for 5000 epochs
+{'num_leaves': 6, 'max_bin': 21, 'max_depth': 19, 'min_data_in_leaf': 13, 'learning_rate': 0.007265925310556476, 'num_iterations': 632, 'objective': 'softmax', 'verbose': -1, 'num_class': 8}
+Training until validation scores don't improve for 100 rounds
+/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/lightgbm/engine.py:177: UserWarning: Found `num_iterations` in params. Will use it instead of argument
+  _log_warning(f"Found `{alias}` in params. Will use it instead of argument")
+Did not meet early stopping. Best iteration is:
+[632]	valid_0's multi_logloss: 0.147821
+strategy:None, acc gbm: 0.9555555555555556
+strategy:None, nll xbg:0.15619643032550812
+name: Supervised Classification, features: MiceProtein
+{'X_train': {'cols': 0.015772341353736702, 'rows': 0.4599483204134367}, 'X_valid': {'cols': 0.016468068014459766, 'rows': 0.5412371134020618}, 'X_test': {'cols': 0.017075517075517074, 'rows': 0.4703703703703704}}
+dataset sizes
+(808, 77) (194, 77) (270, 77)
+dropped dataset sizes
+(433, 77) (89, 77) (143, 77)
+key: 9258, k: 3/4, dataset: 40966, missing: None, impute: None
+training gbm for 5000 epochs
+{'num_leaves': 6, 'max_bin': 21, 'max_depth': 19, 'min_data_in_leaf': 13, 'learning_rate': 0.007265925310556476, 'num_iterations': 632, 'objective': 'softmax', 'verbose': -1, 'num_class': 8}
+Training until validation scores don't improve for 100 rounds
+Did not meet early stopping. Best iteration is:
+[632]	valid_0's multi_logloss: 0.0693279
+strategy:None, acc gbm: 0.9851851851851852
+strategy:None, nll xbg:0.09081639349460602
+name: Supervised Classification, features: MiceProtein
+{'X_train': {'cols': 0.015175042348955392, 'rows': 0.4782608695652174}, 'X_valid': {'cols': 0.020115753811405984, 'rows': 0.5}, 'X_test': {'cols': 0.01683501683501683, 'rows': 0.48148148148148145}}
+dataset sizes
+(776, 77) (184, 77) (270, 77)
+dropped dataset sizes
+(404, 77) (92, 77) (140, 77)
+key: 1155, k: 4/4, dataset: 40966, missing: None, impute: None
+training gbm for 5000 epochs
+{'num_leaves': 6, 'max_bin': 21, 'max_depth': 19, 'min_data_in_leaf': 13, 'learning_rate': 0.007265925310556476, 'num_iterations': 632, 'objective': 'softmax', 'verbose': -1, 'num_class': 8}
+Training until validation scores don't improve for 100 rounds
+/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/lightgbm/engine.py:177: UserWarning: Found `num_iterations` in params. Will use it instead of argument
+  _log_warning(f"Found `{alias}` in params. Will use it instead of argument")
+/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/lightgbm/engine.py:177: UserWarning: Found `num_iterations` in params. Will use it instead of argument
+  _log_warning(f"Found `{alias}` in params. Will use it instead of argument")
+Did not meet early stopping. Best iteration is:
+[632]	valid_0's multi_logloss: 0.0794154
+strategy:None, acc gbm: 0.9555555555555556
+strategy:None, nll xbg:0.15576240420341492

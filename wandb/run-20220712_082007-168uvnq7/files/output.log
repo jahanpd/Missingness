@@ -1,0 +1,42 @@
+name: Supervised Regression, features: Moneyball
+{'X_train': {'cols': 0.20703653585926926, 'rows': 0.8985115020297699}, 'X_valid': {'cols': 0.21081081081081082, 'rows': 0.918918918918919}, 'X_test': {'cols': 0.21150278293135436, 'rows': 0.922077922077922}}
+dataset sizes
+(739, 14) (185, 14) (308, 14)
+dropped dataset sizes
+(75, 14) (15, 14) (24, 14)
+key: 3676, k: 1/4, dataset: 41021, missing: None, impute: None
+{'d_model': 85, 'embedding_size': 94, 'embedding_layers': 3, 'encoder_heads': 5, 'encoder_layers': 7, 'decoder_heads': 2, 'decoder_layers': 1, 'net_size': 99, 'net_layers': 1, 'max_steps': 4014, 'learning_rate': 0.0005, 'batch_size': 32, 'early_stop': 0.31031947804714444, 'noise_std': 1.1131181668780767}
+MAP
+2 device(s)
+optimizer: adam, lr: 0.0005000000237487257, batch_size=32
+  0%|                                                                                                                                                                                                                                                                                               | 0/174 [00:00<?, ?it/s]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 22%|████████████████████████████████████████████████████████████▊                                                                                                                                                                                                                           | 5/23 [00:00<00:00, 49.14it/s]
+                                                                                                                                                                                                                                                                                                                            Traceback (most recent call last):
+  File "/home/jahan/Missingness/train.py", line 143, in <module>
+    metrics_df, perc_missing = run(
+  File "/home/jahan/Missingness/benchmarkaux/openmlrun.py", line 149, in run
+    output = model.predict(X_test, sample=False)
+  File "/home/jahan/Missingness/UAT/models/scikit_wrapper.py", line 246, in predict
+    out = self.batch_forward(X, sample)
+  File "/home/jahan/Missingness/UAT/models/scikit_wrapper.py", line 200, in batch_forward
+    X.shape[0] // batch_size)
+ZeroDivisionError: integer division or modulo by zero

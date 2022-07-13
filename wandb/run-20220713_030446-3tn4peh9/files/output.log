@@ -1,0 +1,70 @@
+name: Supervised Regression, features: house_prices_nominal
+{'X_train': {'cols': 0.04898431097061234, 'rows': 1.0}, 'X_valid': {'cols': 0.04876478164149396, 'rows': 1.0}, 'X_test': {'cols': 0.04678609062170706, 'rows': 0.9972602739726028}}
+dataset sizes
+(876, 78) (219, 78) (365, 78)
+no rows left in dropped dataset...
+key: 2680, k: 1/4, dataset: 42563, missing: None, impute: None
+{'d_model': 41, 'embedding_size': 41, 'embedding_layers': 3, 'encoder_heads': 5, 'encoder_layers': 12, 'decoder_heads': 3, 'decoder_layers': 12, 'net_size': 41, 'net_layers': 7, 'max_steps': 4849, 'learning_rate': 0.00016342128013052164, 'batch_size': 32, 'early_stop': 0.3453289212182669, 'noise_std': 0.6787615666130967}
+MAP
+2 device(s)
+optimizer: adam, lr: 0.00016342128219548613, batch_size=32
+  0%|                                                                                                                                                                                                                                                                                               | 0/179 [00:00<?, ?it/s]
+
+
+
+
+
+
+
+
+  8%|██████████████████▌                                                                                                                                                                                                                          | 14/179 [00:34<03:05,  1.12s/it, l=1.01, tl=inf, tlc=1.01, tc=0, e=-.693]
+
+
+
+
+
+
+
+
+ 17%|████████████████████████████████████████▊                                                                                                                                                                                                   | 31/179 [00:52<02:34,  1.05s/it, l=0.858, tl=inf, tlc=1.01, tc=0, e=-.693]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 63%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▋                                                                                                       | 17/27 [00:00<00:00, 26.96it/s]
+  File "/home/jahan/Missingness/train.py", line 143, in <module>
+    metrics_df, perc_missing = run(
+  File "/home/jahan/Missingness/benchmarkaux/openmlrun.py", line 149, in run
+    output = model.predict(X_test, sample=False)
+  File "/home/jahan/Missingness/UAT/models/scikit_wrapper.py", line 209, in predict
+    out = self.batch_forward(X, sample)
+  File "/home/jahan/Missingness/UAT/models/scikit_wrapper.py", line 163, in batch_forward
+    X.shape[0] // batch_size)
+ZeroDivisionError: integer division or modulo by zero

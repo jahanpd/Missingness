@@ -1,0 +1,166 @@
+name: Supervised Regression, features: Moneyball
+{'X_train': {'cols': 0.20916296153102648, 'rows': 0.9039242219215156}, 'X_valid': {'cols': 0.2023166023166023, 'rows': 0.8972972972972973}, 'X_test': {'cols': 0.21150278293135436, 'rows': 0.922077922077922}}
+dataset sizes
+(739, 14) (185, 14) (308, 14)
+dropped dataset sizes
+(71, 14) (19, 14) (24, 14)
+key: 7628, k: 1/4, dataset: 41021, missing: None, impute: None
+{'d_model': 125, 'embedding_size': 125, 'embedding_layers': 6, 'encoder_heads': 2, 'encoder_layers': 5, 'decoder_heads': 3, 'decoder_layers': 7, 'net_size': 125, 'net_layers': 4, 'max_steps': 2003, 'learning_rate': 0.00015764580200296977, 'batch_size': 64, 'early_stop': 0.6436402875475384, 'noise_std': 0.2478541524357011}
+MAP
+2 device(s)
+optimizer: adam, lr: 0.00015764580166433007, batch_size=64
+  0%|                                                                                                                                                                                                                                                                                               | 0/182 [00:00<?, ?it/s]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 75%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▋                                                        | 137/182 [01:10<00:17,  2.59it/s, l=0.0751, tl=0.0871, tlc=0.0934, tc=19, e=-.693]
+
+ 27%|████████████████████████████████████████████████████████████████████████████▎                                                                                                                                                                                                           | 3/11 [00:00<00:00, 24.58it/s]
+
+Final test loss: 0.08709973096847534, epoch: 150, time: 0:01:12.769711
+strategy:None, rmse lsam:1.3121790885925293
+name: Supervised Regression, features: Moneyball
+{'X_train': {'cols': 0.2093562729557317, 'rows': 0.9052774018944519}, 'X_valid': {'cols': 0.20772200772200772, 'rows': 0.8864864864864865}, 'X_test': {'cols': 0.2077922077922078, 'rows': 0.9253246753246753}}
+dataset sizes
+(739, 14) (185, 14) (308, 14)
+dropped dataset sizes
+(70, 14) (21, 14) (23, 14)
+key: 794, k: 2/4, dataset: 41021, missing: None, impute: None
+{'d_model': 125, 'embedding_size': 125, 'embedding_layers': 6, 'encoder_heads': 2, 'encoder_layers': 5, 'decoder_heads': 3, 'decoder_layers': 7, 'net_size': 125, 'net_layers': 4, 'max_steps': 2003, 'learning_rate': 0.00015764580200296977, 'batch_size': 64, 'early_stop': 0.6436402875475384, 'noise_std': 0.2478541524357011}
+MAP
+2 device(s)
+  0%|                                                                                                                                                                                                                                                                                               | 0/182 [00:00<?, ?it/s]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 36%|█████████████████████████████████████████████████████████████████████████████████████████████████████▊                                                                                                                                                                                  | 4/11 [00:00<00:00, 38.27it/s]
+
+Final test loss: 0.06843575835227966, epoch: 172, time: 0:01:09.104038
+strategy:None, rmse lsam:1.4022256135940552
+name: Supervised Regression, features: Moneyball
+{'X_train': {'cols': 0.20742315870867967, 'rows': 0.9039242219215156}, 'X_valid': {'cols': 0.21081081081081082, 'rows': 0.9297297297297298}, 'X_test': {'cols': 0.2105751391465677, 'rows': 0.9025974025974026}}
+dataset sizes
+(739, 14) (185, 14) (308, 14)
+dropped dataset sizes
+(71, 14) (13, 14) (30, 14)
+key: 9995, k: 3/4, dataset: 41021, missing: None, impute: None
+{'d_model': 125, 'embedding_size': 125, 'embedding_layers': 6, 'encoder_heads': 2, 'encoder_layers': 5, 'decoder_heads': 3, 'decoder_layers': 7, 'net_size': 125, 'net_layers': 4, 'max_steps': 2003, 'learning_rate': 0.00015764580200296977, 'batch_size': 64, 'early_stop': 0.6436402875475384, 'noise_std': 0.2478541524357011}
+MAP
+2 device(s)
+optimizer: adam, lr: 0.00015764580166433007, batch_size=64
+
+
+
+
+ 13%|██████████████████████████████▉                                                                                                                                                                                                            | 24/182 [00:18<00:44,  3.53it/s, l=0.248, tl=inf, tlc=0.196, tc=0, e=-.693]
+
+ 20%|███████████████████████████████████████████████▉                                                                                                                                                                                            | 37/182 [00:22<00:45,  3.22it/s, l=0.177, tl=inf, tlc=0.16, tc=0, e=-.693]
+
+
+
+
+
+
+
+
+
+
+
+ 63%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▌                                                                                       | 114/182 [00:46<00:22,  3.07it/s, l=0.0955, tl=inf, tlc=0.11, tc=0, e=-.693]
+
+
+
+
+
+
+
+ 82%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████                                                   | 9/11 [00:00<00:00, 36.24it/s]
+
+Final test loss: 0.08700362592935562, epoch: 162, time: 0:01:00.126218
+strategy:None, rmse lsam:1.4325729608535767
+name: Supervised Regression, features: Moneyball
+{'X_train': {'cols': 0.20896965010632126, 'rows': 0.9161028416779432}, 'X_valid': {'cols': 0.2138996138996139, 'rows': 0.918918918918919}, 'X_test': {'cols': 0.2050092764378479, 'rows': 0.8798701298701299}}
+dataset sizes
+(739, 14) (185, 14) (308, 14)
+dropped dataset sizes
+(62, 14) (15, 14) (37, 14)
+key: 132, k: 4/4, dataset: 41021, missing: None, impute: None
+{'d_model': 125, 'embedding_size': 125, 'embedding_layers': 6, 'encoder_heads': 2, 'encoder_layers': 5, 'decoder_heads': 3, 'decoder_layers': 7, 'net_size': 125, 'net_layers': 4, 'max_steps': 2003, 'learning_rate': 0.00015764580200296977, 'batch_size': 64, 'early_stop': 0.6436402875475384, 'noise_std': 0.2478541524357011}
+MAP
+2 device(s)
+
+  0%|                                                                                                                                                                                                                                                                                               | 0/182 [00:00<?, ?it/s]
+
+
+
+ 12%|███████████████████████████                                                                                                                                                                                                                | 21/182 [00:17<00:48,  3.32it/s, l=0.249, tl=inf, tlc=0.219, tc=0, e=-.693]
+
+
+ 22%|███████████████████████████████████████████████████▋                                                                                                                                                                                       | 40/182 [00:23<00:48,  2.96it/s, l=0.197, tl=inf, tlc=0.201, tc=0, e=-.693]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  0%|                                                                                                                                                                                                                                                                                                | 0/11 [00:00<?, ?it/s]
+
+Final test loss: 0.08273448050022125, epoch: 167, time: 0:01:00.600221
+strategy:None, rmse lsam:1.431856632232666

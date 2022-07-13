@@ -99,15 +99,15 @@ if __name__ ==  "__main__":
         hpk = 4
         if not loaded_hps_trans:
             searchspace = [
-                ("d_model",[4, 8, 32]),
-                ("lr_max", [1e-3, 1e-4]),
-                ("batch_size", [32]),
+                ("d_model",[4, 32]),
+                ("lr_max", [1e-2, 1e-3, 1e-4]),
+                ("batch_size", [4, 32]),
                 ("dropreg", [1e-2]),
-                ("msereg", [1e-1, 1e-2]),
-                # ("reg", [0]),
-                ("start_es", [0.5]), # start early stopping
-                ("depth", [1, 2]),  # embed/bij/decoder depth
-                ("nndepth", [2, 4]),  # g depth
+                ("msereg", [1e-2, 1e-4]),
+                ("reg", [1e-5]),
+                ("start_es", [0]), # start early stopping
+                ("depth", [2]),  # embed/bij/decoder depth
+                ("nndepth", [1, 2]),  # g depth
             ]
             trans_results = gridsearchattn(searchspace, 2, row, args)
             with open('results/openml/hyperparams/{},{},trans_hyperparams.pickle'.format(row[2], "None"), 'wb') as handle:

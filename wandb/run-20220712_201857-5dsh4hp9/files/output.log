@@ -1,0 +1,206 @@
+name: Supervised Classification, features: eucalyptus
+{'X_train': {'cols': 0.03268785170473354, 'rows': 0.12735849056603774}, 'X_valid': {'cols': 0.017543859649122806, 'rows': 0.08176100628930817}, 'X_test': {'cols': 0.03175057208237986, 'rows': 0.1358695652173913}}
+dataset sizes
+(670, 19) (159, 19) (184, 19)
+dropped dataset sizes
+(589, 19) (146, 19) (159, 19)
+key: 268, k: 1/4, dataset: 188, missing: None, impute: None
+{'d_model': 128, 'embedding_size': 128, 'embedding_layers': 6, 'encoder_heads': 3, 'encoder_layers': 9, 'decoder_heads': 3, 'decoder_layers': 12, 'net_size': 128, 'net_layers': 7, 'max_steps': 3087, 'learning_rate': 0.0009904012440369704, 'batch_size': 64, 'early_stop': 0.3002018835038878, 'noise_std': 0.12013746716581608}
+MAP
+2 device(s)
+optimizer: adam, lr: 0.000990401254966855, batch_size=64
+  0%|                                                                                                                                                                                                                                                                                               | 0/308 [00:00<?, ?it/s]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 24%|█████████████████████████████████████████████████████████▏                                                                                                                                                                                    | 74/308 [00:51<01:42,  2.28it/s, l=2.5, tl=inf, tlc=2.51, tc=0, e=-.693]
+
+
+
+
+
+ 34%|█████████████████████████████████████████████████████████████████████████████████▏                                                                                                                                                          | 106/308 [01:04<01:27,  2.30it/s, l=2.5, tl=2.51, tlc=2.51, tc=9, e=-.693]
+
+
+ 39%|██████████████████████████████████████████████████████████████████████████████████████████▊                                                                                                                                                | 119/308 [01:10<01:23,  2.27it/s, l=2.5, tl=2.51, tlc=2.51, tc=35, e=-.693]
+
+
+
+
+
+
+
+
+ 30%|████████████████████████████████████████████████████████████████████████████████████                                                                                                                                                                                                    | 3/10 [00:00<00:00, 29.16it/s]
+Final test loss: 2.5062668323516846, epoch: 161, time: 0:01:26.136401
+(184, 5)
+
+softmax
+0.04267864 -0.052102875
+0.20840603 0.18956023
+strategy:None, acc lsam:0.13043478260869565
+strategy:None, nll lsam:1.665113091468811
+name: Supervised Classification, features: eucalyptus
+{'X_train': {'cols': 0.02664269369074861, 'rows': 0.11801242236024845}, 'X_valid': {'cols': 0.019941157240928407, 'rows': 0.09937888198757763}, 'X_test': {'cols': 0.028318077803203664, 'rows': 0.11413043478260869}}
+dataset sizes
+(680, 19) (161, 19) (184, 19)
+dropped dataset sizes
+(603, 19) (145, 19) (163, 19)
+key: 3631, k: 2/4, dataset: 188, missing: None, impute: None
+{'d_model': 128, 'embedding_size': 128, 'embedding_layers': 6, 'encoder_heads': 3, 'encoder_layers': 9, 'decoder_heads': 3, 'decoder_layers': 12, 'net_size': 128, 'net_layers': 7, 'max_steps': 3087, 'learning_rate': 0.0009904012440369704, 'batch_size': 64, 'early_stop': 0.3002018835038878, 'noise_std': 0.12013746716581608}
+MAP
+2 device(s)
+optimizer: adam, lr: 0.000990401254966855, batch_size=64
+  0%|                                                                                                                                                                                                                                                                                               | 0/308 [00:00<?, ?it/s]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 37%|████████████████████████████████████████████████████████████████████████████████████████                                                                                                                                                    | 115/308 [00:59<01:24,  2.29it/s, l=2.5, tl=2.5, tlc=2.51, tc=29, e=-.693]
+
+
+
+
+
+ 30%|████████████████████████████████████████████████████████████████████████████████████                                                                                                                                                                                                    | 3/10 [00:00<00:00, 28.31it/s]
+Final test loss: 2.498095989227295, epoch: 139, time: 0:01:08.226726
+(184, 5)
+softmax
+0.05491625 -0.047011517
+0.21029659 0.18991774
+strategy:None, acc lsam:0.15217391304347827
+strategy:None, nll lsam:1.6903181076049805
+name: Supervised Classification, features: eucalyptus
+{'X_train': {'cols': 0.026815456362425046, 'rows': 0.11708860759493671}, 'X_valid': {'cols': 0.029313790806129246, 'rows': 0.12025316455696203}, 'X_test': {'cols': 0.02974828375286041, 'rows': 0.11956521739130435}}
+dataset sizes
+(645, 19) (158, 19) (184, 19)
+dropped dataset sizes
+(568, 19) (139, 19) (162, 19)
+key: 7206, k: 3/4, dataset: 188, missing: None, impute: None
+{'d_model': 128, 'embedding_size': 128, 'embedding_layers': 6, 'encoder_heads': 3, 'encoder_layers': 9, 'decoder_heads': 3, 'decoder_layers': 12, 'net_size': 128, 'net_layers': 7, 'max_steps': 3087, 'learning_rate': 0.0009904012440369704, 'batch_size': 64, 'early_stop': 0.3002018835038878, 'noise_std': 0.12013746716581608}
+MAP
+2 device(s)
+
+optimizer: adam, lr: 0.000990401254966855, batch_size=64
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 30%|████████████████████████████████████████████████████████████████████████████████████                                                                                                                                                                                                    | 3/10 [00:00<00:00, 29.16it/s]
+
+Final test loss: 2.5022459030151367, epoch: 136, time: 0:01:06.778140
+(184, 5)
+softmax
+0.014984112 -0.02507938
+0.20242417 0.1944747
+strategy:None, acc lsam:0.14130434782608695
+strategy:None, nll lsam:1.6826632022857666
+name: Supervised Classification, features: eucalyptus
+{'X_train': {'cols': 0.025834403080872915, 'rows': 0.10670731707317073}, 'X_valid': {'cols': 0.023427471116816433, 'rows': 0.10975609756097561}, 'X_test': {'cols': 0.03832951945080091, 'rows': 0.14673913043478262}}
+dataset sizes
+(690, 19) (164, 19) (184, 19)
+dropped dataset sizes
+(619, 19) (146, 19) (157, 19)
+key: 9368, k: 4/4, dataset: 188, missing: None, impute: None
+{'d_model': 128, 'embedding_size': 128, 'embedding_layers': 6, 'encoder_heads': 3, 'encoder_layers': 9, 'decoder_heads': 3, 'decoder_layers': 12, 'net_size': 128, 'net_layers': 7, 'max_steps': 3087, 'learning_rate': 0.0009904012440369704, 'batch_size': 64, 'early_stop': 0.3002018835038878, 'noise_std': 0.12013746716581608}
+MAP
+2 device(s)
+  0%|                                                                                                                                                                                                                                                                                               | 0/308 [00:00<?, ?it/s]
+
+
+
+
+
+
+
+
+
+
+
+
+ 19%|██████████████████████████████████████████████▎                                                                                                                                                                                               | 60/308 [00:35<01:49,  2.26it/s, l=2.5, tl=inf, tlc=2.51, tc=0, e=-.693]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 30%|████████████████████████████████████████████████████████████████████████████████████                                                                                                                                                                                                    | 3/10 [00:00<00:00, 28.94it/s]
+Final test loss: 2.5028958320617676, epoch: 162, time: 0:01:18.502458
+(184, 5)
+softmax
+0.023449482 -0.078051485
+0.20743369 0.18741223
+strategy:None, acc lsam:0.1793478260869565
+
+strategy:None, nll lsam:1.673862099647522

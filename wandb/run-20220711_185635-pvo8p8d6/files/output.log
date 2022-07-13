@@ -1,0 +1,230 @@
+name: Supervised Classification, features: dresses-sales
+{'X_train': {'cols': 0.13314176245210727, 'rows': 0.8045977011494253}, 'X_valid': {'cols': 0.13731060606060605, 'rows': 0.75}, 'X_test': {'cols': 0.14733333333333334, 'rows': 0.8}}
+dataset sizes
+(352, 12) (88, 12) (125, 12)
+dropped dataset sizes
+(70, 12) (22, 12) (25, 12)
+key: 1438, k: 1/4, dataset: 23381, missing: None, impute: None
+{'d_model': 104, 'embedding_size': 121, 'embedding_layers': 4, 'encoder_heads': 1, 'encoder_layers': 1, 'decoder_heads': 1, 'decoder_layers': 5, 'net_size': 17, 'net_layers': 4, 'max_steps': 4201, 'learning_rate': 0.0001, 'batch_size': 8, 'early_stop': 0.847714490087721, 'noise_std': 1.3143510060310284}
+MAP
+2 device(s)
+optimizer: adam, lr: 9.999999747378752e-05, batch_size=8
+  0%|                                                                                                                                                                                                                                                                                                | 0/95 [00:00<?, ?it/s]
+
+
+
+
+
+
+
+ 18%|██████████████████████████████████████████▊                                                                                                                                                                                                    | 17/95 [00:31<01:01,  1.27it/s, l=1.4, tl=inf, tlc=1.39, tc=0, e=-.693]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 52%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▊                                                                                                                                     | 23/44 [00:00<00:00, 60.92it/s]
+Final test loss: 1.3860594034194946, epoch: 94, time: 0:01:29.008350
+(125, 2)
+
+softmax
+0.01977358 0.01499153
+0.5011955 0.49880454
+strategy:None, acc lsam:0.424
+strategy:None, nll lsam:1.3870271444320679
+name: Supervised Classification, features: dresses-sales
+{'X_train': {'cols': 0.13842592592592592, 'rows': 0.7944444444444444}, 'X_valid': {'cols': 0.14444444444444443, 'rows': 0.7666666666666667}, 'X_test': {'cols': 0.146, 'rows': 0.832}}
+dataset sizes
+(360, 12) (90, 12) (125, 12)
+dropped dataset sizes
+(74, 12) (21, 12) (21, 12)
+key: 5596, k: 2/4, dataset: 23381, missing: None, impute: None
+{'d_model': 104, 'embedding_size': 121, 'embedding_layers': 4, 'encoder_heads': 1, 'encoder_layers': 1, 'decoder_heads': 1, 'decoder_layers': 5, 'net_size': 17, 'net_layers': 4, 'max_steps': 4201, 'learning_rate': 0.0001, 'batch_size': 8, 'early_stop': 0.847714490087721, 'noise_std': 1.3143510060310284}
+MAP
+2 device(s)
+optimizer: adam, lr: 9.999999747378752e-05, batch_size=8
+  0%|                                                                                                                                                                                                                                                                                                | 0/93 [00:00<?, ?it/s]
+
+
+  4%|██████████▎                                                                                                                                                                                                                                    | 4/93 [00:12<03:00,  2.03s/it, l=1.38, tl=inf, tlc=1.43, tc=0, e=-.693]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 80%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▏                                                       | 36/45 [00:00<00:00, 61.77it/s]
+
+Final test loss: 1.3808709383010864, epoch: 92, time: 0:01:20.744768
+(125, 2)
+softmax
+0.027721098 -0.027206218
+0.5137271 0.4862729
+strategy:None, acc lsam:0.48
+strategy:None, nll lsam:1.388211727142334
+name: Supervised Classification, features: dresses-sales
+{'X_train': {'cols': 0.14607558139534885, 'rows': 0.813953488372093}, 'X_valid': {'cols': 0.13953488372093023, 'rows': 0.7674418604651163}, 'X_test': {'cols': 0.12533333333333332, 'rows': 0.792}}
+dataset sizes
+(352, 12) (86, 12) (125, 12)
+dropped dataset sizes
+(66, 12) (20, 12) (26, 12)
+key: 5243, k: 3/4, dataset: 23381, missing: None, impute: None
+{'d_model': 104, 'embedding_size': 121, 'embedding_layers': 4, 'encoder_heads': 1, 'encoder_layers': 1, 'decoder_heads': 1, 'decoder_layers': 5, 'net_size': 17, 'net_layers': 4, 'max_steps': 4201, 'learning_rate': 0.0001, 'batch_size': 8, 'early_stop': 0.847714490087721, 'noise_std': 1.3143510060310284}
+MAP
+2 device(s)
+optimizer: adam, lr: 9.999999747378752e-05, batch_size=8
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 48%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████▏                                                                                                                          | 46/95 [00:44<00:36,  1.34it/s, l=1.39, tl=inf, tlc=1.38, tc=0, e=-.693]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 39%|███████████████████████████████████████████████████████████████████████████████████████████████████████████▊                                                                                                                                                                           | 17/44 [00:00<00:00, 72.44it/s]
+
+Final test loss: 1.3850245475769043, epoch: 94, time: 0:01:20.603256
+(125, 2)
+softmax
+-0.022244025 -0.048260514
+0.5049137 0.49508634
+strategy:None, acc lsam:0.6
+strategy:None, nll lsam:1.3831374645233154
+name: Supervised Classification, features: dresses-sales
+{'X_train': {'cols': 0.14405113077679452, 'rows': 0.8200589970501475}, 'X_valid': {'cols': 0.12058823529411765, 'rows': 0.7411764705882353}, 'X_test': {'cols': 0.13799999999999998, 'rows': 0.784}}
+dataset sizes
+(340, 12) (85, 12) (125, 12)
+dropped dataset sizes
+(62, 12) (22, 12) (27, 12)
+key: 3945, k: 4/4, dataset: 23381, missing: None, impute: None
+{'d_model': 104, 'embedding_size': 121, 'embedding_layers': 4, 'encoder_heads': 1, 'encoder_layers': 1, 'decoder_heads': 1, 'decoder_layers': 5, 'net_size': 17, 'net_layers': 4, 'max_steps': 4201, 'learning_rate': 0.0001, 'batch_size': 8, 'early_stop': 0.847714490087721, 'noise_std': 1.3143510060310284}
+MAP
+2 device(s)
+optimizer: adam, lr: 9.999999747378752e-05, batch_size=8
+  0%|                                                                                                                                                                                                                                                                                               | 0/100 [00:00<?, ?it/s]
+
+
+
+
+
+
+ 14%|█████████████████████████████████▎                                                                                                                                                                                                            | 14/100 [00:20<01:07,  1.28it/s, l=1.38, tl=inf, tlc=1.4, tc=0, e=-.693]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 77%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▍                                                      | 77/100 [01:05<00:16,  1.37it/s, l=1.39, tl=inf, tlc=1.39, tc=0, e=-.693]
+
+
+
+
+
+
+
+
+  0%|                                                                                                                                                                                                                                                                                                | 0/42 [00:00<?, ?it/s]
+Final test loss: 1.3851776123046875, epoch: 99, time: 0:01:21.634669
+(125, 2)
+softmax
+-0.0048731305 -0.024584794
+0.5047906 0.49520946
+strategy:None, acc lsam:0.624
+
+strategy:None, nll lsam:1.3816372156143188

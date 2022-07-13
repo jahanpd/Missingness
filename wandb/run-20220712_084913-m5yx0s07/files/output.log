@@ -1,0 +1,125 @@
+name: Supervised Classification, features: sick
+{'X_train': {'cols': 0.013804815711595373, 'rows': 0.2071563088512241}, 'X_valid': {'cols': 0.013216303470540758, 'rows': 0.18832391713747645}, 'X_test': {'cols': 0.02109528859263748, 'rows': 0.28207847295864263}}
+dataset sizes
+(4256, 28) (1062, 28) (943, 28)
+dropped dataset sizes
+(3374, 28) (862, 28) (677, 28)
+key: 5428, k: 1/4, dataset: 38, missing: None, impute: None
+{'d_model': 71, 'embedding_size': 62, 'embedding_layers': 1, 'encoder_heads': 2, 'encoder_layers': 2, 'decoder_heads': 2, 'decoder_layers': 1, 'net_size': 67, 'net_layers': 1, 'max_steps': 1131, 'learning_rate': 0.0005, 'batch_size': 32, 'early_stop': 0.8010023830141056, 'noise_std': 0.37754563599200613}
+MAP
+2 device(s)
+optimizer: adam, lr: 0.0005000000237487257, batch_size=32
+  0%|                                                                                                                                                                                                                                                                                                 | 0/8 [00:00<?, ?it/s]
+
+
+ 12%|█████████████████████████████▊                                                                                                                                                                                                                | 1/8 [00:23<02:29, 21.42s/it, l=0.711, tl=inf, tlc=0.682, tc=0, e=-.693]
+
+
+
+
+
+
+
+ 56%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▋                                                                                                                           | 74/133 [00:01<00:00, 59.86it/s]
+
+
+  7%|████████████████████                                                                                                                                                                                                                                                                    | 1/14 [00:01<00:20,  1.58s/it]
+(943, 2)
+softmax
+3.3049712 -1.6533453
+0.98766994 0.012329978
+strategy:None, acc lsam:0.953340402969247
+strategy:None, nll lsam:0.4004378914833069
+name: Supervised Classification, features: sick
+{'X_train': {'cols': 0.013161873404112349, 'rows': 0.19308560677328315}, 'X_valid': {'cols': 0.016346670247046186, 'rows': 0.21804511278195488}, 'X_test': {'cols': 0.020565065899106196, 'rows': 0.29056203605514314}}
+dataset sizes
+(4268, 28) (1064, 28) (943, 28)
+dropped dataset sizes
+(3442, 28) (832, 28) (669, 28)
+key: 3059, k: 2/4, dataset: 38, missing: None, impute: None
+{'d_model': 71, 'embedding_size': 62, 'embedding_layers': 1, 'encoder_heads': 2, 'encoder_layers': 2, 'decoder_heads': 2, 'decoder_layers': 1, 'net_size': 67, 'net_layers': 1, 'max_steps': 1131, 'learning_rate': 0.0005, 'batch_size': 32, 'early_stop': 0.8010023830141056, 'noise_std': 0.37754563599200613}
+MAP
+2 device(s)
+
+  0%|                                                                                                                                                                                                                                                                                                 | 0/8 [00:00<?, ?it/s]
+
+
+
+
+
+
+
+
+ 75%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████                                                           | 6/8 [00:24<00:05,  2.92s/it, l=0.433, tl=0.389, tlc=0.477, tc=8, e=-.693]
+
+ 39%|████████████████████████████████████████████████████████████████████████████████████████████████████████████▋                                                                                                                                                                         | 52/133 [00:00<00:01, 58.57it/s]
+
+Final test loss: 0.38949957489967346, epoch: 7, time: 0:00:25.660010
+(943, 2)
+softmax
+3.3038955 -3.0208812
+0.9939399 0.006060106
+strategy:None, acc lsam:0.9300106044538706
+strategy:None, nll lsam:0.36365124583244324
+name: Supervised Classification, features: sick
+{'X_train': {'cols': 0.013044936284372905, 'rows': 0.18732394366197183}, 'X_valid': {'cols': 0.012128115786652374, 'rows': 0.18386491557223264}, 'X_test': {'cols': 0.02238297227692774, 'rows': 0.3149522799575822}}
+dataset sizes
+(4316, 28) (1066, 28) (943, 28)
+dropped dataset sizes
+(3500, 28) (870, 28) (646, 28)
+key: 6253, k: 3/4, dataset: 38, missing: None, impute: None
+{'d_model': 71, 'embedding_size': 62, 'embedding_layers': 1, 'encoder_heads': 2, 'encoder_layers': 2, 'decoder_heads': 2, 'decoder_layers': 1, 'net_size': 67, 'net_layers': 1, 'max_steps': 1131, 'learning_rate': 0.0005, 'batch_size': 32, 'early_stop': 0.8010023830141056, 'noise_std': 0.37754563599200613}
+MAP
+2 device(s)
+
+  0%|                                                                                                                                                                                                                                                                                                 | 0/8 [00:00<?, ?it/s]
+
+
+
+
+
+
+
+
+
+
+ 78%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████                                                            | 105/134 [00:01<00:00, 56.26it/s]
+
+Final test loss: 0.4146430492401123, epoch: 7, time: 0:00:27.572387
+(943, 2)
+softmax
+3.879395 -1.894333
+0.9928396 0.0071603744
+strategy:None, acc lsam:0.9310710498409331
+strategy:None, nll lsam:0.2745938301086426
+name: Supervised Classification, features: sick
+{'X_train': {'cols': 0.013965255523697083, 'rows': 0.2014167650531287}, 'X_valid': {'cols': 0.012376905436395521, 'rows': 0.1964117091595845}, 'X_test': {'cols': 0.022761702772307223, 'rows': 0.30965005302226933}}
+dataset sizes
+(4258, 28) (1059, 28) (943, 28)
+dropped dataset sizes
+(3399, 28) (851, 28) (651, 28)
+key: 7571, k: 4/4, dataset: 38, missing: None, impute: None
+{'d_model': 71, 'embedding_size': 62, 'embedding_layers': 1, 'encoder_heads': 2, 'encoder_layers': 2, 'decoder_heads': 2, 'decoder_layers': 1, 'net_size': 67, 'net_layers': 1, 'max_steps': 1131, 'learning_rate': 0.0005, 'batch_size': 32, 'early_stop': 0.8010023830141056, 'noise_std': 0.37754563599200613}
+MAP
+2 device(s)
+
+  0%|                                                                                                                                                                                                                                                                                                 | 0/8 [00:00<?, ?it/s]
+
+
+
+
+
+
+
+
+
+ 88%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▋                                 | 117/133 [00:01<00:00, 60.27it/s]
+
+Final test loss: 0.39440271258354187, epoch: 7, time: 0:00:26.008264
+(943, 2)
+softmax
+4.1254854 -4.1536846
+0.9947563 0.005243695
+strategy:None, acc lsam:0.9289501590668081
+
+strategy:None, nll lsam:0.3712999224662781

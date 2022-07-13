@@ -1,0 +1,64 @@
+name: Supervised Classification, features: eucalyptus
+{'X_train': {'cols': 0.02896391923204237, 'rows': 0.11635220125786164}, 'X_valid': {'cols': 0.019860973187686193, 'rows': 0.09433962264150944}, 'X_test': {'cols': 0.03175057208237986, 'rows': 0.1358695652173913}}
+dataset sizes
+(665, 19) (159, 19) (184, 19)
+dropped dataset sizes
+(590, 19) (144, 19) (159, 19)
+key: 4113, k: 1/4, dataset: 188, missing: None, impute: None
+training gbm for 5000 epochs
+{'num_leaves': 38, 'max_bin': 237, 'max_depth': 32, 'min_data_in_leaf': 30, 'learning_rate': 0.09414850763593108, 'num_iterations': 995, 'objective': 'softmax', 'verbose': -1, 'num_class': 5}
+Training until validation scores don't improve for 100 rounds
+Early stopping, best iteration is:
+[79]	valid_0's multi_logloss: 0.490419
+strategy:None, acc gbm: 0.6467391304347826
+strategy:None, nll xbg:0.9829146265983582
+name: Supervised Classification, features: eucalyptus
+{'X_train': {'cols': 0.024109186008499508, 'rows': 0.11801242236024845}, 'X_valid': {'cols': 0.026806145799280808, 'rows': 0.09937888198757763}, 'X_test': {'cols': 0.028318077803203664, 'rows': 0.11413043478260869}}
+dataset sizes
+(660, 19) (161, 19) (184, 19)
+dropped dataset sizes
+(581, 19) (145, 19) (163, 19)
+key: 2233, k: 2/4, dataset: 188, missing: None, impute: None
+training gbm for 5000 epochs
+{'num_leaves': 38, 'max_bin': 237, 'max_depth': 32, 'min_data_in_leaf': 30, 'learning_rate': 0.09414850763593108, 'num_iterations': 995, 'objective': 'softmax', 'verbose': -1, 'num_class': 5}
+Training until validation scores don't improve for 100 rounds
+/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/lightgbm/engine.py:177: UserWarning: Found `num_iterations` in params. Will use it instead of argument
+  _log_warning(f"Found `{alias}` in params. Will use it instead of argument")
+/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/lightgbm/engine.py:177: UserWarning: Found `num_iterations` in params. Will use it instead of argument
+  _log_warning(f"Found `{alias}` in params. Will use it instead of argument")
+/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/lightgbm/engine.py:177: UserWarning: Found `num_iterations` in params. Will use it instead of argument
+  _log_warning(f"Found `{alias}` in params. Will use it instead of argument")
+/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/lightgbm/engine.py:177: UserWarning: Found `num_iterations` in params. Will use it instead of argument
+  _log_warning(f"Found `{alias}` in params. Will use it instead of argument")
+Early stopping, best iteration is:
+[67]	valid_0's multi_logloss: 0.462684
+strategy:None, acc gbm: 0.6902173913043478
+strategy:None, nll xbg:0.8614414930343628
+name: Supervised Classification, features: eucalyptus
+{'X_train': {'cols': 0.026065956029313792, 'rows': 0.11075949367088607}, 'X_valid': {'cols': 0.02864756828780813, 'rows': 0.14556962025316456}, 'X_test': {'cols': 0.02974828375286041, 'rows': 0.11956521739130435}}
+dataset sizes
+(655, 19) (158, 19) (184, 19)
+dropped dataset sizes
+(584, 19) (135, 19) (162, 19)
+key: 2796, k: 3/4, dataset: 188, missing: None, impute: None
+training gbm for 5000 epochs
+{'num_leaves': 38, 'max_bin': 237, 'max_depth': 32, 'min_data_in_leaf': 30, 'learning_rate': 0.09414850763593108, 'num_iterations': 995, 'objective': 'softmax', 'verbose': -1, 'num_class': 5}
+Training until validation scores don't improve for 100 rounds
+Early stopping, best iteration is:
+[54]	valid_0's multi_logloss: 0.556291
+strategy:None, acc gbm: 0.592391304347826
+strategy:None, nll xbg:0.9646468758583069
+name: Supervised Classification, features: eucalyptus
+{'X_train': {'cols': 0.024390243902439025, 'rows': 0.10975609756097561}, 'X_valid': {'cols': 0.03401797175866495, 'rows': 0.1524390243902439}, 'X_test': {'cols': 0.03832951945080091, 'rows': 0.14673913043478262}}
+dataset sizes
+(695, 19) (164, 19) (184, 19)
+dropped dataset sizes
+(619, 19) (139, 19) (157, 19)
+key: 6093, k: 4/4, dataset: 188, missing: None, impute: None
+training gbm for 5000 epochs
+{'num_leaves': 38, 'max_bin': 237, 'max_depth': 32, 'min_data_in_leaf': 30, 'learning_rate': 0.09414850763593108, 'num_iterations': 995, 'objective': 'softmax', 'verbose': -1, 'num_class': 5}
+Training until validation scores don't improve for 100 rounds
+Early stopping, best iteration is:
+[70]	valid_0's multi_logloss: 0.39818
+strategy:None, acc gbm: 0.6195652173913043
+strategy:None, nll xbg:0.9352725744247437

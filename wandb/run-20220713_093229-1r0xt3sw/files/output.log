@@ -1,0 +1,81 @@
+name: Supervised Regression, features: colleges
+{'X_train': {'cols': 0.3346761216126333, 'rows': 1.0}, 'X_valid': {'cols': 0.33741423670668963, 'rows': 1.0}, 'X_test': {'cols': 0.3361345619273139, 'rows': 1.0}}
+dataset sizes
+(4237, 44) (1060, 44) (1766, 44)
+no rows left in dropped dataset...
+key: 4648, k: 1/4, dataset: 42727, missing: None, impute: None
+{'d_model': 66, 'embedding_size': 66, 'embedding_layers': 7, 'encoder_heads': 2, 'encoder_layers': 10, 'decoder_heads': 1, 'decoder_layers': 2, 'net_size': 66, 'net_layers': 8, 'max_steps': 3392, 'learning_rate': 0.000132508782085886, 'batch_size': 32, 'early_stop': 0.6407662357007131, 'noise_std': 0.2667941667569153}
+MAP
+2 device(s)
+  0%|                                                                                                                                                                                                                                                                                                | 0/25 [00:00<?, ?it/s]
+optimizer: adam, lr: 0.00013250877964310348, batch_size=32
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 77%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████                                                               | 102/132 [00:04<00:01, 26.43it/s]
+  File "/home/jahan/Missingness/train.py", line 143, in <module>
+    metrics_df, perc_missing = run(
+  File "/home/jahan/Missingness/benchmarkaux/openmlrun.py", line 149, in run
+    output = model.predict(X_test, sample=False)
+  File "/home/jahan/Missingness/UAT/models/scikit_wrapper.py", line 209, in predict
+    out = self.batch_forward(X, sample)
+  File "/home/jahan/Missingness/UAT/models/scikit_wrapper.py", line 163, in batch_forward
+    X.shape[0] // batch_size)
+ZeroDivisionError: integer division or modulo by zero

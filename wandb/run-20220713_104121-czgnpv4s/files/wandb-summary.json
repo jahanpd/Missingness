@@ -1,0 +1,1 @@
+{"lsam_rmse_fold1": 1.3121790885925293, "_timestamp": 1657673169, "_runtime": 288, "lsam_rmse_fold2": 1.4022256135940552, "lsam_rmse_fold3": 1.4325729608535767, "lsam_rmse_fold4": 1.431856632232666, "LSAM_rmse": 1.394708514213562, "_step": 0, "_wandb": {"runtime": 289}}

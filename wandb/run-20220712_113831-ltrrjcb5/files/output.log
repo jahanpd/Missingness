@@ -1,0 +1,32 @@
+name: Supervised Regression, features: colleges
+{'X_train': {'cols': 0.334048533482095, 'rows': 1.0}, 'X_valid': {'cols': 0.33992281303602057, 'rows': 1.0}, 'X_test': {'cols': 0.3361345619273139, 'rows': 1.0}}
+dataset sizes
+(4237, 44) (1060, 44) (1766, 44)
+no rows left in dropped dataset...
+key: 2148, k: 1/4, dataset: 42727, missing: None, impute: None
+{'d_model': 35, 'embedding_size': 115, 'embedding_layers': 1, 'encoder_heads': 4, 'encoder_layers': 2, 'decoder_heads': 5, 'decoder_layers': 8, 'net_size': 35, 'net_layers': 4, 'max_steps': 1293, 'learning_rate': 0.001, 'batch_size': 4, 'early_stop': 0.6616503457435424, 'noise_std': 0.6042230359988878}
+MAP
+2 device(s)
+optimizer: adam, lr: 0.0010000000474974513, batch_size=4
+  0%|                                                                                                                                                                                                                                                                                                 | 0/1 [00:00<?, ?it/s]
+
+
+
+
+
+
+
+
+
+
+
+ 67%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▎                                                                                          | 711/1059 [00:33<00:10, 33.21it/s]
+  File "/home/jahan/Missingness/train.py", line 143, in <module>
+    metrics_df, perc_missing = run(
+  File "/home/jahan/Missingness/benchmarkaux/openmlrun.py", line 149, in run
+    output = model.predict(X_test, sample=False)
+  File "/home/jahan/Missingness/UAT/models/scikit_wrapper.py", line 246, in predict
+    out = self.batch_forward(X, sample)
+  File "/home/jahan/Missingness/UAT/models/scikit_wrapper.py", line 200, in batch_forward
+    X.shape[0] // batch_size)
+ZeroDivisionError: integer division or modulo by zero

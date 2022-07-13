@@ -1,0 +1,204 @@
+name: Supervised Classification, features: eucalyptus
+{'X_train': {'cols': 0.025819265143992052, 'rows': 0.1069182389937107}, 'X_valid': {'cols': 0.03939093015557762, 'rows': 0.16352201257861634}, 'X_test': {'cols': 0.03175057208237986, 'rows': 0.1358695652173913}}
+dataset sizes
+(660, 19) (159, 19) (184, 19)
+dropped dataset sizes
+(590, 19) (133, 19) (159, 19)
+key: 8094, k: 1/4, dataset: 188, missing: None, impute: None
+{'d_model': 96, 'embedding_size': 122, 'embedding_layers': 3, 'encoder_heads': 4, 'encoder_layers': 6, 'decoder_heads': 2, 'decoder_layers': 7, 'net_size': 124, 'net_layers': 4, 'max_steps': 3348, 'learning_rate': 0.0001, 'batch_size': 64, 'early_stop': 0.5358171383370895, 'noise_std': 0.9425567702452136}
+MAP
+2 device(s)
+optimizer: adam, lr: 9.999999747378752e-05, batch_size=64
+  0%|                                                                                                                                                                                                                                                                                               | 0/334 [00:00<?, ?it/s]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 31%|██████████████████████████████████████████████████████████████████████████▌                                                                                                                                                                  | 105/334 [00:48<01:05,  3.48it/s, l=1.65, tl=inf, tlc=1.7, tc=0, e=-.693]
+
+
+
+
+
+
+
+
+
+
+
+
+ 84%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▍                                    | 282/334 [01:41<00:16,  3.20it/s, l=1.4, tl=1.35, tlc=1.63, tc=54, e=-.693]
+
+
+ 50%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████                                                                                                                                            | 5/10 [00:00<00:00, 49.64it/s]
+
+Final test loss: 1.3494787216186523, epoch: 296, time: 0:01:42.918730
+(184, 5)
+softmax
+10.890526 -2.896401
+0.9999095 3.0622184e-06
+strategy:None, acc lsam:0.6630434782608695
+strategy:None, nll lsam:0.8325429558753967
+name: Supervised Classification, features: eucalyptus
+{'X_train': {'cols': 0.023291925465838508, 'rows': 0.10248447204968944}, 'X_valid': {'cols': 0.03203661327231121, 'rows': 0.13043478260869565}, 'X_test': {'cols': 0.028318077803203664, 'rows': 0.11413043478260869}}
+dataset sizes
+(680, 19) (161, 19) (184, 19)
+dropped dataset sizes
+(604, 19) (140, 19) (163, 19)
+key: 6245, k: 2/4, dataset: 188, missing: None, impute: None
+{'d_model': 96, 'embedding_size': 122, 'embedding_layers': 3, 'encoder_heads': 4, 'encoder_layers': 6, 'decoder_heads': 2, 'decoder_layers': 7, 'net_size': 124, 'net_layers': 4, 'max_steps': 3348, 'learning_rate': 0.0001, 'batch_size': 64, 'early_stop': 0.5358171383370895, 'noise_std': 0.9425567702452136}
+MAP
+2 device(s)
+optimizer: adam, lr: 9.999999747378752e-05, batch_size=64
+  0%|                                                                                                                                                                                                                                                                                               | 0/334 [00:00<?, ?it/s]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 62%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▋                                                                                         | 207/334 [01:08<00:36,  3.44it/s, l=1.51, tl=1.3, tlc=1.45, tc=37, e=-.693]
+
+
+
+
+
+  0%|                                                                                                                                                                                                                                                                                                | 0/10 [00:00<?, ?it/s]
+Final test loss: 1.2363204956054688, epoch: 254, time: 0:01:21.599027
+(184, 5)
+softmax
+9.196599 -4.769897
+0.99939716 1.9722362e-05
+strategy:None, acc lsam:0.6086956521739131
+strategy:None, nll lsam:0.8404631018638611
+name: Supervised Classification, features: eucalyptus
+{'X_train': {'cols': 0.02639906728847435, 'rows': 0.10917721518987342}, 'X_valid': {'cols': 0.028980679546968684, 'rows': 0.13291139240506328}, 'X_test': {'cols': 0.02974828375286041, 'rows': 0.11956521739130435}}
+dataset sizes
+(650, 19) (158, 19) (184, 19)
+dropped dataset sizes
+(576, 19) (137, 19) (162, 19)
+key: 9712, k: 3/4, dataset: 188, missing: None, impute: None
+{'d_model': 96, 'embedding_size': 122, 'embedding_layers': 3, 'encoder_heads': 4, 'encoder_layers': 6, 'decoder_heads': 2, 'decoder_layers': 7, 'net_size': 124, 'net_layers': 4, 'max_steps': 3348, 'learning_rate': 0.0001, 'batch_size': 64, 'early_stop': 0.5358171383370895, 'noise_std': 0.9425567702452136}
+MAP
+2 device(s)
+
+optimizer: adam, lr: 9.999999747378752e-05, batch_size=64
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 39%|███████████████████████████████████████████████████████████████████████████████████████████▏                                                                                                                                                | 129/334 [00:46<00:59,  3.46it/s, l=1.57, tl=inf, tlc=1.55, tc=0, e=-.693]
+
+
+
+
+
+
+
+
+
+
+
+
+  0%|                                                                                                                                                                                                                                                                                                | 0/10 [00:00<?, ?it/s]
+Final test loss: 1.3720636367797852, epoch: 231, time: 0:01:15.490237
+(184, 5)
+softmax
+8.920516 -5.4005346
+0.9999291 7.4587524e-07
+strategy:None, acc lsam:0.5815217391304348
+strategy:None, nll lsam:1.0073269605636597
+name: Supervised Classification, features: eucalyptus
+{'X_train': {'cols': 0.026075096277278564, 'rows': 0.11280487804878049}, 'X_valid': {'cols': 0.025673940949935817, 'rows': 0.12195121951219512}, 'X_test': {'cols': 0.03832951945080091, 'rows': 0.14673913043478262}}
+dataset sizes
+(670, 19) (164, 19) (184, 19)
+dropped dataset sizes
+(592, 19) (144, 19) (157, 19)
+key: 5265, k: 4/4, dataset: 188, missing: None, impute: None
+{'d_model': 96, 'embedding_size': 122, 'embedding_layers': 3, 'encoder_heads': 4, 'encoder_layers': 6, 'decoder_heads': 2, 'decoder_layers': 7, 'net_size': 124, 'net_layers': 4, 'max_steps': 3348, 'learning_rate': 0.0001, 'batch_size': 64, 'early_stop': 0.5358171383370895, 'noise_std': 0.9425567702452136}
+MAP
+2 device(s)
+  0%|                                                                                                                                                                                                                                                                                               | 0/334 [00:00<?, ?it/s]
+
+
+
+  7%|███████████████▌                                                                                                                                                                                                                             | 22/334 [00:15<01:31,  3.41it/s, l=2.53, tl=inf, tlc=2.51, tc=0, e=-.693]
+
+
+ 15%|██████████████████████████████████▊                                                                                                                                                                                                          | 49/334 [00:22<01:19,  3.61it/s, l=2.23, tl=inf, tlc=2.13, tc=0, e=-.693]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 52%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▊                                                                                                                  | 173/334 [00:59<00:46,  3.43it/s, l=1.4, tl=inf, tlc=1.57, tc=0, e=-.693]
+
+
+
+
+
+
+
+
+ 50%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████                                                                                                                                            | 5/10 [00:00<00:00, 44.15it/s]
+
+Final test loss: 1.356441855430603, epoch: 238, time: 0:01:17.236465
+(184, 5)
+softmax
+11.888049 -4.9533987
+0.9997747 1.1306861e-06
+strategy:None, acc lsam:0.625
+strategy:None, nll lsam:0.8148443102836609

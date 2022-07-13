@@ -1,0 +1,12 @@
+name: Supervised Regression, features: Moneyball
+{'X_train': {'cols': 0.20819640440750048, 'rows': 0.9012178619756428}, 'X_valid': {'cols': 0.20617760617760617, 'rows': 0.9081081081081082}, 'X_test': {'cols': 0.21150278293135436, 'rows': 0.922077922077922}}
+dataset sizes
+(739, 14) (185, 14) (308, 14)
+dropped dataset sizes
+(73, 14) (17, 14) (24, 14)
+key: 9711, k: 1/4, dataset: 41021, missing: None, impute: None
+{'d_model': 73, 'embedding_size': 73, 'embedding_layers': 8, 'encoder_heads': 5, 'encoder_layers': 4, 'decoder_heads': 2, 'decoder_layers': 3, 'net_size': 73, 'net_layers': 3, 'max_steps': 3394, 'learning_rate': 0.000539445601379303, 'batch_size': 128, 'early_stop': 0.36414000126526885, 'noise_std': 0.7561949102225456}
+MAP
+2 device(s)
+  0%|                                                                                                                                                                                                                                                                                               | 0/678 [00:00<?, ?it/s]
+optimizer: adam, lr: 0.0005394456093199551, batch_size=128

@@ -5,9 +5,9 @@ import pandas as pd
 from scipy.stats import t
 import jax
 import jax.numpy as jnp
-from UAT import UAT, Ensemble, create_early_stopping
-from UAT import binary_cross_entropy
-import UAT.datasets as data
+from LSAM import LSAM, Ensemble, create_early_stopping
+from LSAM import binary_cross_entropy
+import LSAM.datasets as data
 import os
 
 # jax.config.update("jax_debug_nans", True)
@@ -100,7 +100,7 @@ def run(iterations, missing="None", epochs=10):
         X, X_test, _, y, y_test, _, _, _  = data.spiral(2048, missing=missing, rng_key=i)
         training_kwargs_uat["X_test"] = X_test
         training_kwargs_uat["y_test"] = y_test
-        model1 = UAT(
+        model1 = LSAM(
             model_kwargs=model_kwargs_uat,
             training_kwargs=training_kwargs_uat,
             loss_fun=loss_fun,
@@ -164,9 +164,9 @@ def run(iterations, missing="None", epochs=10):
     print(d2_uat)
     print(d1_ens)
     print(d2_ens)
-    d1_uat.to_csv("results/latent_space/UAT_Distances1_{}.csv".format(missing))
+    d1_uat.to_csv("results/latent_space/LSAM_Distances1_{}.csv".format(missing))
     d1_ens.to_csv("results/latent_space/Ensemble_Distances1_{}.csv".format(missing))
-    d2_uat.to_csv("results/latent_space/UAT_Distances2_{}.csv".format(missing))
+    d2_uat.to_csv("results/latent_space/LSAM_Distances2_{}.csv".format(missing))
     d2_ens.to_csv("results/latent_space/Ensemble_Distances2_{}.csv".format(missing))
 
 

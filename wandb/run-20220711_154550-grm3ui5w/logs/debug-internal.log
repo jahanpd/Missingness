@@ -1,0 +1,55 @@
+2022-07-11 15:45:50,549 INFO    MainThread:332642 [internal.py:wandb_internal():90] W&B internal server running at pid: 332642, started at: 2022-07-11 15:45:50.549481
+2022-07-11 15:45:50,551 INFO    WriterThread:332642 [datastore.py:open_for_write():75] open: /home/jahan/Missingness/wandb/run-20220711_154550-grm3ui5w/run-grm3ui5w.wandb
+2022-07-11 15:45:50,552 DEBUG   SenderThread:332642 [sender.py:send():236] send: header
+2022-07-11 15:45:50,552 DEBUG   SenderThread:332642 [sender.py:send():236] send: run
+2022-07-11 15:45:51,014 INFO    SenderThread:332642 [dir_watcher.py:__init__():216] watching files in: /home/jahan/Missingness/wandb/run-20220711_154550-grm3ui5w/files
+2022-07-11 15:45:51,014 INFO    SenderThread:332642 [sender.py:_start_run_threads():815] run started: grm3ui5w with start time 1657518350
+2022-07-11 15:45:51,014 DEBUG   SenderThread:332642 [sender.py:send():236] send: summary
+2022-07-11 15:45:51,014 INFO    SenderThread:332642 [sender.py:_save_file():952] saving file wandb-summary.json with policy end
+2022-07-11 15:45:51,017 DEBUG   HandlerThread:332642 [handler.py:handle_request():140] handle_request: check_version
+2022-07-11 15:45:51,017 DEBUG   SenderThread:332642 [sender.py:send_request():250] send_request: check_version
+2022-07-11 15:45:51,196 DEBUG   HandlerThread:332642 [handler.py:handle_request():140] handle_request: run_start
+2022-07-11 15:45:51,202 DEBUG   HandlerThread:332642 [meta.py:__init__():35] meta init
+2022-07-11 15:45:51,202 DEBUG   HandlerThread:332642 [meta.py:__init__():49] meta init done
+2022-07-11 15:45:51,202 DEBUG   HandlerThread:332642 [meta.py:probe():209] probe
+2022-07-11 15:45:51,209 DEBUG   HandlerThread:332642 [meta.py:_setup_git():199] setup git
+2022-07-11 15:45:51,221 DEBUG   HandlerThread:332642 [meta.py:_setup_git():206] setup git done
+2022-07-11 15:45:51,221 DEBUG   HandlerThread:332642 [meta.py:_save_pip():53] save pip
+2022-07-11 15:45:51,222 DEBUG   HandlerThread:332642 [meta.py:_save_pip():67] save pip done
+2022-07-11 15:45:51,222 DEBUG   HandlerThread:332642 [meta.py:_save_conda():74] save conda
+2022-07-11 15:45:52,016 INFO    Thread-7  :332642 [dir_watcher.py:_on_file_created():269] file/dir created: /home/jahan/Missingness/wandb/run-20220711_154550-grm3ui5w/files/wandb-summary.json
+2022-07-11 15:45:52,016 INFO    Thread-7  :332642 [dir_watcher.py:_on_file_created():269] file/dir created: /home/jahan/Missingness/wandb/run-20220711_154550-grm3ui5w/files/conda-environment.yaml
+2022-07-11 15:45:52,016 INFO    Thread-7  :332642 [dir_watcher.py:_on_file_created():269] file/dir created: /home/jahan/Missingness/wandb/run-20220711_154550-grm3ui5w/files/requirements.txt
+2022-07-11 15:45:53,685 DEBUG   HandlerThread:332642 [meta.py:_save_conda():84] save conda done
+2022-07-11 15:45:53,685 DEBUG   HandlerThread:332642 [meta.py:probe():247] probe done
+2022-07-11 15:45:53,691 DEBUG   SenderThread:332642 [sender.py:send():236] send: files
+2022-07-11 15:45:53,691 INFO    SenderThread:332642 [sender.py:_save_file():952] saving file wandb-metadata.json with policy now
+2022-07-11 15:45:53,700 DEBUG   HandlerThread:332642 [handler.py:handle_request():140] handle_request: stop_status
+2022-07-11 15:45:53,700 DEBUG   SenderThread:332642 [sender.py:send_request():250] send_request: stop_status
+2022-07-11 15:45:54,014 INFO    Thread-7  :332642 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220711_154550-grm3ui5w/files/conda-environment.yaml
+2022-07-11 15:45:54,014 INFO    Thread-7  :332642 [dir_watcher.py:_on_file_created():269] file/dir created: /home/jahan/Missingness/wandb/run-20220711_154550-grm3ui5w/files/wandb-metadata.json
+2022-07-11 15:45:54,015 INFO    Thread-7  :332642 [dir_watcher.py:_on_file_created():269] file/dir created: /home/jahan/Missingness/wandb/run-20220711_154550-grm3ui5w/files/output.log
+2022-07-11 15:45:54,033 DEBUG   SenderThread:332642 [sender.py:send():236] send: telemetry
+2022-07-11 15:45:54,034 DEBUG   SenderThread:332642 [sender.py:send():236] send: config
+2022-07-11 15:45:54,034 DEBUG   SenderThread:332642 [sender.py:send():236] send: config
+2022-07-11 15:45:54,560 INFO    Thread-11 :332642 [upload_job.py:push():138] Uploaded file /tmp/tmpaifiz7bxwandb/31bdyidx-wandb-metadata.json
+2022-07-11 15:45:59,560 WARNING MainThread:332642 [internal.py:is_dead():387] Internal process exiting, parent pid 332462 disappeared
+2022-07-11 15:45:59,560 ERROR   MainThread:332642 [internal.py:wandb_internal():149] Internal process shutdown.
+2022-07-11 15:45:59,707 INFO    WriterThread:332642 [datastore.py:close():279] close: /home/jahan/Missingness/wandb/run-20220711_154550-grm3ui5w/run-grm3ui5w.wandb
+2022-07-11 15:45:59,713 INFO    HandlerThread:332642 [handler.py:finish():806] shutting down handler
+2022-07-11 15:46:00,035 INFO    SenderThread:332642 [sender.py:finish():1114] shutting down sender
+2022-07-11 15:46:00,035 INFO    SenderThread:332642 [dir_watcher.py:finish():353] shutting down directory watcher
+2022-07-11 15:46:01,016 INFO    SenderThread:332642 [dir_watcher.py:finish():383] scan: /home/jahan/Missingness/wandb/run-20220711_154550-grm3ui5w/files
+2022-07-11 15:46:01,017 INFO    SenderThread:332642 [dir_watcher.py:finish():397] scan save: /home/jahan/Missingness/wandb/run-20220711_154550-grm3ui5w/files/config.yaml config.yaml
+2022-07-11 15:46:01,017 INFO    SenderThread:332642 [dir_watcher.py:finish():397] scan save: /home/jahan/Missingness/wandb/run-20220711_154550-grm3ui5w/files/wandb-summary.json wandb-summary.json
+2022-07-11 15:46:01,023 INFO    SenderThread:332642 [dir_watcher.py:finish():397] scan save: /home/jahan/Missingness/wandb/run-20220711_154550-grm3ui5w/files/requirements.txt requirements.txt
+2022-07-11 15:46:01,030 INFO    SenderThread:332642 [dir_watcher.py:finish():397] scan save: /home/jahan/Missingness/wandb/run-20220711_154550-grm3ui5w/files/conda-environment.yaml conda-environment.yaml
+2022-07-11 15:46:01,031 INFO    SenderThread:332642 [dir_watcher.py:finish():397] scan save: /home/jahan/Missingness/wandb/run-20220711_154550-grm3ui5w/files/wandb-metadata.json wandb-metadata.json
+2022-07-11 15:46:01,031 INFO    SenderThread:332642 [dir_watcher.py:finish():397] scan save: /home/jahan/Missingness/wandb/run-20220711_154550-grm3ui5w/files/output.log output.log
+2022-07-11 15:46:01,036 INFO    SenderThread:332642 [file_pusher.py:finish():171] shutting down file pusher
+2022-07-11 15:46:01,037 INFO    SenderThread:332642 [file_pusher.py:join():176] waiting for file pusher
+2022-07-11 15:46:02,066 INFO    Thread-15 :332642 [upload_job.py:push():138] Uploaded file /home/jahan/Missingness/wandb/run-20220711_154550-grm3ui5w/files/conda-environment.yaml
+2022-07-11 15:46:02,066 INFO    Thread-12 :332642 [upload_job.py:push():138] Uploaded file /home/jahan/Missingness/wandb/run-20220711_154550-grm3ui5w/files/config.yaml
+2022-07-11 15:46:02,088 INFO    Thread-13 :332642 [upload_job.py:push():138] Uploaded file /home/jahan/Missingness/wandb/run-20220711_154550-grm3ui5w/files/wandb-summary.json
+2022-07-11 15:46:02,103 INFO    Thread-14 :332642 [upload_job.py:push():138] Uploaded file /home/jahan/Missingness/wandb/run-20220711_154550-grm3ui5w/files/requirements.txt
+2022-07-11 15:46:02,777 INFO    MainThread:332642 [internal.py:handle_exit():80] Internal process exited

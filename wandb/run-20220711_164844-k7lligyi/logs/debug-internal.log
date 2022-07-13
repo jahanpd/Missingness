@@ -1,0 +1,62 @@
+2022-07-11 16:48:45,155 INFO    MainThread:358811 [internal.py:wandb_internal():90] W&B internal server running at pid: 358811, started at: 2022-07-11 16:48:45.155147
+2022-07-11 16:48:45,157 INFO    WriterThread:358811 [datastore.py:open_for_write():75] open: /home/jahan/Missingness/wandb/run-20220711_164844-k7lligyi/run-k7lligyi.wandb
+2022-07-11 16:48:45,159 DEBUG   SenderThread:358811 [sender.py:send():236] send: header
+2022-07-11 16:48:45,159 DEBUG   SenderThread:358811 [sender.py:send():236] send: run
+2022-07-11 16:48:45,501 DEBUG   HandlerThread:358811 [handler.py:handle_request():140] handle_request: check_version
+2022-07-11 16:48:45,502 INFO    SenderThread:358811 [dir_watcher.py:__init__():216] watching files in: /home/jahan/Missingness/wandb/run-20220711_164844-k7lligyi/files
+2022-07-11 16:48:45,503 INFO    SenderThread:358811 [sender.py:_start_run_threads():815] run started: k7lligyi with start time 1657522124
+2022-07-11 16:48:45,503 DEBUG   SenderThread:358811 [sender.py:send():236] send: summary
+2022-07-11 16:48:45,503 INFO    SenderThread:358811 [sender.py:_save_file():952] saving file wandb-summary.json with policy end
+2022-07-11 16:48:45,503 DEBUG   SenderThread:358811 [sender.py:send_request():250] send_request: check_version
+2022-07-11 16:48:45,594 DEBUG   HandlerThread:358811 [handler.py:handle_request():140] handle_request: run_start
+2022-07-11 16:48:45,597 DEBUG   HandlerThread:358811 [meta.py:__init__():35] meta init
+2022-07-11 16:48:45,597 DEBUG   HandlerThread:358811 [meta.py:__init__():49] meta init done
+2022-07-11 16:48:45,597 DEBUG   HandlerThread:358811 [meta.py:probe():209] probe
+2022-07-11 16:48:45,603 DEBUG   HandlerThread:358811 [meta.py:_setup_git():199] setup git
+2022-07-11 16:48:45,608 DEBUG   HandlerThread:358811 [meta.py:_setup_git():206] setup git done
+2022-07-11 16:48:45,609 DEBUG   HandlerThread:358811 [meta.py:_save_pip():53] save pip
+2022-07-11 16:48:45,609 DEBUG   HandlerThread:358811 [meta.py:_save_pip():67] save pip done
+2022-07-11 16:48:45,609 DEBUG   HandlerThread:358811 [meta.py:_save_conda():74] save conda
+2022-07-11 16:48:46,505 INFO    Thread-7  :358811 [dir_watcher.py:_on_file_created():269] file/dir created: /home/jahan/Missingness/wandb/run-20220711_164844-k7lligyi/files/conda-environment.yaml
+2022-07-11 16:48:46,505 INFO    Thread-7  :358811 [dir_watcher.py:_on_file_created():269] file/dir created: /home/jahan/Missingness/wandb/run-20220711_164844-k7lligyi/files/wandb-summary.json
+2022-07-11 16:48:46,506 INFO    Thread-7  :358811 [dir_watcher.py:_on_file_created():269] file/dir created: /home/jahan/Missingness/wandb/run-20220711_164844-k7lligyi/files/requirements.txt
+2022-07-11 16:48:48,090 DEBUG   HandlerThread:358811 [meta.py:_save_conda():84] save conda done
+2022-07-11 16:48:48,090 DEBUG   HandlerThread:358811 [meta.py:probe():247] probe done
+2022-07-11 16:48:48,093 DEBUG   SenderThread:358811 [sender.py:send():236] send: files
+2022-07-11 16:48:48,093 INFO    SenderThread:358811 [sender.py:_save_file():952] saving file wandb-metadata.json with policy now
+2022-07-11 16:48:48,100 DEBUG   HandlerThread:358811 [handler.py:handle_request():140] handle_request: stop_status
+2022-07-11 16:48:48,101 DEBUG   SenderThread:358811 [sender.py:send_request():250] send_request: stop_status
+2022-07-11 16:48:48,460 DEBUG   SenderThread:358811 [sender.py:send():236] send: telemetry
+2022-07-11 16:48:48,461 DEBUG   SenderThread:358811 [sender.py:send():236] send: config
+2022-07-11 16:48:48,462 DEBUG   SenderThread:358811 [sender.py:send():236] send: config
+2022-07-11 16:48:48,504 INFO    Thread-7  :358811 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220711_164844-k7lligyi/files/conda-environment.yaml
+2022-07-11 16:48:48,504 INFO    Thread-7  :358811 [dir_watcher.py:_on_file_created():269] file/dir created: /home/jahan/Missingness/wandb/run-20220711_164844-k7lligyi/files/output.log
+2022-07-11 16:48:48,504 INFO    Thread-7  :358811 [dir_watcher.py:_on_file_created():269] file/dir created: /home/jahan/Missingness/wandb/run-20220711_164844-k7lligyi/files/wandb-metadata.json
+2022-07-11 16:48:49,279 INFO    Thread-11 :358811 [upload_job.py:push():138] Uploaded file /tmp/tmpy9sgo1bdwandb/1flz48ot-wandb-metadata.json
+2022-07-11 16:48:50,504 INFO    Thread-7  :358811 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220711_164844-k7lligyi/files/output.log
+2022-07-11 16:48:54,505 INFO    Thread-7  :358811 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220711_164844-k7lligyi/files/output.log
+2022-07-11 16:48:56,506 INFO    Thread-7  :358811 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220711_164844-k7lligyi/files/output.log
+2022-07-11 16:49:02,508 INFO    Thread-7  :358811 [dir_watcher.py:_on_file_modified():286] file/dir modified: /home/jahan/Missingness/wandb/run-20220711_164844-k7lligyi/files/output.log
+2022-07-11 16:49:03,535 DEBUG   HandlerThread:358811 [handler.py:handle_request():140] handle_request: stop_status
+2022-07-11 16:49:03,535 DEBUG   SenderThread:358811 [sender.py:send_request():250] send_request: stop_status
+2022-07-11 16:49:10,181 WARNING MainThread:358811 [internal.py:is_dead():387] Internal process exiting, parent pid 358631 disappeared
+2022-07-11 16:49:10,181 ERROR   MainThread:358811 [internal.py:wandb_internal():149] Internal process shutdown.
+2022-07-11 16:49:10,270 INFO    WriterThread:358811 [datastore.py:close():279] close: /home/jahan/Missingness/wandb/run-20220711_164844-k7lligyi/run-k7lligyi.wandb
+2022-07-11 16:49:10,544 INFO    HandlerThread:358811 [handler.py:finish():806] shutting down handler
+2022-07-11 16:49:10,939 INFO    SenderThread:358811 [sender.py:finish():1114] shutting down sender
+2022-07-11 16:49:10,939 INFO    SenderThread:358811 [dir_watcher.py:finish():353] shutting down directory watcher
+2022-07-11 16:49:11,510 INFO    SenderThread:358811 [dir_watcher.py:finish():383] scan: /home/jahan/Missingness/wandb/run-20220711_164844-k7lligyi/files
+2022-07-11 16:49:11,510 INFO    SenderThread:358811 [dir_watcher.py:finish():397] scan save: /home/jahan/Missingness/wandb/run-20220711_164844-k7lligyi/files/config.yaml config.yaml
+2022-07-11 16:49:11,510 INFO    SenderThread:358811 [dir_watcher.py:finish():397] scan save: /home/jahan/Missingness/wandb/run-20220711_164844-k7lligyi/files/wandb-summary.json wandb-summary.json
+2022-07-11 16:49:11,516 INFO    SenderThread:358811 [dir_watcher.py:finish():397] scan save: /home/jahan/Missingness/wandb/run-20220711_164844-k7lligyi/files/requirements.txt requirements.txt
+2022-07-11 16:49:11,517 INFO    SenderThread:358811 [dir_watcher.py:finish():397] scan save: /home/jahan/Missingness/wandb/run-20220711_164844-k7lligyi/files/conda-environment.yaml conda-environment.yaml
+2022-07-11 16:49:11,523 INFO    SenderThread:358811 [dir_watcher.py:finish():397] scan save: /home/jahan/Missingness/wandb/run-20220711_164844-k7lligyi/files/wandb-metadata.json wandb-metadata.json
+2022-07-11 16:49:11,523 INFO    SenderThread:358811 [dir_watcher.py:finish():397] scan save: /home/jahan/Missingness/wandb/run-20220711_164844-k7lligyi/files/output.log output.log
+2022-07-11 16:49:11,524 INFO    SenderThread:358811 [file_pusher.py:finish():171] shutting down file pusher
+2022-07-11 16:49:11,529 INFO    SenderThread:358811 [file_pusher.py:join():176] waiting for file pusher
+2022-07-11 16:49:12,731 INFO    Thread-14 :358811 [upload_job.py:push():138] Uploaded file /home/jahan/Missingness/wandb/run-20220711_164844-k7lligyi/files/requirements.txt
+2022-07-11 16:49:12,733 INFO    Thread-15 :358811 [upload_job.py:push():138] Uploaded file /home/jahan/Missingness/wandb/run-20220711_164844-k7lligyi/files/conda-environment.yaml
+2022-07-11 16:49:12,734 INFO    Thread-12 :358811 [upload_job.py:push():138] Uploaded file /home/jahan/Missingness/wandb/run-20220711_164844-k7lligyi/files/config.yaml
+2022-07-11 16:49:12,735 INFO    Thread-13 :358811 [upload_job.py:push():138] Uploaded file /home/jahan/Missingness/wandb/run-20220711_164844-k7lligyi/files/wandb-summary.json
+2022-07-11 16:49:12,737 INFO    Thread-16 :358811 [upload_job.py:push():138] Uploaded file /home/jahan/Missingness/wandb/run-20220711_164844-k7lligyi/files/output.log
+2022-07-11 16:49:13,344 INFO    MainThread:358811 [internal.py:handle_exit():80] Internal process exited

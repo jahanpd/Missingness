@@ -1,0 +1,30 @@
+name: Supervised Regression, features: Moneyball
+{'X_train': {'cols': 0.20568335588633288, 'rows': 0.9012178619756428}, 'X_valid': {'cols': 0.21621621621621623, 'rows': 0.9081081081081082}, 'X_test': {'cols': 0.21150278293135436, 'rows': 0.922077922077922}}
+dataset sizes
+(739, 14) (185, 14) (308, 14)
+dropped dataset sizes
+(73, 14) (17, 14) (24, 14)
+key: 2135, k: 1/4, dataset: 41021, missing: None, impute: None
+{'d_model': 108, 'embedding_size': 108, 'embedding_layers': 3, 'encoder_heads': 5, 'encoder_layers': 1, 'decoder_heads': 3, 'decoder_layers': 5, 'net_size': 108, 'net_layers': 3, 'max_steps': 3321, 'learning_rate': 0.0009256214427138358, 'batch_size': 128, 'early_stop': 0.6192365894383675, 'noise_std': 0.9170570340038994}
+MAP
+2 device(s)
+  0%|                                                                                                                                                                                                                                                                                               | 0/664 [00:00<?, ?it/s]
+optimizer: adam, lr: 0.000925621425267309, batch_size=128
+
+  5%|███████████                                                                                                                                                                                                                                 | 31/664 [00:20<01:04,  9.75it/s, l=1.34, tl=inf, tlc=0.196, tc=0, e=-.693]
+
+ 11%|█████████████████████████▍                                                                                                                                                                                                                 | 72/664 [00:24<00:57, 10.21it/s, l=0.163, tl=inf, tlc=0.166, tc=0, e=-.693]
+
+ 34%|████████████████████████████████████████████████████████████████████████████████▎                                                                                                                                                        | 229/664 [00:40<00:41, 10.42it/s, l=0.0842, tl=inf, tlc=0.0857, tc=0, e=-.69]
+
+ 56%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▋                                                                                                      | 371/664 [00:54<00:28, 10.21it/s, l=0.0585, tl=inf, tlc=0.0787, tc=0, e=-.691]
+  0%|                                                                                                                                                                                                                                                                                                 | 0/5 [00:00<?, ?it/s]
+  File "/home/jahan/Missingness/train.py", line 143, in <module>
+    metrics_df, perc_missing = run(
+  File "/home/jahan/Missingness/benchmarkaux/openmlrun.py", line 149, in run
+    output = model.predict(X_test, sample=False)
+  File "/home/jahan/Missingness/UAT/models/scikit_wrapper.py", line 209, in predict
+    out = self.batch_forward(X, sample)
+  File "/home/jahan/Missingness/UAT/models/scikit_wrapper.py", line 163, in batch_forward
+    X.shape[0] // batch_size)
+ZeroDivisionError: integer division or modulo by zero

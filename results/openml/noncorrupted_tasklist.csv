@@ -1,0 +1,11 @@
+Unnamed: 0,did,task_type,name,NumberOfInstances,NumberOfFeatures,NumberOfClasses,NumberOfNumericFeatures,NumberOfSymbolicFeatures,NumberOfInstancesWithMissingValues,NumberOfMissingValues,lsam_sweepid,gbm_sweepid
+3,23381,Supervised Classification,dresses-sales,500.0,13.0,2.0,1.0,12.0,401.0,835.0,b3c193xa,16mwzb9y
+2,6332,Supervised Classification,cylinder-bands,540.0,40.0,2.0,18.0,22.0,263.0,999.0,z0bw8fg9,pukeikoq
+0,188,Supervised Classification,eucalyptus,736.0,20.0,5.0,14.0,6.0,95.0,448.0,vgo8hqvk,u7mm8glv
+4,40966,Supervised Classification,MiceProtein,1080.0,82.0,8.0,77.0,5.0,528.0,1396.0,t8ysoiga,gvgthhxq
+5,41021,Supervised Regression,Moneyball,1232.0,15.0,0.0,9.0,6.0,1118.0,3600.0,r1law6zj,
+9,42563,Supervised Regression,house_prices_nominal,1460.0,80.0,0.0,37.0,43.0,1460.0,6965.0,zvw9dwpz,1jfkav39
+7,42730,Supervised Regression,us_crime,1994.0,127.0,0.0,127.0,0.0,1871.0,39202.0,l9ow65z9,mqimtu45
+1,38,Supervised Classification,sick,3772.0,30.0,2.0,7.0,23.0,3772.0,6064.0,epee7i70,lj82vlil
+8,41980,Supervised Regression,SAT11-HAND-runtime-regression,4440.0,117.0,0.0,116.0,1.0,2715.0,27150.0,jz8csqg0,wfoqhtbf
+6,42727,Supervised Regression,colleges,7063.0,45.0,0.0,33.0,12.0,7063.0,104249.0,q22t79o0,bl96k5s9

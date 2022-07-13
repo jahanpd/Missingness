@@ -1,0 +1,64 @@
+name: Supervised Classification, features: dresses-sales
+{'X_train': {'cols': 0.1429539295392954, 'rows': 0.8075880758807588}, 'X_valid': {'cols': 0.13440860215053765, 'rows': 0.7849462365591398}, 'X_test': {'cols': 0.14166666666666666, 'rows': 0.81}}
+dataset sizes
+(376, 12) (93, 12) (100, 12)
+dropped dataset sizes
+(73, 12) (20, 12) (19, 12)
+key: 5092, k: 1/20, dataset: 23381, missing: None, impute: None
+{'d_model': 32, 'embedding_size': 32, 'embedding_layers': 2, 'encoder_heads': 5, 'encoder_layers': 5, 'decoder_heads': 5, 'decoder_layers': 5, 'net_size': 32, 'net_layers': 2, 'max_steps': 10000.0, 'learning_rate': 0.001, 'early_stop': 0.5, 'noise_std': 0.1}
+MAP
+2 device(s)
+optimizer: adabelief, lr: 0.001, batch_size=32
+  0%|                                                                                                                                                                                                                                                             | 0/100 [00:00<?, ?it/s]
+  0%|                                                                                                                                                                                                                                                              | 0/11 [00:00<?, ?it/s]
+early stop or epoch
+2 device(s)
+
+optimizer: adam, lr: 0.0010000000474974513, batch_size=32
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 24%|███████████████████████████████████████████████▊                                                                                                                                                          | 215/909 [00:58<02:17,  5.04it/s, l=1.39, tl=inf, tlc=1.39, tc=0, e=-.693]
+
+ 26%|████████████████████████████████████████████████████▏                                                                                                                                                     | 235/909 [01:02<02:26,  4.61it/s, l=1.38, tl=inf, tlc=1.39, tc=0, e=-.693]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  File "/home/jahan/Missingness/train.py", line 139, in <module>                                                                                                                                                                                                   | 0/11 [00:00<?, ?it/s]
+    metrics_df, perc_missing = run(
+  File "/home/jahan/Missingness/benchmarkaux/openmlrun.py", line 155, in run
+    model.fit(X_train, y_train)
+  File "/home/jahan/Missingness/UAT/models/scikit_wrapper.py", line 152, in fit
+    params, history, rng = training_loop(
+  File "/home/jahan/Missingness/UAT/training/train.py", line 277, in training_loop
+    params, opt_state = take_step(step, params, batch_x, batch_y, key, opt_state, boolean)
+  File "<string>", line 1, in <lambda>

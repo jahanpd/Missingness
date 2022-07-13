@@ -1,0 +1,1 @@
+{"lsam_accuracy_fold1": 0.4099999964237213, "_timestamp": 1657435122, "_runtime": 187, "lsam_nll_fold1": 1.3926368951797485, "gbm_accuracy_fold1": 0.57, "gbm_nll_fold1": 1.3926368951797485, "_step": 0, "_wandb": {"runtime": 229}}
