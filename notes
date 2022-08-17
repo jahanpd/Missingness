@@ -1,0 +1,2 @@
+python get_datainfo.py --corrupt --min_classes 2 --min_features 30 --max_features 250  --min_instances 1000 --max_instances 10000 --save
+python get_datainfo.py --min_p_missing 0.05 --not_suite --min_classes 2 --min_features 30 --max_features 250  --min_instances 1000 --max_instances 10000 --save

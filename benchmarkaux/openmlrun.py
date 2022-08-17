@@ -27,6 +27,7 @@ def run(
     lsam_params = None,
     gbm_params =  None,
     corrupt = False,
+    noncorrupt = False,
     row_data=None,
     folds=5,
     repeats=1,
@@ -92,6 +93,7 @@ def run(
                 rng_key=key,
                 prop=perc_missing,
                 corrupt=corrupt,
+                noncorrupt=noncorrupt,
                 cols_miss=int(X.shape[1] * cols_miss)
             )
         print(diagnostics)
@@ -159,7 +161,7 @@ def run(
                     acc = np.sum(correct_o) / y_test.shape[0]
                     metrics[("accuracy","lsam")].append(acc)
                     if wandb is not None:
-                        wandb.log({"lsam_accuracy_fold{}".format(count):acc}, commit=False)
+                        wandb.log({"lsam_accuracy":acc})
                     tqdm.write("strategy:{}, acc lsam:{}".format(imputation, acc))
                 if rm == "nll":
                     nll = -(jnp.log(output + 1e-8) * jax.nn.one_hot(y_test, classes) +
@@ -167,13 +169,13 @@ def run(
                             ).sum(axis=-1).mean()
                     metrics[("nll","lsam")].append(nll)
                     if wandb is not None:
-                        wandb.log({"lsam_nll_fold{}".format(count):nll}, commit=False)
+                        wandb.log({"lsam_nll":nll})
                     tqdm.write("strategy:{}, nll lsam:{}".format(imputation, nll))
                 if rm == "rmse":
                     rmse = np.sqrt(np.square(output - y_test).mean())
                     metrics[("rmse","lsam")].append(rmse)
                     if wandb is not None:
-                        wandb.log({"lsam_rmse_fold{}".format(count):rmse}, commit=False)
+                        wandb.log({"lsam_rmse":rmse})
                     tqdm.write("strategy:{}, rmse lsam:{}".format(imputation, rmse))
 
         if gbm_params is not None:
@@ -208,7 +210,7 @@ def run(
                     acc_gbm = np.sum(correct_x) / y_test.shape[0]
                     metrics[("accuracy","gbm")].append(acc_gbm)
                     if wandb is not None:
-                        wandb.log({"gbm_accuracy_fold{}".format(count):acc_gbm}, commit=False)
+                        wandb.log({"gbm_accuracy":acc_gbm})
                     tqdm.write("strategy:{}, acc gbm: {}".format(imputation, acc_gbm))
                 if rm == "nll":
                     nll_gbm = -(jnp.log(output_gbm + 1e-8) * jax.nn.one_hot(y_test, classes) +
@@ -216,13 +218,13 @@ def run(
                                 ).sum(axis=-1).mean()
                     metrics[("nll","gbm")].append(nll_gbm)
                     if wandb is not None:
-                        wandb.log({"gbm_nll_fold{}".format(count):nll_gbm}, commit=False)
+                        wandb.log({"gbm_nll":nll_gbm})
                     tqdm.write("strategy:{}, nll xbg:{}".format(imputation, nll_gbm))
                 if rm == "rmse":
                     rmse_gbm = np.sqrt(np.square(output_gbm - y_test).mean())
                     metrics[("rmse","gbm")].append(rmse_gbm)
                     if wandb is not None:
-                        wandb.log({"gbm_rmse_fold{}".format(count):rmse_gbm}, commit=False)
+                        wandb.log({"gbm_rmse":rmse_gbm})
                     tqdm.write("strategy:{}, rmse xbg:{}".format(imputation, rmse_gbm))
         
     # convert metrics dict to dataframe and determine % change

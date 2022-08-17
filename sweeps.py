@@ -4,7 +4,7 @@ import pandas as pd
 import argparse
 import numpy as np
 
-COUNT=30
+COUNT=25
 ENTITY="cardiac-ml"
 PROJECT="missingness"
 
@@ -12,6 +12,8 @@ api = wandb.Api()
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--overwrite", action='store_true')
+parser.add_argument("--ds", type=int, default=-1)
+parser.add_argument("--recover", action='store_true')
 args = parser.parse_args()
 
 sweep_config_lsam = {
@@ -20,19 +22,27 @@ sweep_config_lsam = {
     "method":"bayes",
     "metric":{"goal":"minimize","name":"placeholder"},
     "parameters":{
-        "d_model":{"max":128,"min":32,"distribution":"int_uniform"},
-        "embedding_layers":{"max":8,"min":1,"distribution":"int_uniform"},
-        "encoder_layers":{"max":12,"min":1,"distribution":"int_uniform"},
-        "encoder_heads":{"max":5,"min":1,"distribution":"int_uniform"},
-        "decoder_layers":{"max":12,"min":1,"distribution":"int_uniform"},
-        "decoder_heads":{"max":5,"min":1,"distribution":"int_uniform"},
-        "net_layers":{"max":8,"min":1,"distribution":"int_uniform"},
-        "max_steps":{"max":5000,"min":2000,"distribution":"int_uniform"},
-        "early_stopping":{"max":0.9,"min":0.0,"distribution":"uniform"},
-        "learning_rate":{"max":0.001,"min":0.0001,"distribution":"log_uniform_values"},
-        "batch_size":{"values":[32, 64, 128],"distribution":"categorical"},
-        "noise_std":{"max":3,"min":0.1,"distribution":"log_uniform_values"},
+        # "d_model":{"max":40,"min":4,"distribution":"int_uniform"},
+        "d_model":{"values":[32, 64],"distribution":"categorical"},
+        "depth":{"max":3,"min":1,"distribution":"int_uniform"},
+        # "embedding_layers":{"max":6,"min":1,"distribution":"int_uniform"},
+        # "encoder_layers":{"max":6,"min":3,"distribution":"int_uniform"},
+        # "decoder_layers":{"max":3,"min":1,"distribution":"int_uniform"},
+        # "net_layers":{"max":3,"min":1,"distribution":"int_uniform"},
+        # "early_stopping":{"max":0.9,"min":0.0,"distribution":"uniform"},
+        "learning_rate":{"max":0.01,"min":0.00001,"distribution":"log_uniform_values"},
+        # "batch_size":{"values":[128, 256],"distribution":"categorical"},
+        # "noise_std":{"max":0.01,"min":0.0000000001,"distribution":"uniform"},
+        # "drop_reg":{"max":1.0,"min":0.0001,"distribution":"log_uniform_values"},
+        "weight_decay":{"max":0.1,"min":0.000001,"distribution":"log_uniform_values"},
+        # "l2":{"max":10.0,"min":0.000001,"distribution":"log_uniform_values"},
+        # "optimizer":{"values":["adam","adabelief","lamb"],"distribution":"categorical"},
+        # "optimizer":{"values":["lamb"],"distribution":"categorical"},
      },
+    "early_terminate":{
+        "type": "hyperband",
+        "min_iter":1
+    },
     "command":[
         "${env}",
         "${interpreter}",
@@ -42,9 +52,9 @@ sweep_config_lsam = {
         "--dataset",
         "rownumber",
         "--k",
-        "4",
+        "2",
         "--repeats",
-        "1",
+        "2",
         "--notes",
         "hyperparameter search",
     ]
@@ -57,12 +67,17 @@ sweep_config_gbm = {
     "metric":{"goal":"minimize","name":"placeholder"},
     "parameters":{
         "num_leaves":{"max":40,"min":5,"distribution":"int_uniform"},
-        "max_bin":{"max":255,"min":5,"distribution":"int_uniform"},
-        "max_depth":{"max":32,"min":4,"distribution":"int_uniform"},
-        "min_data_in_leaf":{"max":30,"min":10,"distribution":"int_uniform"},
+        "max_bin":{"max":100,"min":10,"distribution":"int_uniform"},
+        "max_depth":{"max":50,"min":4,"distribution":"int_uniform"},
+        "min_data_in_leaf":{"max":100,"min":1,"distribution":"int_uniform"},
         "lightgbm_learning_rate":{"max":0.1,"min":0.00001,"distribution":"log_uniform_values"},
         "num_iterations":{"max":1000,"min":100,"distribution":"int_uniform"},
+        "boosting":{"values":["gbdt", "rf", "dart", "goss"],"distribution":"categorical"},
      },
+    "early_terminate":{
+        "type": "hyperband",
+        "min_iter":1
+    },
     "command":[
         "${env}",
         "${interpreter}",
@@ -72,9 +87,9 @@ sweep_config_gbm = {
         "--dataset",
         "rownumber",
         "--k",
-        "4",
+        "2",
         "--repeats",
-        "1",
+        "2",
         "--notes",
         "hyperparameter search",
     ]
@@ -88,9 +103,9 @@ datalist_noncorrupted = pd.read_csv(noncorrupted_path)
 
 def check_sweepids(dataframe):
     if "lsam_sweepid" not in dataframe:
-        dataframe["lsam_sweepid"] = [""]*len(dataframe)
+        dataframe["lsam_sweepid"] = ["placeholder"]*len(dataframe)
     if "gbm_sweepid" not in dataframe:
-        dataframe["gbm_sweepid"] = [""]*len(dataframe)
+        dataframe["gbm_sweepid"] = ["placeholder"]*len(dataframe)
 
 check_sweepids(datalist_corrupted)
 check_sweepids(datalist_noncorrupted)
@@ -98,25 +113,30 @@ check_sweepids(datalist_noncorrupted)
 def check_sweep(entity, project, sweep_id):
     try:
         sweep = api.sweep("{}/{}/{}".format(entity,project,sweep_id))
-        if len(sweep.runs) >= COUNT:
-            return sweep_id
+        if not args.overwrite:
+            return sweep_id, len(sweep.runs)
         else:
-            return ""
+            return "placeholder", 0
     except Exception as e:
+        print(entity, project, sweep_id)
         print(e)
-        return ""
+        return "placeholder", 0
 
 def run_hpsearch(datalist, corrupt):
-    for i in range(len(datalist)):
+    if args.ds < 0:
+        datasets = range(len(datalist))
+    else:
+        datasets = [args.ds]
+    for i in datasets:
         row = datalist.values[i,:]
         new_lsam = sweep_config_lsam.copy()
         new_gbm = sweep_config_gbm.copy()
         if row[2] == "Supervised Classification":
-            metric_lsam = "LSAM_combo"
-            metric_gbm = "LightGBM_combo"
+            metric_lsam = "lsam_nll.mean"
+            metric_gbm = "gbm_nll.mean"
         elif row[2] == "Supervised Regression":
-            metric_lsam = "LSAM_rmse"
-            metric_gbm = "LightGBM_rmse"
+            metric_lsam = "lsam_rmse.mean"
+            metric_gbm = "gbm_rmse.mean"
 
         new_lsam["metric"]["name"] = metric_lsam
         new_gbm["metric"]["name"] = metric_gbm
@@ -133,31 +153,64 @@ def run_hpsearch(datalist, corrupt):
  
         new_lsam["name"] = row[3]
         new_gbm["name"] = row[3]
+        print(datalist)
 
-        if datalist.lsam_sweepid.values[i] != "":
-            datalist.lsam_sweepid.values[i] = check_sweep(ENTITY, PROJECT, datalist.lsam_sweepid.values[i])
+        datalist.lsam_sweepid.values[i], reslsam = check_sweep(ENTITY, PROJECT, datalist.lsam_sweepid.values[i])
+        datalist.gbm_sweepid.values[i], resgbm = check_sweep(ENTITY, PROJECT, datalist.gbm_sweepid.values[i])
 
-        if datalist.gbm_sweepid.values[i] != "":
-            datalist.gbm_sweepid.values[i] = check_sweep(ENTITY, PROJECT, datalist.gbm_sweepid.values[i])
-
-        if (datalist.lsam_sweepid.values[i]=="") or args.overwrite:
-            sweep_id_lsam = wandb.sweep(new_lsam,entity="cardiac-ml",project="missingness")
-            os.system("wandb agent --count {} cardiac-ml/missingness/{}".format(COUNT, sweep_id_lsam))
+        if (datalist.gbm_sweepid.values[i]=="placeholder") or resgbm < COUNT:
+            if datalist.gbm_sweepid.values[i]=="placeholder":
+                sweep_id_gbm = wandb.sweep(new_gbm,entity="cardiac-ml",project="missingness")
+            else:
+                sweep_id_gbm = datalist.gbm_sweepid.values[i]
+            os.system("wandb agent --count {} cardiac-ml/missingness/{}".format(COUNT - resgbm, sweep_id_gbm))
+            datalist.gbm_sweepid.values[i] = sweep_id_gbm
+            if corrupt:
+                datalist.to_csv(corrupted_path, index=False)
+            else:
+                datalist.to_csv(noncorrupted_path, index=False)
+        if (datalist.lsam_sweepid.values[i]=="placeholder") or reslsam < COUNT:
+            if datalist.lsam_sweepid.values[i]=="placeholder":
+                sweep_id_lsam = wandb.sweep(new_lsam,entity="cardiac-ml",project="missingness")
+            else:
+                sweep_id_lsam = datalist.lsam_sweepid.values[i]
+            os.system("wandb agent --count {} cardiac-ml/missingness/{}".format(COUNT - reslsam, sweep_id_lsam))
             datalist.lsam_sweepid.values[i] = sweep_id_lsam
             if corrupt:
                 datalist.to_csv(corrupted_path, index=False)
             else:
                 datalist.to_csv(noncorrupted_path, index=False)
 
-        if (datalist.gbm_sweepid.values[i]=="") or args.overwrite:
-            sweep_id_gbm = wandb.sweep(new_gbm,entity="cardiac-ml",project="missingness")
-            os.system("wandb agent --count {} cardiac-ml/missingness/{}".format(COUNT, sweep_id_gbm))
-            datalist.gbm_sweepid.values[i] = sweep_id_gbm
-            if corrupt:
-                datalist.to_csv(corrupted_path, index=False)
-            else:
-                datalist.to_csv(noncorrupted_path, index=False)
+        
 
+def recover_filt(sweep, model, dsname):
+    m = model in sweep.config["metric"]["name"]
+    n = dsname == sweep.config["name"]
+    return m and n
 
-run_hpsearch(datalist_noncorrupted, False)
-run_hpsearch(datalist_corrupted, True)
+if not args.recover:
+    run_hpsearch(datalist_noncorrupted, False)
+    run_hpsearch(datalist_corrupted, True)
+else:
+    project = api.project(PROJECT, entity=ENTITY)
+    sweeps = project.sweeps()
+    print(datalist_noncorrupted)
+    for i, dsname in enumerate(datalist_noncorrupted.name.values):
+        subsweeps_lsam = [s for s in sweeps if recover_filt(s, "lsam", dsname)]
+        subsweeps_gbm = [s for s in sweeps if recover_filt(s, "gbm", dsname)]
+        if len(subsweeps_lsam) > 0:
+            datalist_noncorrupted.loc[i, "lsam_sweepid"] = subsweeps_lsam[0].id
+        if len(subsweeps_gbm) > 0:
+            datalist_noncorrupted.loc[i, "gbm_sweepid"] = subsweeps_gbm[0].id
+    print(datalist_noncorrupted)
+    datalist_noncorrupted.to_csv(noncorrupted_path, index=False)
+    print(datalist_corrupted)
+    for i, dsname in enumerate(datalist_corrupted.name.values):
+        subsweeps_lsam = [s for s in sweeps if recover_filt(s, "lsam", dsname)]
+        subsweeps_gbm = [s for s in sweeps if recover_filt(s, "gbm", dsname)]
+        if len(subsweeps_lsam) > 0:
+            datalist_corrupted.loc[i, "lsam_sweepid"] = subsweeps_lsam[0].id
+        if len(subsweeps_gbm) > 0:
+            datalist_corrupted.loc[i, "gbm_sweepid"] = subsweeps_gbm[0].id
+    print(datalist_corrupted)
+    datalist_corrupted.to_csv(corrupted_path, index=False)

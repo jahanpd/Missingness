@@ -40,6 +40,8 @@ def cross_entropy(
     ):
     def loss_fun(params, output, labels):
             logits = output[0]
+            embed = output[2]
+            latent = output[-1]
             one_hot = jax.nn.one_hot(labels, classes)
             probs = jax.nn.softmax(logits)
             # probs = jnp.mean(jax.nn.sigmoid(jnp.stack(logits, axis=0)), axis=0)
@@ -50,8 +52,9 @@ def cross_entropy(
                         + (1-labels) * jnp.log(1 - probs + 1e-7)).sum()
 
             ce = cross_entropy(probs, one_hot).mean()
-            norm_params = [params[key] for key in params.keys() if key not in ["logits"]]
-            l2 = l2_norm(norm_params)
+            # norm_params = [params[key] for key in params.keys() if key in ["last_layer"]]
+            # l2 = l2_norm(norm_params)
+            l2 = jnp.mean(params["x_scale"]**2) + jnp.mean(params["y_scale"]**2)
             entropy = p_drop * jnp.log(p_drop + 1e-7)
             entropy += (1.0 - p_drop) * jnp.log(1.0 - p_drop + 1e-7)
             entropy = entropy.mean()

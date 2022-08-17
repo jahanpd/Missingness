@@ -26,8 +26,9 @@ parser.add_argument("--model", choices=["LSAM", "LightGBM", "Both"], default="Bo
 
 # LSAM model hyperparameters
 parser.add_argument("--d_model", default=32, type=int)
+parser.add_argument("--depth", default=3, type=int)
 parser.add_argument("--embedding_size", default=32, type=int)
-parser.add_argument("--embedding_layers", default=2, type=int)
+parser.add_argument("--embedding_layers", default=4, type=int)
 parser.add_argument("--encoder_heads", default=5, type=int)
 parser.add_argument("--encoder_layers", default=5, type=int)
 parser.add_argument("--decoder_heads", default=5, type=int)
@@ -36,17 +37,24 @@ parser.add_argument("--net_size", default=32, type=int)
 parser.add_argument("--net_layers", default=2, type=int)
 
 # LSAM training hyperparameters
-parser.add_argument("--max_steps", default=1e4, type=int)
+parser.add_argument("--max_steps", default=5e3, type=int)
 parser.add_argument("--learning_rate", default=1e-3, type=float)
-parser.add_argument("--early_stopping", default=0.5, type=float, help="Percentage of epochs when to start ES")
-parser.add_argument("--batch_size", default=32, type=int)
-parser.add_argument("--noise_std", default=0.1, type=float, help="Injected noise std in the latent space")
+parser.add_argument("--early_stopping", default=0.0, type=float, help="Percentage of epochs when to start ES")
+parser.add_argument("--batch_size", default=128, type=int)
+parser.add_argument("--noise_std", default=0.0005, type=float, help="Injected noise std in the latent space")
+parser.add_argument("--drop_reg", default=1e-6, type=float, help="Dropout regularization")
+parser.add_argument("--weight_decay", default=1e-10, type=float, help="Weight decay")
+parser.add_argument("--l2", default=1e-5, type=float, help="Last layer weight regularization")
+parser.add_argument("--optimizer", default="adabelief", choices=["adam", "adabelief", "lamb"])
 
 # LightGBM model hyperparameters
 parser.add_argument("--num_leaves", default=31, type=int, help="Must be smaller that max_depth")
 parser.add_argument("--max_bin", default=155, type=int)
 parser.add_argument("--max_depth", default=-1, type=int)
 parser.add_argument("--min_data_in_leaf", default=20, type=int)
+parser.add_argument("--boosting", choices=["gbdt", "rf", "dart", "goss"], default="gbdt")
+parser.add_argument("--bagging_fraction", default=0.99, type=float)
+parser.add_argument("--bagging_freq", default=1, type=int)
 
 # LightGBM training hyperparameters
 parser.add_argument("--lightgbm_learning_rate", default=1e-3, type=float)
@@ -61,6 +69,8 @@ parser.add_argument("--seed", type=int, default=0)
 
 # Notes for the wandb init explaining run
 parser.add_argument("--notes", default="empty", type=str)
+parser.add_argument("--run_name", default="sweep", type=str)
+
 
 args = parser.parse_args()
 
@@ -80,7 +90,7 @@ else:
 row = datalist.values[args.dataset, :]
 did = row[1]
 task = row[2]
-
+print(row)
 # Define metrics
 if task == "Supervised Classification":
     metrics = ["nll", "accuracy"]
@@ -92,7 +102,17 @@ else:
 wandb.init(config=args, name=row[3], entity="cardiac-ml", project="LSAM")
 config = wandb.config
 wandb.config.update({"dataset_name":row[3]})
+wandb.config.update({"run_name":args.run_name})
 wandb.config.update({"seed":seed}, allow_val_change=True)
+
+# define summary metrics
+wandb.define_metric("gbm_accuracy", summary="mean")
+wandb.define_metric("gbm_nll", summary="mean")
+wandb.define_metric("gbm_rmse", summary="mean")
+wandb.define_metric("lsam_accuracy", summary="mean")
+wandb.define_metric("lsam_nll", summary="mean")
+wandb.define_metric("lsam_rmse", summary="mean")
+
 
 # initialize/make model params
 lsam_params = None
@@ -100,18 +120,22 @@ if (args.model == "LSAM") or (args.model == "Both"):
     lsam_params = {
         "d_model":config.d_model,
         "embedding_size":config.d_model,
-        "embedding_layers":config.embedding_layers,
+        "embedding_layers":config.embedding_layers if config.depth < 0 else config.depth,
         "encoder_heads":config.encoder_heads,
-        "encoder_layers":config.encoder_layers,
+        "encoder_layers":config.encoder_layers if config.depth < 0 else config.depth,
         "decoder_heads":config.decoder_heads,
-        "decoder_layers":config.decoder_layers,
+        "decoder_layers":config.encoder_layers if config.depth < 0 else config.depth,
         "net_size":config.d_model,
         "net_layers":config.net_layers,
         "max_steps":config.max_steps,
         "learning_rate":config.learning_rate,
         "batch_size":config.batch_size,
         "early_stop":config.early_stopping,
-        "noise_std":config.noise_std
+        "noise_std":config.noise_std,
+        "dropreg":config.drop_reg,
+        "weight_decay":config.weight_decay,
+        "l2":config.l2,
+        "optimizer":config.optimizer,
     }
 
 gbm_params = None
@@ -126,6 +150,9 @@ if (args.model == "LightGBM") or (args.model == "Both"):
         "min_data_in_leaf":config.min_data_in_leaf,
         "learning_rate":config.lightgbm_learning_rate,
         "num_iterations":config.num_iterations,
+        "boosting":config.boosting,
+        "bagging_freq":config.bagging_freq,
+        "bagging_fraction":config.bagging_fraction,
         "objective":objective
     }
 
@@ -138,7 +165,7 @@ else:
 if args.imputation == "None":
     imputation = None
 else:
-    imputation = args.missing
+    imputation = args.imputation
 
 metrics_df, perc_missing = run(
     dataset=did,
@@ -151,6 +178,7 @@ metrics_df, perc_missing = run(
     lsam_params=lsam_params,
     gbm_params=gbm_params,
     corrupt=args.corrupt,
+    noncorrupt=not args.corrupt,
     row_data=row,
     folds=args.k,
     repeats=args.repeats,
@@ -162,16 +190,11 @@ metrics_df, perc_missing = run(
 # Log metrics to wandb
 
 metrics_calc = {}
-for m in metrics:
-    if (args.model == "LightGBM") or (args.model == "Both"):
-        metrics_calc["LightGBM_{}".format(m)] = np.nanmean(metrics_df[(m, "gbm")])
-    if (args.model == "LSAM") or (args.model == "Both"):
-        metrics_calc["LSAM_{}".format(m)] = np.nanmean(metrics_df[(m, "lsam")])
 
 if task == "Supervised Classification":
     if args.model == "LightGBM":
-        metrics_calc["LightGBM_combo"] = np.nanmean(metrics_df[("nll", "gbm")]) - np.nanmean(metrics_df[("accuracy", "gbm")])
+        metrics_calc["gbm_combo"] = np.nanmean(metrics_df[("nll", "gbm")]) - np.nanmean(metrics_df[("accuracy", "gbm")])
     if args.model == "LSAM":
-        metrics_calc["LSAM_combo"] = np.nanmean(metrics_df[("nll", "lsam")]) - np.nanmean(metrics_df[("accuracy", "lsam")])
+        metrics_calc["lsam_combo"] = np.nanmean(metrics_df[("nll", "lsam")]) - np.nanmean(metrics_df[("accuracy", "lsam")])
 
 wandb.log(metrics_calc)

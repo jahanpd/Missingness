@@ -2,6 +2,7 @@ from LSAM import LSAM, create_early_stopping
 from LSAM import binary_cross_entropy, cross_entropy, mse, brier, dual, dual2, cross_entropy_conc
 from optax import linear_onecycle_schedule, join_schedules, piecewise_constant_schedule, linear_schedule
 import jax
+import numpy as np
 
 def create_make_model(features, rows, task, key):
     """
@@ -35,6 +36,8 @@ def create_make_model(features, rows, task, key):
             dropreg=1e-5,
             msereg=1e-5,
             weight_decay=1e-5,
+            l2=1e-5,
+            optimizer="adam"
         ):
         """
         Args:
@@ -58,9 +61,12 @@ def create_make_model(features, rows, task, key):
         # this means you cycle over the datasets a similar number of times
         # regardless of dataset size.
         # batch_size_base2 = min(2 ** int(np.round(np.log2(rows/20))), batch_size)
-        batch_size_base2 = batch_size
+        batch_sizes = [128]
+        distances = [(np.abs(max_steps - ((rows / b) * 100)), b) for b in batch_sizes]
+        batch_size_base2 = min(distances, key=lambda x: x[0])[1]
+        # batch_size_base2 = batch_size
         steps_per_epoch = max(rows // batch_size_base2, 1)
-        epochs = max_steps // steps_per_epoch
+        epochs = max(50, max_steps // steps_per_epoch)
         decay = piecewise_constant_schedule(
             learning_rate,
             boundaries_and_scales={
@@ -90,19 +96,23 @@ def create_make_model(features, rows, task, key):
                 b_init = jax.nn.initializers.zeros,
                 noise_std = noise_std
                 )
-        start_steps = int(early_stop*epochs*steps_per_epoch) # wait at least X epochs before early stopping
-        stop_steps_ = steps_per_epoch * (epochs // 8) / min(steps_per_epoch, freq)
+        if steps_per_epoch > max_steps:
+            stop_steps_ = steps_per_epoch // 4
+            start_steps = int(early_stop*steps_per_epoch) # wait at least X epochs before early stopping
+        else:
+            stop_steps_ = steps_per_epoch * (epochs // 4) / min(steps_per_epoch, freq)
+            start_steps = int(early_stop*epochs*steps_per_epoch) # wait at least X epochs before early stopping
 
         optim_kwargs=dict(
             b1=0.9, b2=0.99,
             eps=1e-9,
-            weight_decay=weight_decay,
+            weight_decay=weight_decay/learning_rate,
         )
         early_stopping = create_early_stopping(start_steps, stop_steps_, metric_name="loss", tol=1e-8)
         early_stop_bool = True if early_stop >= 0 else False 
 
         training_kwargs_uat = dict(
-                    optim="adam",
+                    optim=optimizer,
                     frequency=min(steps_per_epoch, freq),
                     batch_size=batch_size_base2,
                     lr=decay,
@@ -113,13 +123,9 @@ def create_make_model(features, rows, task, key):
                     steps_til_samp=-1
                 )
         if task == "Supervised Classification":
-            # loss_fun = cross_entropy(classes, l2_reg=0, dropout_reg=dropreg)
-            # loss_fun = cross_entropy_conc(classes, l2_reg=msereg, dropout_reg=dropreg)
-            # loss_fun = dual(classes, dropout_reg=dropreg, msereg=msereg)
-            loss_fun = dual2(classes, dropout_reg=0.0, msereg=0.0)
-            # loss_fun = brier(l2_reg=0.0, dropout_reg=1e-7)
+            loss_fun = cross_entropy(classes, l2_reg=l2, dropout_reg=dropreg)
         elif task == "Supervised Regression":
-            loss_fun = mse(l2_reg=0.0, dropout_reg=5e-1)
+            loss_fun = mse(l2_reg=0.0, dropout_reg=dropreg)
         training_kwargs_uat["X_test"] = X_valid
         training_kwargs_uat["y_test"] = y_valid
         model = LSAM(

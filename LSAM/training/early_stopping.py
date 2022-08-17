@@ -15,12 +15,12 @@ def create_early_stopping(step_start, counter_val, metric_name="loss", tol=1e-8)
         if "unstable" not in metrics_store:
             metrics_store["unstable"] = 0
 
-        if test_dict["loss"] > 5 * metrics_store["loss"]:
+        if test_dict["loss"] > 5 * metrics_store["loss"] or test_dict["loss"] > 10.:
             metrics_store["unstable"] += 1
         else:
             metrics_store["unstable"] = 0
 
-        if metrics_store["unstable"] > 10:
+        if metrics_store["unstable"] > 50:
             return True, params_new, metrics_store
     
         if metrics_store["counter"] > counter_val:

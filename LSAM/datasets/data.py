@@ -26,7 +26,10 @@ def get_list(
         min_instances=1000,
         max_instances=100000,
         test=lambda x, m: x > m,
-        include_regression = False
+        include_regression = False,
+        from_suite=True,
+        min_classes=2,
+        minority_class_frac=0.1
         ):
     """ 
         This function returns a complete pandas dataframe of datasets available on OpenML 
@@ -41,22 +44,27 @@ def get_list(
             Pandas Dataframe
 
     """
-    benchmark_suite_reg = openml.study.get_suite('amlb-regression')
-    benchmark_suite_cla = openml.study.get_suite('OpenML-CC18')
-    try:
-        tasklist = pd.read_csv("results/openml/tasklist.csv")
-    except:
+    
+    if from_suite:
+        benchmark_suite_reg = openml.study.get_suite('amlb-regression')
         tasklist = openml.tasks.list_tasks(output_format="dataframe")
         tasklist.to_csv("results/openml/tasklist.csv")
-    reglist = tasklist[tasklist.tid.isin(benchmark_suite_reg.tasks)]
-    clalist = tasklist[tasklist.tid.isin(benchmark_suite_cla.tasks)]
+        reglist = tasklist[tasklist.tid.isin(benchmark_suite_reg.tasks)]
+        benchmark_suite_cla = openml.study.get_suite('OpenML-CC18')
+        clalist = tasklist[tasklist.tid.isin(benchmark_suite_cla.tasks)]
+    else:
+        tasklist = openml.datasets.list_datasets(output_format="dataframe")
+        tasklist.to_csv("results/openml/tasklist.csv")
+        reglist = tasklist[tasklist.NumberOfClasses == 0]
+        clalist = tasklist[tasklist.NumberOfClasses > 1]
+
     # to generate list of datasets with high proportion of missingness
     # datasets = openml.datasets.list_datasets(output_format='dataframe')
 
     # class_tasks = datasets[datasets.NumberOfClasses > 0.0]
     # reg_tasks = datasets[datasets.NumberOfClasses == 0.0]
     # subsets based on missingness
-    class_subset = clalist[test(clalist.NumberOfInstancesWithMissingValues / clalist.NumberOfInstances, missing)]
+    class_subset = clalist[test(clalist.NumberOfInstancesWithMissingValues / clalist.NumberOfInstances, missing) & (clalist.NumberOfClasses >= min_classes)]
     reg_subset = reglist[test(reglist.NumberOfInstancesWithMissingValues / reglist.NumberOfInstances, missing)]
     # most features need to be mainly numerical or symbolic in order to avoid NLP tasks
     # perc = lambda a, b, c: (a+b)/c > 0.8
@@ -68,6 +76,7 @@ def get_list(
         (class_subset.NumberOfFeatures > min_features) & 
         (class_subset.NumberOfInstances < max_instances) & 
         (class_subset.NumberOfInstances > min_instances) &
+        ((class_subset.MinorityClassSize / class_subset.NumberOfInstances) > minority_class_frac) &
         test(class_subset.NumberOfMissingValues, class_subset.NumberOfInstancesWithMissingValues)
         ].drop_duplicates(subset=["name"])
     reg_subset = reg_subset[
@@ -75,6 +84,7 @@ def get_list(
         (reg_subset.NumberOfFeatures > min_features) & 
         (reg_subset.NumberOfInstances < max_instances) & 
         (reg_subset.NumberOfInstances > min_instances) &
+        ((class_subset.MinorityClassSize / class_subset.NumberOfInstances) > minority_class_frac) &
         test(reg_subset.NumberOfMissingValues, reg_subset.NumberOfInstancesWithMissingValues)
         ].drop_duplicates(subset=["name"])
     
@@ -460,16 +470,22 @@ def prepOpenML(did, task):
     ds = openml.datasets.get_dataset(dataset_id=int(did))
     X, y, categorical_indicator, attribute_names = ds.get_data(target = ds.default_target_attribute)
 
+    cont_list = []
     cat_list = []
+    dummify = []
     for cat, name in zip(categorical_indicator, list(X)):
         if cat:
             cat_list.append(name)
             d = X[name].values.astype(str)
             vals = np.unique(d[d != 'nan'])
+            if len(vals) > 2:
+                dummify.append(name)
             vals = list(vals)
             int_enc = [np.nan if j == 'nan' else vals.index(j) for j in d]
             X[name] = int_enc
-    
+        else:
+            cont_list.append(name)
+    # X = pd.get_dummies(X, columns=dummify) 
     # get rid of features that are objects but not in categorical indicator - these are usually unhelpful columns like names etc
     # also filter out variables with >95% missing data as imputation will likely fail here when test sets have all np.nan
     col_list = []
@@ -528,7 +544,8 @@ def openml_ds(
         rng_key=0,
         prop=0.5, # proportion of rows missing when corrupting
         cols_miss=100,
-        corrupt=False
+        corrupt=False,
+        noncorrupt=False
     ):
     """
         Prepare an OpenML dataset with desired missingness and imputation.
@@ -754,9 +771,8 @@ def openml_ds(
         X_valid[:, cont] = scale_train.transform(X_valid[:, cont])
         X_test[:, cont] = scale_train.transform(X_test[:, cont])
         
-
     # perform desired imputation strategy
-    if imputation == "simple" and ((missing is not None and corrupt) or (missing is None and not corrupt)):
+    if imputation == "simple" and ((missing is not None and corrupt) or (missing is None and not corrupt) or noncorrupt):
         X_train, X_valid, X_test = simple(
             X_train,
             dtypes=cat_bin,
@@ -766,7 +782,7 @@ def openml_ds(
             )
     
     key = rng.integers(9999)
-    if imputation == "iterative" and ((missing is not None and corrupt) or (missing is None and not corrupt)):
+    if imputation == "iterative" and ((missing is not None and corrupt) or (missing is None and not corrupt) or noncorrupt):
         X_train, X_valid, X_test = iterative(
             X_train,
             key,
@@ -775,7 +791,7 @@ def openml_ds(
             test=X_test)
     
     key = rng.integers(9999)
-    if imputation == "miceforest" and ((missing is not None and corrupt) or (missing is None and not corrupt)):
+    if imputation == "miceforest" and ((missing is not None and corrupt) or (missing is None and not corrupt) or noncorrupt):
         if test_complete:
             test_input = None
         else:
