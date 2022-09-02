@@ -61,7 +61,7 @@ def create_make_model(features, rows, task, key):
         # this means you cycle over the datasets a similar number of times
         # regardless of dataset size.
         # batch_size_base2 = min(2 ** int(np.round(np.log2(rows/20))), batch_size)
-        batch_sizes = [128]
+        batch_sizes = [64, 128]
         distances = [(np.abs(max_steps - ((rows / b) * 100)), b) for b in batch_sizes]
         batch_size_base2 = min(distances, key=lambda x: x[0])[1]
         # batch_size_base2 = batch_size
@@ -70,8 +70,8 @@ def create_make_model(features, rows, task, key):
         decay = piecewise_constant_schedule(
             learning_rate,
             boundaries_and_scales={
-                int(0.5 * epochs * steps_per_epoch):0.1,
-                int(0.8 * epochs * steps_per_epoch):0.1,
+                int(0.5 * epochs * steps_per_epoch):1.0,
+                int(0.8 * epochs * steps_per_epoch):1.0,
             })
         
         freq = 5
@@ -80,7 +80,7 @@ def create_make_model(features, rows, task, key):
                 d_model=d_model,
                 embed_hidden_size=embedding_size,
                 embed_hidden_layers=embedding_layers,
-                embed_activation=jax.nn.gelu,
+                embed_activation=jax.nn.selu,
                 encoder_layers=encoder_layers,
                 encoder_heads=encoder_heads,
                 enc_activation=jax.nn.gelu,
@@ -89,7 +89,7 @@ def create_make_model(features, rows, task, key):
                 dec_activation=jax.nn.gelu,
                 net_hidden_size=net_size,
                 net_hidden_layers=net_layers,
-                net_activation=jax.nn.gelu,
+                net_activation=jax.nn.selu,
                 last_layer_size=d_model,
                 out_size=classes,
                 W_init = jax.nn.initializers.he_normal(),
@@ -97,16 +97,16 @@ def create_make_model(features, rows, task, key):
                 noise_std = noise_std
                 )
         if steps_per_epoch > max_steps:
-            stop_steps_ = steps_per_epoch // 4
+            stop_steps_ = steps_per_epoch // 6
             start_steps = int(early_stop*steps_per_epoch) # wait at least X epochs before early stopping
         else:
-            stop_steps_ = steps_per_epoch * (epochs // 4) / min(steps_per_epoch, freq)
+            stop_steps_ = steps_per_epoch * (epochs // 6) / min(steps_per_epoch, freq)
             start_steps = int(early_stop*epochs*steps_per_epoch) # wait at least X epochs before early stopping
 
         optim_kwargs=dict(
-            b1=0.9, b2=0.99,
+            b1=0.9, b2=0.999,
             eps=1e-9,
-            weight_decay=weight_decay/learning_rate,
+            weight_decay=weight_decay,
         )
         early_stopping = create_early_stopping(start_steps, stop_steps_, metric_name="loss", tol=1e-8)
         early_stop_bool = True if early_stop >= 0 else False 

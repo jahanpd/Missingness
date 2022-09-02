@@ -560,16 +560,24 @@ def AttentionLayer(
     heads,
     dims,
     dff = None,
+    depth = 1,
     W_init = glorot_uniform(),
     b_init = zeros,
     activation = softplus
     ):
     if dff is None:
         dff = dims * 4
-    init_q, q_map = Dense(dims, dims*heads, W_init=W_init, b_init=b_init)
-    init_k, k_map = Dense(dims, dims*heads, W_init=W_init, b_init=b_init)
-    init_v, v_map = Dense(dims, dims*heads, W_init=W_init, b_init=b_init)
-    init_out, out = Dense(dims*heads, dims, W_init=W_init, b_init=b_init)
+    if depth == 1:
+        init_q, q_map = Dense(dims, dims*heads, W_init=W_init, b_init=b_init)
+        init_k, k_map = Dense(dims, dims*heads, W_init=W_init, b_init=b_init)
+        init_v, v_map = Dense(dims, dims*heads, W_init=W_init, b_init=b_init)
+        init_out, out = Dense(dims*heads, dims, W_init=W_init, b_init=b_init)
+    else:
+        init_q, q_map = NeuralNet(dims, depth, dims*heads, W_init=W_init, b_init=b_init, activation=activation)
+        init_k, k_map = NeuralNet(dims, depth, dims*heads, W_init=W_init, b_init=b_init, activation=activation)
+        init_v, v_map = NeuralNet(dims, depth, dims*heads, W_init=W_init, b_init=b_init, activation=activation)
+        init_out, out = Dense(dims*heads, dims, W_init=W_init, b_init=b_init)
+
     # feedforward network
     init_l1, l1 = Dense(dims, dff, W_init=W_init, b_init=b_init)
     init_l2, l2 = Dense(dff, dims, W_init=W_init, b_init=b_init)
@@ -629,6 +637,7 @@ def AttentionBlock(
         num_layers,
         dims,
         heads,
+        depth=1,
         dff=None,
         W_init = glorot_uniform(),
         b_init = zeros,
@@ -636,7 +645,7 @@ def AttentionBlock(
     ):
     
     init_attn, apply_attn = AttentionLayer(
-        heads, dims, dff=dff, W_init=W_init, b_init=b_init, activation=activation
+        heads, dims, dff=dff, depth=depth, W_init=W_init, b_init=b_init, activation=activation
     )
 
     def init_fun(rng):
@@ -653,12 +662,21 @@ def AttentionBlock(
         for _ in range(num_layers):
             rng, layer_rng = random.split(rng)
             params = init_attn(layer_rng)
-            qw.append(params["q"][0])
-            qb.append(params["q"][1])
-            kw.append(params["k"][0])
-            kb.append(params["k"][1])
-            vw.append(params["v"][0])
-            vb.append(params["v"][1])
+            if depth == 1:
+                qw.append(params["q"][0])
+                qb.append(params["q"][1])
+                kw.append(params["k"][0])
+                kb.append(params["k"][1])
+                vw.append(params["v"][0])
+                vb.append(params["v"][1])
+            else:
+                # TODO add stacking logic for NN
+                qw.append(params["q"][0])
+                qb.append(params["q"][1])
+                kw.append(params["k"][0])
+                kb.append(params["k"][1])
+                vw.append(params["v"][0])
+                vb.append(params["v"][1])
             outw.append(params["out"][0])
             outb.append(params["out"][1])
             l1w.append(params["l1"][0])

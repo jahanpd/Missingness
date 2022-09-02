@@ -610,16 +610,14 @@ def AttentionModel_MAP(
     # temp = 1 / (features - 1)
     init_net1, net1 = NeuralNetGeneral(
         features, 1, embed_hidden_size, d_model, embed_hidden_layers, W_init=W_init, b_init=b_init, activation=embed_activation)
-    init_net2, net2 = NeuralNetGeneral(
-        features, features, embed_hidden_size, d_model, embed_hidden_layers, W_init=W_init, b_init=b_init, activation=embed_activation)
     init_enc, enc = AttentionBlock(
-        encoder_layers, d_model, encoder_heads, W_init=W_init, b_init=b_init, activation=enc_activation)
+        encoder_layers, d_model, encoder_heads, depth=1, W_init=W_init, b_init=b_init, activation=enc_activation)
     init_dec, dec = AttentionBlock(
-        decoder_layers, d_model, decoder_heads, W_init=W_init, b_init=b_init, activation=dec_activation)
+        decoder_layers, d_model, decoder_heads, depth=1, W_init=W_init, b_init=b_init, activation=dec_activation)
     init_net2, net2 = NeuralNet(
         d_model, net_hidden_size, d_model, net_hidden_layers, W_init=W_init, b_init=b_init, activation=net_activation)
     init_ll, last_layer = Dense(d_model, out_size, bias=True, W_init=W_init, b_init=b_init)
-    init_ln1, layernorm1 = LayerNorm()
+    init_ln, layernorm = LayerNorm()
 
     def init_fun(rng):
 
@@ -635,19 +633,22 @@ def AttentionModel_MAP(
         rng, key = random.split(rng)
         params["last_layer"] = init_ll(key)
         rng, key = random.split(rng)
-        params["x_shift"] = W_init(key, (features, d_model))
-        rng, key = random.split(rng)
-        params["x_scale"] = W_init(key, (features, 1))
+        # params["x_shift"] = W_init(key, (features, d_model))
+        # params["x_shift"] = jnp.zeros((outcomes, d_model))
+        params["x_shift"] = random.normal(key, (outcomes, d_model))
         rng, key = random.split(rng)
         params["y"] = W_init(key, (outcomes, d_model))
         rng, key = random.split(rng)
-        params["y_shift"] = W_init(key, (outcomes, d_model))
-        rng, key = random.split(rng)
-        params["y_scale"] = W_init(key, (outcomes, 1))
+        # params["y_shift"] = W_init(key, (outcomes, d_model))
+        # params["y_shift"] = jnp.zeros((outcomes, d_model))
+        params["y_shift"] = random.normal(key, (outcomes, d_model))
         rng, key = random.split(rng)
         params["logits"] = jnp.zeros((1, features))
         rng, key = random.split(rng)
-        params["ln1"] = init_ln1(key, d_model)
+        params["ln1"] = init_ln(key, d_model)
+        rng, key = random.split(rng)
+        params["ln2"] = init_ln(key, d_model)
+
 
         return params
 
@@ -676,8 +677,7 @@ def AttentionModel_MAP(
 
         # apply embedding to input of (features)
         x = inputs[..., None]
-        zk_f = (net2(params["net11"], x) + params["x_shift"]) * jnp.abs(params["x_scale"]) #  (f, ndim)
-        # zk_f =layernorm1(params["ln1"], zk_f)  #  (f, ndim)
+        zk_f = layernorm(params["ln1"], net1(params["net11"], x)) + params["x_shift"] #  (f, ndim)
         rng, key = random.split(rng)
         # if train:
         #     rng, key = random.split(rng)
@@ -696,10 +696,10 @@ def AttentionModel_MAP(
         else:
             # z2 (1, ndim)
             z2, attn = dec(params["dec"], params["y"], enc_output=enc_output, mask=mask)
-            z2 = (z2 + params["y_shift"]) * jnp.abs(params["y_scale"]) 
-            # if train:
-            #     rng, key = random.split(rng)
-            #     z2 = z2 + (random.normal(key, z2.shape)*noise_std)
+            z2 =layernorm(params["ln2"], z2) + params["y_shift"] #  (f, ndim)
+            if train:
+                rng, key = random.split(rng)
+                z2 = z2 + (random.normal(key, z2.shape)*noise_std)
             h = net2(params["net2"], z2)
             logits = last_layer(params["last_layer"], h)
             attn = process_attn(sattn, attn)

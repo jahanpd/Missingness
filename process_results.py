@@ -71,6 +71,7 @@ if args.hps:
         try:
             gbm_hps = gbm_sweep.best_run(order="+gbm_nll.mean").summary
             lsam_hps = lsam_sweep.best_run(order="+lsam_nll.mean").summary
+            print(lsam_sweep.best_run(order="+lsam_nll.mean").config["weight_decay"])
         except Exception as e:
             print(e)
             print(row)

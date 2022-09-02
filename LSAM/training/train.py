@@ -97,11 +97,9 @@ def training_loop(
                 b1=0.9, b2=0.99, eps=1e-8
             )
             weight_decay = 1e-5
-        else:
-            if 'weight_decay' in optim_kwargs:
-                weight_decay = optim_kwargs.pop('weight_decay')
 
         if 'weight_decay' in optim_kwargs:
+            weight_decay = optim_kwargs.pop('weight_decay')
             optobj = combine.chain(
                 transform.scale_by_adam(**optim_kwargs),
                 transform.add_decayed_weights(weight_decay, wd_mask),
@@ -123,10 +121,9 @@ def training_loop(
                 b1=0.9, b2=0.99, eps=1e-8
             )
             weight_decay = 1e-5
-        else:
-            if 'weight_decay' in optim_kwargs:
-                weight_decay = optim_kwargs.pop('weight_decay')
+
         if 'weight_decay' in optim_kwargs:
+            weight_decay = optim_kwargs.pop('weight_decay')
             optobj = combine.chain(
                 transform.scale_by_belief(**optim_kwargs),
                 transform.add_decayed_weights(weight_decay, wd_mask),
@@ -147,11 +144,9 @@ def training_loop(
                 b1=0.9, b2=0.99, eps=1e-8
             )
             weight_decay = 1e-5
-        else:
-            if 'weight_decay' in optim_kwargs:
-                weight_decay = optim_kwargs.pop('weight_decay')
 
         if 'weight_decay' in optim_kwargs:
+            weight_decay = optim_kwargs.pop('weight_decay')
             optobj = combine.chain(
                 transform.scale_by_adam(**optim_kwargs),
                 transform.add_decayed_weights(weight_decay, wd_mask),
@@ -161,6 +156,7 @@ def training_loop(
         else:
              optobj = combine.chain(
                 transform.scale_by_adam(**optim_kwargs),
+                transform.scale_by_trust_ratio(),
                 _scale_by_learning_rate(step_size),
                 )
 
@@ -347,7 +343,7 @@ def training_loop(
         pbar2.close()
         pbar1.update(1)
         elapsed_time = time.time() - start_time
-        if (elapsed_time / 60) > 10:
+        if (elapsed_time / 60) > 5:
             break
 
     elapsed_time = time.time() - start_time

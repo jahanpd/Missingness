@@ -8,6 +8,10 @@ import lightgbm as lgb
 import jax
 import jax.numpy as jnp
 import sys
+import os
+
+ENTITY="cardiac-ml"
+PROJECT="missingness"
 
 devices = jax.local_device_count()
 IN_COLAB = 'google.colab' in sys.modules
@@ -15,6 +19,21 @@ if IN_COLAB:
   from tqdm.notebook import tqdm
 else:
   from tqdm import tqdm
+
+def get_best_sweep_nll(api, model, sweep_id):
+    try:
+        sweep = api.sweep("{}/{}/{}".format(ENTITY, PROJECT, sweep_id))
+        run = sweep.best_run()
+        hist = run.history()
+        summary = run.summary
+        if pd.isna(summary["{}_nll".format(model)]["mean"]):
+            return 99999.99, 0.0
+        else:
+            return summary["{}_nll".format(model)]["mean"], hist["{}_nll".format(model)].std()
+    except Exception as e:
+        print(e)
+        # arbitrary large number
+        return 99999.99, 0.0
 
 def run(
     dataset=61,  # iris
@@ -33,6 +52,7 @@ def run(
     repeats=1,
     cols_miss=0.9,
     perc_missing=0.8,
+    sweep=False,
     wandb=None
     ):
     """
@@ -71,6 +91,13 @@ def run(
     kfolds = oversampled_Kfold(folds, key=int(key), n_repeats=repeats, resample=resample)
     splits = kfolds.split(X, y)
     count = 0
+    api = wandb.Api()
+    lsam_min, lsam_std, gbm_min, gbm_std = 99999.99, 99999.99, 0.0, 0.0
+    if lsam_params is not None and sweep:
+        lsam_min, lsam_std = get_best_sweep_nll(api, "lsam", os.environ["SWEEPIDLSAM"])
+    if gbm_params is not None and sweep:
+        gbm_min, gbm_std = get_best_sweep_nll(api, "gbm", os.environ["SWEEPIDGBM"])
+    print(lsam_min, gbm_min)
 
     for train, test in splits:
         if row_data is not None:
@@ -154,6 +181,7 @@ def run(
                 output = model.predict_proba(X_test, sample=False)
                 # output = model.predict_proba(X_test)
             # calculate performance metrics
+            nll=0.0
             for rm in relevant_metrics:
                 if rm == "accuracy":
                     class_o = np.argmax(output, axis=1)
@@ -170,6 +198,7 @@ def run(
                     metrics[("nll","lsam")].append(nll)
                     if wandb is not None:
                         wandb.log({"lsam_nll":nll})
+                        wandb.log({"lsam_lognll":np.log(nll)})
                     tqdm.write("strategy:{}, nll lsam:{}".format(imputation, nll))
                 if rm == "rmse":
                     rmse = np.sqrt(np.square(output - y_test).mean())
@@ -177,6 +206,11 @@ def run(
                     if wandb is not None:
                         wandb.log({"lsam_rmse":rmse})
                     tqdm.write("strategy:{}, rmse lsam:{}".format(imputation, rmse))
+            
+            if sweep:
+                if nll > lsam_min + 1.5*lsam_std:
+                    print("breaking lsam as nll is {} vs min {} with std {}".format(nll, lsam_min, lsam_std))
+                    break
 
         if gbm_params is not None:
             # turn off verbosity for LGB
@@ -196,13 +230,14 @@ def run(
                 gbm_params, dtrain, num_round, valid_sets=[dvalid],
                 categorical_feature=list(np.argwhere(cat_bin == 1)),
                 callbacks=[
-                    lgb.early_stopping(stopping_rounds=100),
+                    lgb.early_stopping(stopping_rounds=10),
                     lgb.log_evaluation(1000)
                 ]
             )
             output_gbm = bst.predict(X_test)
 
             # calculate performance metrics
+            nll_gbm = 0.0
             for rm in relevant_metrics:
                 if rm == "accuracy":
                     class_x = np.argmax(output_gbm, axis=1)
@@ -219,6 +254,7 @@ def run(
                     metrics[("nll","gbm")].append(nll_gbm)
                     if wandb is not None:
                         wandb.log({"gbm_nll":nll_gbm})
+                        wandb.log({"gbm_lognll":np.log(nll_gbm)})
                     tqdm.write("strategy:{}, nll xbg:{}".format(imputation, nll_gbm))
                 if rm == "rmse":
                     rmse_gbm = np.sqrt(np.square(output_gbm - y_test).mean())
@@ -226,7 +262,10 @@ def run(
                     if wandb is not None:
                         wandb.log({"gbm_rmse":rmse_gbm})
                     tqdm.write("strategy:{}, rmse xbg:{}".format(imputation, rmse_gbm))
-        
+            if sweep:
+                if nll_gbm > gbm_min + 1.5*gbm_std:
+                    print("breaking gbm as nll is {} vs min {} with std {}".format(nll_gbm, gbm_min, gbm_std))
+                    break
     # convert metrics dict to dataframe and determine % change
     # get rid of unused metrics
     dict_keys = list(metrics.keys())

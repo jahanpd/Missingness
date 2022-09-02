@@ -4,7 +4,7 @@ import pandas as pd
 import argparse
 import numpy as np
 
-COUNT=25
+COUNT=40
 ENTITY="cardiac-ml"
 PROJECT="missingness"
 
@@ -23,21 +23,21 @@ sweep_config_lsam = {
     "metric":{"goal":"minimize","name":"placeholder"},
     "parameters":{
         # "d_model":{"max":40,"min":4,"distribution":"int_uniform"},
-        "d_model":{"values":[32, 64],"distribution":"categorical"},
-        "depth":{"max":3,"min":1,"distribution":"int_uniform"},
-        # "embedding_layers":{"max":6,"min":1,"distribution":"int_uniform"},
+        "d_model":{"values":[16, 32, 64],"distribution":"categorical"},
+        "depth":{"max":4,"min":1,"distribution":"int_uniform"},
+        "embedding_layers":{"max":4,"min":1,"distribution":"int_uniform"},
         # "encoder_layers":{"max":6,"min":3,"distribution":"int_uniform"},
         # "decoder_layers":{"max":3,"min":1,"distribution":"int_uniform"},
         # "net_layers":{"max":3,"min":1,"distribution":"int_uniform"},
         # "early_stopping":{"max":0.9,"min":0.0,"distribution":"uniform"},
-        "learning_rate":{"max":0.01,"min":0.00001,"distribution":"log_uniform_values"},
-        # "batch_size":{"values":[128, 256],"distribution":"categorical"},
-        # "noise_std":{"max":0.01,"min":0.0000000001,"distribution":"uniform"},
-        # "drop_reg":{"max":1.0,"min":0.0001,"distribution":"log_uniform_values"},
-        "weight_decay":{"max":0.1,"min":0.000001,"distribution":"log_uniform_values"},
-        # "l2":{"max":10.0,"min":0.000001,"distribution":"log_uniform_values"},
-        # "optimizer":{"values":["adam","adabelief","lamb"],"distribution":"categorical"},
-        # "optimizer":{"values":["lamb"],"distribution":"categorical"},
+        "learning_rate":{"max":0.001,"min":0.0000001,"distribution":"log_uniform_values"},
+        # "batch_size":{"values":[64, 128],"distribution":"categorical"},
+        # "noise_std":{"values":[0.01, 0.0],"distribution":"categorical"},
+        "noise_std":{"max":10.0,"min":0.000001,"distribution":"log_uniform_values"},
+        # "drop_reg":{"max":0.001,"min":0.0000001,"distribution":"log_uniform_values"},
+        # "weight_decay":{"max":100.0,"min":0.0000001,"distribution":"log_uniform_values"},
+        # "l2":{"max":0.001,"min":0.000000001,"distribution":"log_uniform_values"},
+        # "optimizer":{"values":["adam","adabelief"],"distribution":"categorical"},
      },
     "early_terminate":{
         "type": "hyperband",
@@ -52,11 +52,12 @@ sweep_config_lsam = {
         "--dataset",
         "rownumber",
         "--k",
-        "2",
+        "4",
         "--repeats",
-        "2",
+        "1",
         "--notes",
         "hyperparameter search",
+        "--sweep"
     ]
 } 
 
@@ -66,12 +67,12 @@ sweep_config_gbm = {
     "method":"bayes",
     "metric":{"goal":"minimize","name":"placeholder"},
     "parameters":{
-        "num_leaves":{"max":40,"min":5,"distribution":"int_uniform"},
-        "max_bin":{"max":100,"min":10,"distribution":"int_uniform"},
-        "max_depth":{"max":50,"min":4,"distribution":"int_uniform"},
-        "min_data_in_leaf":{"max":100,"min":1,"distribution":"int_uniform"},
-        "lightgbm_learning_rate":{"max":0.1,"min":0.00001,"distribution":"log_uniform_values"},
-        "num_iterations":{"max":1000,"min":100,"distribution":"int_uniform"},
+        "num_leaves":{"max":1000,"min":1,"distribution":"int_uniform"},
+        "max_bin":{"max":1000,"min":100,"distribution":"int_uniform"},
+        # "max_depth":{"max":50,"min":4,"distribution":"int_uniform"},
+        "min_data_in_leaf":{"max":500,"min":1,"distribution":"int_uniform"},
+        "lightgbm_learning_rate":{"max":0.1,"min":0.000001,"distribution":"log_uniform_values"},
+        # "num_iterations":{"max":10000,"min":100,"distribution":"int_uniform"},
         "boosting":{"values":["gbdt", "rf", "dart", "goss"],"distribution":"categorical"},
      },
     "early_terminate":{
@@ -87,11 +88,12 @@ sweep_config_gbm = {
         "--dataset",
         "rownumber",
         "--k",
-        "2",
+        "4",
         "--repeats",
-        "2",
+        "1",
         "--notes",
         "hyperparameter search",
+        "--sweep"
     ]
 } 
 
@@ -130,10 +132,12 @@ def run_hpsearch(datalist, corrupt):
     for i in datasets:
         row = datalist.values[i,:]
         new_lsam = sweep_config_lsam.copy()
+        new_lsam["command"] = sweep_config_lsam["command"].copy()
         new_gbm = sweep_config_gbm.copy()
+        new_gbm["command"] = sweep_config_gbm["command"].copy()
         if row[2] == "Supervised Classification":
-            metric_lsam = "lsam_nll.mean"
-            metric_gbm = "gbm_nll.mean"
+            metric_lsam = "lsam_lognll.mean"
+            metric_gbm = "gbm_lognll.mean"
         elif row[2] == "Supervised Regression":
             metric_lsam = "lsam_rmse.mean"
             metric_gbm = "gbm_rmse.mean"
@@ -163,6 +167,7 @@ def run_hpsearch(datalist, corrupt):
                 sweep_id_gbm = wandb.sweep(new_gbm,entity="cardiac-ml",project="missingness")
             else:
                 sweep_id_gbm = datalist.gbm_sweepid.values[i]
+            os.environ["SWEEPIDGBM"] = sweep_id_gbm
             os.system("wandb agent --count {} cardiac-ml/missingness/{}".format(COUNT - resgbm, sweep_id_gbm))
             datalist.gbm_sweepid.values[i] = sweep_id_gbm
             if corrupt:
@@ -174,6 +179,7 @@ def run_hpsearch(datalist, corrupt):
                 sweep_id_lsam = wandb.sweep(new_lsam,entity="cardiac-ml",project="missingness")
             else:
                 sweep_id_lsam = datalist.lsam_sweepid.values[i]
+            os.environ["SWEEPIDLSAM"] = sweep_id_lsam
             os.system("wandb agent --count {} cardiac-ml/missingness/{}".format(COUNT - reslsam, sweep_id_lsam))
             datalist.lsam_sweepid.values[i] = sweep_id_lsam
             if corrupt:
