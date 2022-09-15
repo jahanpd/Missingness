@@ -1,6 +1,0 @@
-python get_datainfo.py --corrupt --min_classes 2 --min_features 30 --max_features 250  --min_instances 1000 --max_instances 10000 --save
-python get_datainfo.py --min_p_missing 0.05 --not_suite --min_classes 2 --min_features 30 --max_features 250  --min_instances 1000 --maxembedding_layers_instances 10000 --save
-python process_results.py --corrupt --save
-python process_results.py --noncorrupt --save
-python benchmark.py --missing None MCAR MAR MNAR --imputation None simple iterative miceforest --corrupt --seed 31415
-python benchmark.py --missing None --imputation None simple iterative miceforest --seed 92653

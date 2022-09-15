@@ -581,9 +581,10 @@ def openml_ds(
     if missing is None:
         train_complete = True
         test_complete = True
-
+    
     if train_complete and test_complete:
         X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=key)
+        X = X_train
 
     elif train_complete and not test_complete: # TRAIN COMPLETE IS TRUE AND TEST COMPLETE IS FALSE
         X_train, X, y_train, y_valid = train_test_split(X_train, y_train, test_size=split, random_state=key)
@@ -594,31 +595,37 @@ def openml_ds(
     elif not train_complete and not test_complete:
         X = X_train
 
+    assert corrupt if missing is not None else True, "Corrupt flag {} incorrect for missingness".format(corrupt)
     if corrupt:
+        print("Corrupting")
         # drop data proportional to mutual information
-        if task == 'Supervised Regression':
-            mi = mutual_info_regression(
-                X = X_train,
-                y = y_train,
-                discrete_features=np.array(cat_bin)==1
-            )
-        if task == 'Supervised Classification':
-            mi = mutual_info_classif(
-                X = X_train,
-                y = y_train,
-                discrete_features=np.array(cat_bin)==1
-            )
-        sort = np.argsort(mi)
-        unsort = np.argsort(sort)
+        # if task == 'Supervised Regression':
+        #     mi = mutual_info_regression(
+        #         X = X,
+        #         y = y_train,
+        #         discrete_features=np.array(cat_bin)==1
+        #     )
+        # if task == 'Supervised Classification':
+        #     mi = mutual_info_classif(
+        #         X = X,
+        #         y = y_train,
+        #         discrete_features=np.array(cat_bin)==1
+        #     )
+        # sort = np.argsort(mi)
+        # unsort = np.argsort(sort)
         # create missingness mask
         cols = X_train.shape[1]
+        colrange = np.arange(cols)
+        rng.shuffle(colrange)
         if missing == "MCAR":
+            print("with MCAR")
             cols_miss = np.minimum(cols, cols_miss) # clip cols missing 
             rand_arr = rng.uniform(0, 1, X.shape)
             nan_arr = np.where(rand_arr < prop, np.nan, 1.0)
-            X[:, sort[-cols_miss:]] *= nan_arr[:, sort[-cols_miss:]]
+            X[:, colrange[-cols_miss:]] *= nan_arr[:, colrange[-cols_miss:]]
 
-        if missing == "MAR":
+        elif missing == "MAR":
+            print("with MAR")
             p_master = prop
             cols_miss = np.minimum(cols, cols_miss) # clip cols missing
             nan_list = []
@@ -667,10 +674,11 @@ def openml_ds(
 
             nan_arr = np.concatenate(nan_list).reshape(len(nan_list), -1).T
             print("total missing: ", np.sum(np.isnan(nan_arr))/np.size(X))
-            X[:, sort[0:cols_miss-1]] *= nan_arr[:, sort[1:cols_miss]]  # dependency is shifted to the left, therefore MAR
+            X[:, colrange[0:cols_miss-1]] *= nan_arr[:, colrange[1:cols_miss]]  # dependency is shifted to the left, therefore MAR
             print("complete cols: ", np.sum(np.all(~np.isnan(X), axis=0)))
 
-        if missing == "MNAR":
+        elif missing == "MNAR":
+            print("with MNAR")
             p_master = prop
             cols_miss = np.minimum(cols, cols_miss) # clip cols missing
             nan_list = []
@@ -722,9 +730,12 @@ def openml_ds(
 
             nan_arr = np.concatenate(nan_list).reshape(len(nan_list), -1).T
             print("total missing: ", np.sum(np.isnan(nan_arr))/np.size(X))
-            X[:, sort[:cols_miss]] *= nan_arr[:, sort[:cols_miss]]  # dependency is not shifted to the left, therefore MNAR
+            X[:, colrange[:cols_miss]] *= nan_arr[:, colrange[:cols_miss]]  # dependency is not shifted to the left, therefore MNAR
             print("complete cols: ", np.sum(np.all(~np.isnan(X), axis=0)))
-        
+        elif missing is None:
+            pass
+        else:
+            raise NotImplementedError("Missingness not implementing {}".format(missing))
     # generate train, validate, test datasets and impute training 
     key = rng.integers(9999)
     if train_complete and test_complete:
@@ -773,7 +784,7 @@ def openml_ds(
         
     # perform desired imputation strategy
     if imputation == "simple" and ((missing is not None and corrupt) or (missing is None and not corrupt) or noncorrupt):
-        X_train, X_valid, X_test = simple(
+        X_train_out, X_valid_out, X_test_out = simple(
             X_train,
             dtypes=cat_bin,
             valid=X_valid,
@@ -781,31 +792,33 @@ def openml_ds(
             all_cat=all_cat
             )
     
-    key = rng.integers(9999)
-    if imputation == "iterative" and ((missing is not None and corrupt) or (missing is None and not corrupt) or noncorrupt):
-        X_train, X_valid, X_test = iterative(
+    elif imputation == "iterative" and ((missing is not None and corrupt) or (missing is None and not corrupt) or noncorrupt):
+        key = rng.integers(9999)
+        X_train_out, X_valid_out, X_test_out = iterative(
             X_train,
             key,
             dtypes=cat_bin,
             valid=X_valid,
             test=X_test)
     
-    key = rng.integers(9999)
-    if imputation == "miceforest" and ((missing is not None and corrupt) or (missing is None and not corrupt) or noncorrupt):
+    elif imputation == "miceforest" and ((missing is not None and corrupt) or (missing is None and not corrupt) or noncorrupt):
+        key = rng.integers(9999)
         if test_complete:
             test_input = None
         else:
             test_input = X_test
-        X_train, X_valid, test_input = miceforest(
+        X_train_out, X_valid_out, test_input = miceforest(
             X_train,
             int(key),
             dtypes=cat_bin,
             valid=X_valid,
             test=test_input)
         if test_complete:
-            X_test = X_test
+            X_test_out = X_test
         else:
-            X_test = test_input
+            X_test_out = test_input
+    else:
+        X_train_out, X_valid_out, X_test_out = X_train, X_valid, X_test 
 
     if task == "Supervised Regression":
         scaler = StandardScaler()
@@ -813,4 +826,4 @@ def openml_ds(
         y_test = scaler.transform(y_test.reshape((-1,1)))
         y_valid = scaler.transform(y_valid.reshape((-1,1)))
 
-    return X_train, X_test, X_valid, y_train, y_test, y_valid, diagnostics
+    return X_train_out, X_test_out, X_valid_out, y_train, y_test, y_valid, diagnostics

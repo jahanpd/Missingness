@@ -105,10 +105,10 @@ def run(
         key = rng.integers(9999)
 
         X_train, X_test, X_valid, y_train, y_test, y_valid, diagnostics = data.openml_ds(
-                X[train,:],
-                y[train],
-                X[test,:],
-                y[test],
+                X.copy()[train,:],
+                y.copy()[train],
+                X.copy()[test,:],
+                y.copy()[test],
                 task,
                 cat_bin=cat_bin,
                 classes=classes,
@@ -147,21 +147,22 @@ def run(
             ydrop = yarray[row_mask]
             return xdrop, ydrop, 1.0 - (np.sum(row_mask) / len(row_mask))
 
-        X_train_drop, y_train_drop, perc_missing = drop_nans(X_train, y_train)
-        X_test_drop, y_test_drop, _ = drop_nans(X_test, y_test)
-        X_valid_drop, y_valid_drop, _ = drop_nans(X_valid, y_valid)
+        # X_train_drop, y_train_drop, perc_missing = drop_nans(X_train, y_train)
+        # X_test_drop, y_test_drop, _ = drop_nans(X_test, y_test)
+        # X_valid_drop, y_valid_drop, _ = drop_nans(X_valid, y_valid)
 
         print("dataset sizes")
         print(X_train.shape, X_valid.shape, X_test.shape)
-        if (len(y_train_drop) < devices) or (len(y_test_drop) < devices) or (len(y_valid_drop) < devices):
-            print("no rows left in dropped dataset...")
-            empty=True
-        else:
-            print("dropped dataset sizes")
-            print(X_train_drop.shape, X_valid_drop.shape, X_test_drop.shape)
-            empty=False
+        # if (len(y_train_drop) < devices) or (len(y_test_drop) < devices) or (len(y_valid_drop) < devices):
+        #     print("no rows left in dropped dataset...")
+        #     empty=True
+        # else:
+        #     print("dropped dataset sizes")
+        #     print(X_train_drop.shape, X_valid_drop.shape, X_test_drop.shape)
+        #     empty=False
         key = rng.integers(9999)
         print("key: {}, k: {}/{}, dataset: {}, missing: {}, impute: {}".format(key, count, len(splits), dataset, missing, imputation))
+
         # MAKE AND TRAIN lsam
         if lsam_params is not None:
             make_model = create_make_model(X_train.shape[1], X_train.shape[0], task, key)
@@ -208,7 +209,7 @@ def run(
                     tqdm.write("strategy:{}, rmse lsam:{}".format(imputation, rmse))
             
             if sweep:
-                if nll > lsam_min + 1.5*lsam_std:
+                if nll > lsam_min + lsam_std:
                     print("breaking lsam as nll is {} vs min {} with std {}".format(nll, lsam_min, lsam_std))
                     break
 
@@ -263,7 +264,7 @@ def run(
                         wandb.log({"gbm_rmse":rmse_gbm})
                     tqdm.write("strategy:{}, rmse xbg:{}".format(imputation, rmse_gbm))
             if sweep:
-                if nll_gbm > gbm_min + 1.5*gbm_std:
+                if nll_gbm > gbm_min + gbm_std:
                     print("breaking gbm as nll is {} vs min {} with std {}".format(nll_gbm, gbm_min, gbm_std))
                     break
     # convert metrics dict to dataframe and determine % change

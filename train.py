@@ -14,9 +14,9 @@ parser.add_argument("--missing", choices=["None", "MCAR", "MAR", "MNAR"], defaul
                     help="Type of missingness to corrupt the dataset with. Only relevant if corrupt flag is given.")
 parser.add_argument("--imputation", choices=["None", "simple", "iterative", "miceforest"], default="None",
                     help="Whether to impute data and by what mechanism.")
-parser.add_argument("--p_missing_per_col", default=0.5, type=float,
+parser.add_argument("--p_missing_per_col", default=0.4, type=float,
                     help="Percentage of missing data in each column. Only relevant if corrupt flag is given")
-parser.add_argument("--p_cols_missing", default=0.9, type=float,
+parser.add_argument("--p_cols_missing", default=0.4, type=float,
                     help="Percentage of missing colums. Only relevant if corrupt flag is given.")
 parser.add_argument("--min_p_missing", default=0.2, type=float,
                     help="Minimum percentage of missing data in dataset. Only relevant if corrupt flag is ABSENT.")
@@ -28,13 +28,13 @@ parser.add_argument("--model", choices=["LSAM", "LightGBM", "Both"], default="Bo
 parser.add_argument("--d_model", default=42, type=int)
 parser.add_argument("--depth", default=-1, type=int)
 parser.add_argument("--embedding_size", default=32, type=int)
-parser.add_argument("--embedding_layers", default=3, type=int)
-parser.add_argument("--encoder_heads", default=5, type=int)
-parser.add_argument("--encoder_layers", default=4, type=int)
-parser.add_argument("--decoder_heads", default=5, type=int)
-parser.add_argument("--decoder_layers", default=6, type=int)
+parser.add_argument("--embedding_layers", default=2, type=int)
+parser.add_argument("--encoder_heads", default=3, type=int)
+parser.add_argument("--encoder_layers", default=2, type=int)
+parser.add_argument("--decoder_heads", default=3, type=int)
+parser.add_argument("--decoder_layers", default=3, type=int)
 parser.add_argument("--net_size", default=32, type=int)
-parser.add_argument("--net_layers", default=2, type=int)
+parser.add_argument("--net_layers", default=1, type=int)
 
 # LSAM training hyperparameters
 parser.add_argument("--max_steps", default=5e3, type=int)
@@ -44,8 +44,8 @@ parser.add_argument("--batch_size", default=32, type=int)
 parser.add_argument("--noise_std", default=0.0, type=float, help="Injected noise std in the latent space")
 parser.add_argument("--drop_reg", default=1e-5, type=float, help="Dropout regularization")
 parser.add_argument("--weight_decay", default=1e-5, type=float, help="Weight decay")
-parser.add_argument("--l2", default=1.0, type=float, help="Last layer weight regularization")
-parser.add_argument("--optimizer", default="adabelief", choices=["adam", "adabelief", "lamb"])
+parser.add_argument("--l2", default=1e-3, type=float, help="Last layer weight regularization")
+parser.add_argument("--optimizer", default="adam", choices=["adam", "adabelief", "sgd"])
 
 # LightGBM model hyperparameters
 parser.add_argument("--num_leaves", default=31, type=int, help="Must be smaller that max_depth")

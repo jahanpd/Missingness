@@ -43,6 +43,16 @@ def get_sweep(entity, project, sweep_id):
         print(e)
         return "FAILED"
 
+
+def check_run(entity, project, run_name, overwrite):
+    runs = api.runs(
+        path="{}/{}".format(entity,"LSAM"),
+        filters={"config.run_name":"{}".format(run_name)}
+    )
+    print("Benchmark exists with {} runs, will run? {}".format(len(runs), overwrite))
+    return len(runs) == 0 or overwrite
+
+
 for i, row in enumerate(datalist.values):
     print(row)
     gbm_sweep = get_sweep(ENTITY, PROJECT, row[-1])
@@ -88,43 +98,48 @@ for i, row in enumerate(datalist.values):
     for missingness in missingness_list:
         seed = int(rng.integers(1,9999))
         for imputation in imputation_list:
+            if imputation != "None" and missingness == "None" and args.corrupt:
+                print("imputation {} and missingess {} so skipping".format(imputation, missingness))
+                continue
             run_name = "{}-{}-{}-{}".format(row[3],missingness,imputation,args.corrupt)
-            params = parameters.copy()
-            params["run_name"] = run_name
-            params["seed"] = seed
-            params["dataset"] = i
-            params["missing"] = missingness
-            params["imputation"] = imputation
-            command = ("python train.py "
-                "--dataset {dataset} "
-                "--missing {missing} "
-                "--imputation {imputation} "
-                "--seed {seed} "
-                "--run_name {run_name} "
-                "--d_model {d_model} "
-                "--embedding_layers {embedding_layers} "
-                "--encoder_layers {encoder_layers} "
-                "--decoder_layers {decoder_layers} "
-                "--net_layers {net_layers} "
-                "--early_stopping {early_stopping} "
-                "--learning_rate {learning_rate} "
-                "--batch_size {batch_size} "
-                "--noise_std {noise_std} "
-                "--drop_reg {drop_reg} "
-                "--weight_decay {weight_decay} "
-                "--num_leaves {num_leaves} "
-                "--max_bin {max_bin} "
-                "--max_depth {max_depth} "
-                "--min_data_in_leaf {min_data_in_leaf} "
-                "--lightgbm_learning_rate {lightgbm_learning_rate} "
-                "--num_iterations {num_iterations} "
-                "--k 4 "
-                "--repeats 2 "
-            ).format(**params)
-            if args.corrupt:
-                command = command + "--corrupt"
-            print(command)
-            os.system(command)
+            if check_run(ENTITY, PROJECT, run_name, args.overwrite):
+                params = parameters.copy()
+                params["run_name"] = run_name
+                params["seed"] = seed
+                params["dataset"] = i
+                params["missing"] = missingness
+                params["imputation"] = imputation
+                command = ("python train.py "
+                    "--dataset {dataset} "
+                    "--missing {missing} "
+                    "--imputation {imputation} "
+                    "--seed {seed} "
+                    "--run_name {run_name} "
+                    "--d_model {d_model} "
+                    "--embedding_layers {embedding_layers} "
+                    "--encoder_layers {encoder_layers} "
+                    "--decoder_layers {decoder_layers} "
+                    "--net_layers {net_layers} "
+                    "--early_stopping {early_stopping} "
+                    "--optimizer {optimizer} "
+                    "--learning_rate {learning_rate} "
+                    "--batch_size {batch_size} "
+                    "--noise_std {noise_std} "
+                    "--drop_reg {drop_reg} "
+                    "--weight_decay {weight_decay} "
+                    "--num_leaves {num_leaves} "
+                    "--max_bin {max_bin} "
+                    "--max_depth {max_depth} "
+                    "--min_data_in_leaf {min_data_in_leaf} "
+                    "--lightgbm_learning_rate {lightgbm_learning_rate} "
+                    "--num_iterations {num_iterations} "
+                    "--k 4 "
+                    "--repeats 2 "
+                ).format(**params)
+                if args.corrupt:
+                    command = command + "--corrupt"
+                print(command)
+                os.system(command)
 
 # runs = api.runs(
 #     path="{}/{}".format(ENTITY,PROJECT),

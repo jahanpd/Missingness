@@ -61,7 +61,7 @@ def create_make_model(features, rows, task, key):
         # this means you cycle over the datasets a similar number of times
         # regardless of dataset size.
         # batch_size_base2 = min(2 ** int(np.round(np.log2(rows/20))), batch_size)
-        batch_sizes = [64, 128]
+        batch_sizes = [64]
         distances = [(np.abs(max_steps - ((rows / b) * 100)), b) for b in batch_sizes]
         batch_size_base2 = min(distances, key=lambda x: x[0])[1]
         # batch_size_base2 = batch_size
@@ -70,8 +70,8 @@ def create_make_model(features, rows, task, key):
         decay = piecewise_constant_schedule(
             learning_rate,
             boundaries_and_scales={
-                int(0.5 * epochs * steps_per_epoch):1.0,
-                int(0.8 * epochs * steps_per_epoch):1.0,
+                int(0.5 * epochs * steps_per_epoch):0.1,
+                int(0.8 * epochs * steps_per_epoch):0.1,
             })
         
         freq = 5

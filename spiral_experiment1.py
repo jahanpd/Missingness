@@ -177,6 +177,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     run(args.iterations, missing="None")
-    # run(args.iterations, missing="MCAR")
-    # run(args.iterations, missing="MAR")
-    # run(args.iterations, missing="MNAR")

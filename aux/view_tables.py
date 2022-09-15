@@ -93,95 +93,66 @@ print(df.to_latex())
 datasets = pd.read_csv('../results/openml/corrupted_tasklist.csv')
 name_list_full = datasets.name.values
 
-path = '../results/openml/'
-result_files = [f for f in listdir(path) if isfile(join(path, f)) and "," in f]
+cores = pd.read_csv('../results/openml/benchmark_results_corrupt.csv')
+cores.dropna(inplace=True)
+print(cores[cores.dsname=='optdigits'])
 
-def file_filter(filename, dsname, missingness, imputation):
-    splt = filename[:-7].split(",")
-    # print(dsname.lower() == splt[0].lower())
-    #print(missingness.lower() == splt[2].lower())
-    # print(imputation.lower() == splt[3].lower())
-    try:
-        return dsname.lower() == splt[0].lower() and missingness.lower() == splt[2].lower() and imputation.lower() == splt[3].lower()
-    except:
-        return False
-
-def file_filter_name(filename):
-    splt = filename[:-7].split(",")
-    return splt[0]
-
-name_list = set([file_filter_name(n) for n in result_files if 'True' in n])
-print(name_list)
+name_list = set(cores.dsname)
 print("fraction of datasets run: ", len(name_list) / len(name_list_full))
 
 
 def table_maker(metric="accuracy"):
-    keys = itertools.product(["MCAR", "MNAR", "MAR"], ["None", "Simple", "Iterative", "MiceForest"], ["Transformer", "LightGBM"])
+    keys = itertools.product(["MCAR", "MNAR", "MAR"], ["None", "Simple", "Iterative", "Miceforest"], ["LSAM", "LightGBM"])
     process_dict = {
         (" ", " ", "Dataset"):[],
         (" ", " ", "Metric"):[],
-        ("None", "None", "Transformer"):[],
+        ("None", "None", "LSAM"):[],
         ("None", "None", "LightGBM"):[],
     }
     for key in keys:
         process_dict[key] = []
 
-    key_sub = list(itertools.product(["MCAR", "MNAR", "MAR"], ["None", "Simple", "Iterative", "MiceForest"]))
+    key_sub = list(itertools.product(["MCAR", "MNAR", "MAR"], ["None", "Simple", "Iterative", "Miceforest"]))
     for name in name_list:
         process_dict[(" ", " ", "Dataset")].append(name)
-        # get metric information
-        try:
-            s = [f for f in result_files if file_filter(f, name, "None", "None")]
-            path = join('../results/openml/', str(s[0]))
-            ds = pd.read_pickle(path)
-            colnames = list(ds)
-            process_dict[(" ", " ", "Metric")].append(metric)
-        except Exception as e:
-            metric = np.nan
-            process_dict[(" ", " ", "Metric")].append(metric)
+        process_dict[(" ", " ", "Metric")].append(metric)
             
         # get baseline data
-        try:
-            s = [f for f in result_files if file_filter(f, name, "None", "None")]
-            path = join('../results/openml/', str(s[0]))
-            ds = pd.read_pickle(path)
-            baseline_trans = np.nanmean(ds[metric]["attn"].values)
-            baseline_gbm = np.nanmean(ds[metric]["gbm"].values)
-            process_dict[("None", "None", "Transformer")].append(baseline_trans)
-            process_dict[("None", "None", "LightGBM")].append(baseline_gbm)
-        except Exception as e:
-            print(e, name, s, result_files, [f for f in result_files if name in f])
-            process_dict[("None", "None", "Transformer")].append(np.nan)
-            process_dict[("None", "None", "LightGBM")].append(np.nan)
+        if len(cores.loc[(cores.dsname==name) & (cores.missingness=='None') & (cores.imputation=='None')]) > 0:
+            label = 'nll' if metric == 'nll' else 'acc'
+            baseline_lsam = cores.loc[
+                (cores.dsname==name) & (cores.missingness=='None') & (cores.imputation=='None'), 
+                "{}_lsam".format(label)].values[0]
+            baseline_gbm = cores.loc[
+                (cores.dsname==name) & (cores.missingness=='None') & (cores.imputation=='None'), 
+                "{}_gbm".format(label)].values[0]
+        else:
+            baseline_lsam = np.nan
+            baseline_gbm = np.nan
+        process_dict[("None", "None", "LSAM")].append(baseline_lsam)
+        process_dict[("None", "None", "LightGBM")].append(baseline_gbm)
         # get the same as above but for each missingness and imputation pattern
         for key in key_sub:
-            try:
-                s = [f for f in result_files if file_filter(f, name, key[0], key[1])]
-                path = join('../results/openml/', str(s[0]))
-                ds = pd.read_pickle(path)
-                if metric in ["accuracy", "nll"]:
-                    trans = (np.mean(ds[metric]["attn"].values) - baseline_trans) / baseline_trans
-                    process_dict[(key[0], key[1], "Transformer")].append(trans)
-                    gbm = (np.mean(ds[metric]["gbm"].values) - baseline_gbm) / baseline_gbm
-                    process_dict[(key[0], key[1], "LightGBM")].append(gbm)
-                elif metric == "rmse":
-                    trans = (np.mean(ds[metric]["attn"].values) - baseline_trans) / baseline_trans
-                    process_dict[(key[0], key[1], "Transformer")].append(trans)
-                    gbm = (np.mean(ds[metric]["gbm"].values) - baseline_gbm) / baseline_gbm
-                    process_dict[(key[0], key[1], "LightGBM")].append(gbm)
-            except Exception as e:
-                print(e, name, s, [f for f in result_files if name in f])
-                exc_type, exc_obj, exc_tb = sys.exc_info()
-                fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-                print(exc_type, fname, exc_tb.tb_lineno)
-                if metric == "nll":
-                    process_dict[(key[0], key[1], "Transformer")].append(np.inf)
-                    process_dict[(key[0], key[1], "LightGBM")].append(np.inf)
+            imp = key[1] if key[1] == 'None' else key[1].lower()
+            if len(cores.loc[(cores.dsname==name) & (cores.missingness==key[0]) & (cores.imputation==imp)]) > 0:
+                test_lsam = cores.loc[
+                    (cores.dsname==name) & (cores.missingness==key[0]) & (cores.imputation==imp), 
+                    "{}_lsam".format(label)].values[0]
+                test_gbm = cores.loc[
+                    (cores.dsname==name) & (cores.missingness==key[0]) & (cores.imputation==imp), 
+                    "{}_gbm".format(label)].values[0]
+                if metric == 'accuracy':
+                    lsam = (test_lsam - baseline_lsam)
+                    gbm = (test_gbm - baseline_gbm)
                 else:
-                    process_dict[(key[0], key[1], "Transformer")].append(np.nan)
-                    process_dict[(key[0], key[1], "LightGBM")].append(np.nan)
+                    lsam = (baseline_lsam - test_lsam)
+                    gbm = (baseline_gbm - test_gbm)
+            else:
+                lsam = np.nan
+                gbm = np.nan
 
-
+            process_dict[(key[0], key[1], "LightGBM")].append(gbm)
+            process_dict[(key[0], key[1], "LSAM")].append(lsam)
     return process_dict
 
 process_dict = table_maker("accuracy")
@@ -198,10 +169,37 @@ print(final_results["MAR"].to_latex())
 print("MNAR")
 print(final_results["MNAR"].to_latex())
 
-print("win ratio baseline: {}".format(np.sum(final_results["None"]['None']['Transformer'].values > final_results["None"]['None']['LightGBM'].values) / len(final_results['None']['None'])))
-print("win ratio for MNAR: {}".format(np.sum(final_results["MNAR"]['None']['Transformer'].values > final_results["MNAR"]['None']['LightGBM'].values) / len(final_results['MNAR']['None'])))
-print("win ratio for MCAR: {}".format(np.sum(final_results["MCAR"]['None']['Transformer'].values > final_results["MCAR"]['None']['LightGBM'].values) / len(final_results['MCAR']['None'])))
-print("win ratio for MAR: {}".format(np.sum(final_results["MAR"]['None']['Transformer'].values > final_results["MAR"]['None']['LightGBM'].values) / len(final_results['MAR']['None'])))
+print('ACCURACY')
+print("win ratio baseline: {}".format(np.sum(final_results["None"]['None']['LSAM'].values > final_results["None"]['None']['LightGBM'].values) / len(final_results['None']['None'])))
+print("win ratio for MNAR none vs none: {}".format(np.sum(final_results["MNAR"]['None']['LSAM'].values > final_results["MNAR"]['None']['LightGBM'].values) / len(final_results['MNAR']['None'])))
+print("win ratio for MCAR none vs none: {}".format(np.sum(final_results["MCAR"]['None']['LSAM'].values > final_results["MCAR"]['None']['LightGBM'].values) / len(final_results['MCAR']['None'])))
+print("win ratio for MAR none vs none: {}".format(np.sum(final_results["MAR"]['None']['LSAM'].values > final_results["MAR"]['None']['LightGBM'].values) / len(final_results['MAR']['None'])))
+
+print('vs self')
+print("win ratio for MNAR none vs simple: {}".format(np.sum(final_results["MNAR"]['None']['LSAM'].values > final_results["MNAR"]['Simple']['LSAM'].values) / len(final_results['MNAR']['None'])))
+print("win ratio for MCAR none vs simple: {}".format(np.sum(final_results["MCAR"]['None']['LSAM'].values > final_results["MCAR"]['Simple']['LSAM'].values) / len(final_results['MCAR']['None'])))
+print("win ratio for MAR none vs simple: {}".format(np.sum(final_results["MAR"]['None']['LSAM'].values > final_results["MAR"]['Simple']['LSAM'].values) / len(final_results['MAR']['None'])))
+
+print("win ratio for MNAR none vs iterative: {}".format(np.sum(final_results["MNAR"]['None']['LSAM'].values > final_results["MNAR"]['Iterative']['LSAM'].values) / len(final_results['MNAR']['None'])))
+print("win ratio for MCAR none vs iterative: {}".format(np.sum(final_results["MCAR"]['None']['LSAM'].values > final_results["MCAR"]['Iterative']['LSAM'].values) / len(final_results['MCAR']['None'])))
+print("win ratio for MAR none vs iterative: {}".format(np.sum(final_results["MAR"]['None']['LSAM'].values > final_results["MAR"]['Iterative']['LSAM'].values) / len(final_results['MAR']['None'])))
+
+print("win ratio for MNAR none vs mice: {}".format(np.sum(final_results["MNAR"]['None']['LSAM'].values > final_results["MNAR"]['Miceforest']['LSAM'].values) / len(final_results['MNAR']['None'])))
+print("win ratio for MCAR none vs mice: {}".format(np.sum(final_results["MCAR"]['None']['LSAM'].values > final_results["MCAR"]['Miceforest']['LSAM'].values) / len(final_results['MCAR']['None'])))
+print("win ratio for MAR none vs mice: {}".format(np.sum(final_results["MAR"]['None']['LSAM'].values > final_results["MAR"]['Miceforest']['LSAM'].values) / len(final_results['MAR']['None'])))
+
+print('vs gbm')
+print("win ratio for MNAR none vs simple: {}".format(np.sum(final_results["MNAR"]['None']['LSAM'].values > final_results["MNAR"]['Simple']['LightGBM'].values) / len(final_results['MNAR']['None'])))
+print("win ratio for MCAR none vs simple: {}".format(np.sum(final_results["MCAR"]['None']['LSAM'].values > final_results["MCAR"]['Simple']['LightGBM'].values) / len(final_results['MCAR']['None'])))
+print("win ratio for MAR none vs simple: {}".format(np.sum(final_results["MAR"]['None']['LSAM'].values > final_results["MAR"]['Simple']['LightGBM'].values) / len(final_results['MAR']['None'])))
+
+print("win ratio for MNAR none vs iterative: {}".format(np.sum(final_results["MNAR"]['None']['LSAM'].values > final_results["MNAR"]['Iterative']['LightGBM'].values) / len(final_results['MNAR']['None'])))
+print("win ratio for MCAR none vs iterative: {}".format(np.sum(final_results["MCAR"]['None']['LSAM'].values > final_results["MCAR"]['Iterative']['LightGBM'].values) / len(final_results['MCAR']['None'])))
+print("win ratio for MAR none vs iterative: {}".format(np.sum(final_results["MAR"]['None']['LSAM'].values > final_results["MAR"]['Iterative']['LightGBM'].values) / len(final_results['MAR']['None'])))
+
+print("win ratio for MNAR none vs mice: {}".format(np.sum(final_results["MNAR"]['None']['LSAM'].values > final_results["MNAR"]['Miceforest']['LightGBM'].values) / len(final_results['MNAR']['None'])))
+print("win ratio for MCAR none vs mice: {}".format(np.sum(final_results["MCAR"]['None']['LSAM'].values > final_results["MCAR"]['Miceforest']['LightGBM'].values) / len(final_results['MCAR']['None'])))
+print("win ratio for MAR none vs mice: {}".format(np.sum(final_results["MAR"]['None']['LSAM'].values > final_results["MAR"]['Miceforest']['LightGBM'].values) / len(final_results['MAR']['None'])))
 
 process_dict = table_maker("nll")
 final_results = pd.DataFrame(process_dict)
@@ -217,10 +215,34 @@ print("MAR")
 print(final_results["MAR"].to_latex())
 print("MNAR")
 print(final_results["MNAR"].to_latex())
-print("win ratio baseline: {}".format(np.sum(final_results["None"]['None']['Transformer'].values < final_results["None"]['None']['LightGBM'].values) / len(final_results['None']['None'])))
-print("win ratio for MNAR: {}".format(np.sum(final_results["MNAR"]['None']['Transformer'].values < final_results["MNAR"]['None']['LightGBM'].values) / len(final_results['MNAR']['None'])))
-print("win ratio for MCAR: {}".format(np.sum(final_results["MCAR"]['None']['Transformer'].values < final_results["MCAR"]['None']['LightGBM'].values) / len(final_results['MCAR']['None'])))
-print("win ratio for MAR: {}".format(np.sum(final_results["MAR"]['None']['Transformer'].values < final_results["MAR"]['None']['LightGBM'].values) / len(final_results['MAR']['None'])))
+print('NLL')
+print("win ratio baseline: {}".format(np.sum(final_results["None"]['None']['LSAM'].values < final_results["None"]['None']['LightGBM'].values) / len(final_results['None']['None'])))
+print("win ratio for MNAR: {}".format(np.sum(final_results["MNAR"]['None']['LSAM'].values < final_results["MNAR"]['None']['LightGBM'].values) / len(final_results['MNAR']['None'])))
+print("win ratio for MCAR: {}".format(np.sum(final_results["MCAR"]['None']['LSAM'].values < final_results["MCAR"]['None']['LightGBM'].values) / len(final_results['MCAR']['None'])))
+print("win ratio for MAR: {}".format(np.sum(final_results["MAR"]['None']['LSAM'].values < final_results["MAR"]['None']['LightGBM'].values) / len(final_results['MAR']['None'])))
 
 
+print("win ratio for MNAR none vs simple: {}".format(np.sum(final_results["MNAR"]['None']['LSAM'].values > final_results["MNAR"]['Simple']['LSAM'].values) / len(final_results['MNAR']['None'])))
+print("win ratio for MCAR none vs simple: {}".format(np.sum(final_results["MCAR"]['None']['LSAM'].values > final_results["MCAR"]['Simple']['LSAM'].values) / len(final_results['MCAR']['None'])))
+print("win ratio for MAR none vs simple: {}".format(np.sum(final_results["MAR"]['None']['LSAM'].values > final_results["MAR"]['Simple']['LSAM'].values) / len(final_results['MAR']['None'])))
 
+print("win ratio for MNAR none vs iterative: {}".format(np.sum(final_results["MNAR"]['None']['LSAM'].values > final_results["MNAR"]['Iterative']['LSAM'].values) / len(final_results['MNAR']['None'])))
+print("win ratio for MCAR none vs simple: {}".format(np.sum(final_results["MCAR"]['None']['LSAM'].values > final_results["MCAR"]['Iterative']['LSAM'].values) / len(final_results['MCAR']['None'])))
+print("win ratio for MAR none vs simple: {}".format(np.sum(final_results["MAR"]['None']['LSAM'].values > final_results["MAR"]['Iterative']['LSAM'].values) / len(final_results['MAR']['None'])))
+
+print("win ratio for MNAR none vs mice: {}".format(np.sum(final_results["MNAR"]['None']['LSAM'].values > final_results["MNAR"]['Miceforest']['LSAM'].values) / len(final_results['MNAR']['None'])))
+print("win ratio for MCAR none vs mice: {}".format(np.sum(final_results["MCAR"]['None']['LSAM'].values > final_results["MCAR"]['Miceforest']['LSAM'].values) / len(final_results['MCAR']['None'])))
+print("win ratio for MAR none vs mice: {}".format(np.sum(final_results["MAR"]['None']['LSAM'].values > final_results["MAR"]['Miceforest']['LSAM'].values) / len(final_results['MAR']['None'])))
+
+print('vs gbm')
+print("win ratio for MNAR none vs simple: {}".format(np.sum(final_results["MNAR"]['None']['LSAM'].values > final_results["MNAR"]['Simple']['LightGBM'].values) / len(final_results['MNAR']['None'])))
+print("win ratio for MCAR none vs simple: {}".format(np.sum(final_results["MCAR"]['None']['LSAM'].values > final_results["MCAR"]['Simple']['LightGBM'].values) / len(final_results['MCAR']['None'])))
+print("win ratio for MAR none vs simple: {}".format(np.sum(final_results["MAR"]['None']['LSAM'].values > final_results["MAR"]['Simple']['LightGBM'].values) / len(final_results['MAR']['None'])))
+
+print("win ratio for MNAR none vs iterative: {}".format(np.sum(final_results["MNAR"]['None']['LSAM'].values > final_results["MNAR"]['Iterative']['LightGBM'].values) / len(final_results['MNAR']['None'])))
+print("win ratio for MCAR none vs iterative: {}".format(np.sum(final_results["MCAR"]['None']['LSAM'].values > final_results["MCAR"]['Iterative']['LightGBM'].values) / len(final_results['MCAR']['None'])))
+print("win ratio for MAR none vs iterative: {}".format(np.sum(final_results["MAR"]['None']['LSAM'].values > final_results["MAR"]['Iterative']['LightGBM'].values) / len(final_results['MAR']['None'])))
+
+print("win ratio for MNAR none vs mice: {}".format(np.sum(final_results["MNAR"]['None']['LSAM'].values > final_results["MNAR"]['Miceforest']['LightGBM'].values) / len(final_results['MNAR']['None'])))
+print("win ratio for MCAR none vs mice: {}".format(np.sum(final_results["MCAR"]['None']['LSAM'].values > final_results["MCAR"]['Miceforest']['LightGBM'].values) / len(final_results['MCAR']['None'])))
+print("win ratio for MAR none vs mice: {}".format(np.sum(final_results["MAR"]['None']['LSAM'].values > final_results["MAR"]['Miceforest']['LightGBM'].values) / len(final_results['MAR']['None'])))

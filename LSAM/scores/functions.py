@@ -54,7 +54,7 @@ def cross_entropy(
             ce = cross_entropy(probs, one_hot).mean()
             # norm_params = [params[key] for key in params.keys() if key in ["last_layer"]]
             # l2 = l2_norm(norm_params)
-            l2 = jnp.mean(params["x_shift"]**2) + jnp.mean(params["y_shift"]**2)
+            l2 = jnp.mean(params["x_shift"]**2) + jnp.mean(params["y_shift"]**2) + jnp.mean(embed**2)
             entropy = p_drop * jnp.log(p_drop + 1e-7)
             entropy += (1.0 - p_drop) * jnp.log(1.0 - p_drop + 1e-7)
             entropy = entropy.mean()

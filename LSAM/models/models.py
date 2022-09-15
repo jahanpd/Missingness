@@ -678,6 +678,7 @@ def AttentionModel_MAP(
         # apply embedding to input of (features)
         x = inputs[..., None]
         zk_f = layernorm(params["ln1"], net1(params["net11"], x)) + params["x_shift"] #  (f, ndim)
+        # zk_f = net1(params["net11"], x) + params["x_shift"] #  (f, ndim)
         rng, key = random.split(rng)
         # if train:
         #     rng, key = random.split(rng)
@@ -697,16 +698,16 @@ def AttentionModel_MAP(
             # z2 (1, ndim)
             z2, attn = dec(params["dec"], params["y"], enc_output=enc_output, mask=mask)
             z2 =layernorm(params["ln2"], z2) + params["y_shift"] #  (f, ndim)
-            if train:
-                rng, key = random.split(rng)
-                z2 = z2 + (random.normal(key, z2.shape)*noise_std)
+            # if train:
+            #     rng, key = random.split(rng)
+            #     z2 = z2 + (random.normal(key, z2.shape)*noise_std)
             h = net2(params["net2"], z2)
             logits = last_layer(params["last_layer"], h)
             attn = process_attn(sattn, attn)
-            return jnp.squeeze(logits), attn, z2
+            return jnp.squeeze(logits), attn, zk_f, z2
     if unsupervised_pretraining:
         vapply = jax.vmap(apply_fun, in_axes=(None, 0, 0, None, None), out_axes=(0, 0, 0) )
     else:
-        vapply = jax.vmap(apply_fun, in_axes=(None, 0, 0, None, None), out_axes=(0, 0, 0) )
+        vapply = jax.vmap(apply_fun, in_axes=(None, 0, 0, None, None), out_axes=(0, 0, 0, 0) )
 
     return init_fun, vapply

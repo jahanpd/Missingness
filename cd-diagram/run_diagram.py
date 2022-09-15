@@ -60,14 +60,14 @@ else:
 
         print(raw.index)
 
-        for r in list(itertools.product(["Transformer", "LightGBM"], ["None", "Simple", "Iterative", "MiceForest"], raw.index)):
-            name = "LSAM" if r[0] == "Transformer" else "LightGBM"
+        for r in list(itertools.product(["LSAM", "LightGBM"], ["None", "Simple", "Iterative", "Miceforest"], raw.index)):
+            name = "LSAM" if r[0] == "LSAM" else "LightGBM"
             if r[1] == "None":
                 df_perf['classifier_name'].append(name)
             else:
                 df_perf['classifier_name'].append(name + "+" + r[1])
             df_perf['dataset_name'].append(r[2])
-            df_perf['accuracy'].append(-float(raw.loc[r[2]][missingness][r[1]][r[0]]))
+            df_perf['accuracy'].append(float(raw.loc[r[2]][missingness][r[1]][r[0]]))
 
         df_perf = pd.DataFrame(df_perf)
         print(df_perf)
@@ -88,14 +88,14 @@ else:
 
         print(raw.index)
 
-        for r in list(itertools.product(["Transformer"], ["None", "Simple", "Iterative", "MiceForest"], raw.index)):
-            name = "LSAM" if r[0] == "Transformer" else "LightGBM"
+        for r in list(itertools.product(["LSAM"], ["None", "Simple", "Iterative", "Miceforest"], raw.index)):
+            name = "LSAM" if r[0] == "LSAM" else "LightGBM"
             if r[1] == "None":
                 df_perf['classifier_name'].append(name)
             else:
                 df_perf['classifier_name'].append(name + "+" + r[1])
             df_perf['dataset_name'].append(r[2])
-            df_perf['accuracy'].append(-float(raw.loc[r[2]][missingness][r[1]][r[0]]))
+            df_perf['accuracy'].append(float(raw.loc[r[2]][missingness][r[1]][r[0]]))
 
         df_perf = pd.DataFrame(df_perf)
         print(df_perf)
@@ -116,15 +116,15 @@ else:
 
         print(raw.index)
 
-        for r in list(itertools.product(["Transformer", "LightGBM"], ["None", "Simple", "Iterative", "MiceForest"], raw.index)):
-            if (r[0] == "Transformer" and r[1] == "None") or (r[0] == "LightGBM" and r[1] != "None"):
-                name = "LSAM" if r[0] == "Transformer" else "LightGBM"
+        for r in list(itertools.product(["LSAM", "LightGBM"], ["None", "Simple", "Iterative", "Miceforest"], raw.index)):
+            if (r[0] == "LSAM" and r[1] == "None") or (r[0] == "LightGBM" and r[1] != "None"):
+                name = "LSAM" if r[0] == "LSAM" else "LightGBM"
                 if r[1] == "None":
                     df_perf['classifier_name'].append(name)
                 else:
                     df_perf['classifier_name'].append(name + "+" + r[1])
                 df_perf['dataset_name'].append(r[2])
-                df_perf['accuracy'].append(-float(raw.loc[r[2]][missingness][r[1]][r[0]]))
+                df_perf['accuracy'].append(float(raw.loc[r[2]][missingness][r[1]][r[0]]))
 
         df_perf = pd.DataFrame(df_perf)
         print(df_perf)
@@ -145,8 +145,8 @@ else:
 
         print(raw.index)
 
-        for r in list(itertools.product(["Transformer", "LightGBM"], ["None", "Simple", "Iterative", "MiceForest"], raw.index)):
-            name = "LSAM" if r[0] == "Transformer" else "LightGBM"
+        for r in list(itertools.product(["LSAM", "LightGBM"], ["None", "Simple", "Iterative", "Miceforest"], raw.index)):
+            name = "LSAM" if r[0] == "LSAM" else "LightGBM"
             if r[1] == "None":
                 df_perf['classifier_name'].append(name)
             else:

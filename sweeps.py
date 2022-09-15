@@ -4,7 +4,7 @@ import pandas as pd
 import argparse
 import numpy as np
 
-COUNT=40
+COUNT=20
 ENTITY="cardiac-ml"
 PROJECT="missingness"
 
@@ -14,6 +14,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--overwrite", action='store_true')
 parser.add_argument("--ds", type=int, default=-1)
 parser.add_argument("--recover", action='store_true')
+parser.add_argument("--corrupt", action='store_true')
+parser.add_argument("--model", type=str, choices=["lsam","gbm","both"], default="both")
 args = parser.parse_args()
 
 sweep_config_lsam = {
@@ -22,22 +24,22 @@ sweep_config_lsam = {
     "method":"bayes",
     "metric":{"goal":"minimize","name":"placeholder"},
     "parameters":{
-        # "d_model":{"max":40,"min":4,"distribution":"int_uniform"},
-        "d_model":{"values":[16, 32, 64],"distribution":"categorical"},
-        "depth":{"max":4,"min":1,"distribution":"int_uniform"},
-        "embedding_layers":{"max":4,"min":1,"distribution":"int_uniform"},
+        "d_model":{"max":150,"min":4,"distribution":"int_uniform"},
+        # "d_model":{"values":[16, 32, 64],"distribution":"categorical"},
+        # "depth":{"max":4,"min":1,"distribution":"int_uniform"},
+        # "embedding_layers":{"max":4,"min":1,"distribution":"int_uniform"},
         # "encoder_layers":{"max":6,"min":3,"distribution":"int_uniform"},
         # "decoder_layers":{"max":3,"min":1,"distribution":"int_uniform"},
         # "net_layers":{"max":3,"min":1,"distribution":"int_uniform"},
         # "early_stopping":{"max":0.9,"min":0.0,"distribution":"uniform"},
-        "learning_rate":{"max":0.001,"min":0.0000001,"distribution":"log_uniform_values"},
-        # "batch_size":{"values":[64, 128],"distribution":"categorical"},
+        "learning_rate":{"max":0.001,"min":0.00001,"distribution":"log_uniform_values"},
+        # "batch_size":{"values":[32, 64, 128, 256],"distribution":"categorical"},
         # "noise_std":{"values":[0.01, 0.0],"distribution":"categorical"},
-        "noise_std":{"max":10.0,"min":0.000001,"distribution":"log_uniform_values"},
+        # "noise_std":{"max":10.0,"min":0.000001,"distribution":"log_uniform_values"},
         # "drop_reg":{"max":0.001,"min":0.0000001,"distribution":"log_uniform_values"},
-        # "weight_decay":{"max":100.0,"min":0.0000001,"distribution":"log_uniform_values"},
+        "weight_decay":{"max":0.1,"min":0.0000001,"distribution":"log_uniform_values"},
         # "l2":{"max":0.001,"min":0.000000001,"distribution":"log_uniform_values"},
-        # "optimizer":{"values":["adam","adabelief"],"distribution":"categorical"},
+        "optimizer":{"values":["adabelief", "adam", "sgd"],"distribution":"categorical"},
      },
     "early_terminate":{
         "type": "hyperband",
@@ -148,8 +150,12 @@ def run_hpsearch(datalist, corrupt):
         new_gbm["command"] = [str(i) if x == "rownumber" else x for x in new_gbm["command"]]
         if corrupt:
             new_lsam["command"].append("--corrupt")
+            new_lsam["command"].append("--missing")
+            new_lsam["command"].append("None")
             new_lsam["command"].append("${args}")
             new_gbm["command"].append("--corrupt")
+            new_gbm["command"].append("--missing")
+            new_gbm["command"].append("None")
             new_gbm["command"].append("${args}")
         else:
             new_lsam["command"].append("${args}")
@@ -161,8 +167,9 @@ def run_hpsearch(datalist, corrupt):
 
         datalist.lsam_sweepid.values[i], reslsam = check_sweep(ENTITY, PROJECT, datalist.lsam_sweepid.values[i])
         datalist.gbm_sweepid.values[i], resgbm = check_sweep(ENTITY, PROJECT, datalist.gbm_sweepid.values[i])
-
-        if (datalist.gbm_sweepid.values[i]=="placeholder") or resgbm < COUNT:
+        
+        run_gbm = True if args.model == "both" or args.model == "gbm" else False
+        if ((datalist.gbm_sweepid.values[i]=="placeholder") or resgbm < COUNT) and run_gbm:
             if datalist.gbm_sweepid.values[i]=="placeholder":
                 sweep_id_gbm = wandb.sweep(new_gbm,entity="cardiac-ml",project="missingness")
             else:
@@ -174,7 +181,9 @@ def run_hpsearch(datalist, corrupt):
                 datalist.to_csv(corrupted_path, index=False)
             else:
                 datalist.to_csv(noncorrupted_path, index=False)
-        if (datalist.lsam_sweepid.values[i]=="placeholder") or reslsam < COUNT:
+
+        run_lsam = True if args.model == "both" or args.model == "lsam" else False
+        if ((datalist.lsam_sweepid.values[i]=="placeholder") or reslsam < COUNT) and run_lsam:
             if datalist.lsam_sweepid.values[i]=="placeholder":
                 sweep_id_lsam = wandb.sweep(new_lsam,entity="cardiac-ml",project="missingness")
             else:
@@ -195,8 +204,10 @@ def recover_filt(sweep, model, dsname):
     return m and n
 
 if not args.recover:
-    run_hpsearch(datalist_noncorrupted, False)
-    run_hpsearch(datalist_corrupted, True)
+    if args.corrupt:
+        run_hpsearch(datalist_corrupted, True)
+    else:
+        run_hpsearch(datalist_noncorrupted, False)
 else:
     project = api.project(PROJECT, entity=ENTITY)
     sweeps = project.sweeps()
