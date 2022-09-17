@@ -16,13 +16,12 @@ We show that the distance in the latent space between an informative variable an
 Additionally, we show that the feature importance as defined in the concrete dropout layer decreases as missingness increases.
 
 ### OpenML Benchmarking
-We benchmark the performance of this approach using OpenML Benchmarking datasets with complete datasets and the same datasets that are corrupted with three types of missingness pattern (MCAR, MAR and MNAR).
+We benchmark the performance of this approach using OpenML Benchmarking in two ways.
+Firstly we test performance on datasets with complete data and the same datasets that are corrupted with three types of missingness pattern (MCAR, MAR and MNAR).
+Secondly we test performance on datasets with incomplete data and unknown missingness pattern.
 As a comparison, we use the popular and highly performing Light-GBM that handles missingness out-of-the-box.
 We also compare the out-of-the-box missingness handling of these algorithms against an impute and regress strategy.
 Imputation strategies tested include simple imputation, multivariate imputation, and multiple imputation with random forests.
-
-### ANZSCTS Database
-We test the performance of our approach on a real world dataset with heterogenous missingness patterns.
 
 ## Requirements
 Please install a version of [Jax](https://github.com/google/jax) appropriate for your system (eg. GPU enabled), then install the requirements in the requirements.txt file.
