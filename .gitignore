@@ -2,3 +2,4 @@ venv
 .vim
 .ipynb_checkpoints
 __pycache__
+wandb
