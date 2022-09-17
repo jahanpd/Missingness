@@ -4,7 +4,7 @@ import pandas as pd
 import jax.numpy as jnp
 import jax
 from jax import random
-# from LSAM.models.models import EnsembleModel
+from LSAM.models.models import EnsembleModel
 # from LSAM.models.models import AttentionModel as Model
 from LSAM.models.models import AttentionModel_MAP as Model
 # from LSAM.models.models import AttentionModel2 as Model
@@ -208,7 +208,7 @@ class LSAM:
             X_nan = X.copy()
             X_nan[:, list(nan_set)] = np.nan
             rng_placeholder = random.split(self.key, X_nan.shape[0])
-            out = self.apply_fun(self.params, X_nan, rng_placeholder, False)
+            out = self.apply_fun(self.params, X_nan, rng_placeholder, False, False)
             z = out[-1]  # (batch, 1, dims)
             latent_spaces.append(z)
 
@@ -327,7 +327,7 @@ class Ensemble:
 
     def distances(self, X, y):
         rng_placeholder = random.split(self.key, X.shape[0])
-        out = self.apply_fun(self.params, X, rng_placeholder, False)
+        out = self.apply_fun(self.params, X, rng_placeholder, False, False)
         z = out[1]  # (batch,feat,dim)
         z = z[y == 1, ...]
         distances = []

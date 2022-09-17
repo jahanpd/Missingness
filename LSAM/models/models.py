@@ -60,7 +60,7 @@ def EnsembleModel(
 
         return params
     
-    def apply_fun(params, X, placeholder1, placeholder2):
+    def apply_fun(params, X, placeholder1, placeholder2, placeholder3):
         """ Takes a list of datasets U (derived from X) of length 2^D - 1 
             where D is the number of variables in original dataset X """ 
 
@@ -86,7 +86,7 @@ def EnsembleModel(
         return logits, latent_space, nan_mask
 
 
-    vapply = jax.vmap(apply_fun, in_axes=(None, 0, None, None), out_axes=(0, 0, 0))
+    vapply = jax.vmap(apply_fun, in_axes=(None, 0, None, None, None), out_axes=(0, 0, 0))
 
     return init_fun, vapply, cols
 

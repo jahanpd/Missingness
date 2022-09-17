@@ -1,4 +1,4 @@
-import numpy as np
+import copy
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 
@@ -32,17 +32,17 @@ print(list(corrupt))
 # prep dict to store analysis
 store_corrupted = {
     ("", "Dataset Characteristic"):ccols,
-    ("Overall - LightGBM vs LSAM", "Accuracy"):[],
-    ("Overall - LightGBM vs LSAM", "NLL"):[],
-    ("LSAM - Simple Imputation vs None", "Accuracy"):[],
-    ("LSAM - Simple Imputation vs None", "NLL"):[],
-    ("LSAM - Iterative Imputation vs None", "Accuracy"):[],
-    ("LSAM - Iterative Imputation vs None", "NLL"):[],
-    ("LSAM - Miceforest Imputation vs None", "Accuracy"):[],
-    ("LSAM - Miceforest Imputation vs None", "NLL"):[],
+    ("Overall: LightGBM vs LSAM", "Accuracy"):[],
+    ("Overall: LightGBM vs LSAM", "NLL"):[],
+    ("LSAM: Simple vs None", "Accuracy"):[],
+    ("LSAM: Simple vs None", "NLL"):[],
+    ("LSAM: Iterative vs None", "Accuracy"):[],
+    ("LSAM: Iterative vs None", "NLL"):[],
+    ("LSAM: Miceforest vs None", "Accuracy"):[],
+    ("LSAM: Miceforest vs None", "NLL"):[],
 }
 
-store_noncorrupted = store_corrupted.copy()
+store_noncorrupted = copy.deepcopy(store_corrupted)
 store_noncorrupted[("", "Dataset Characteristic")] = ncols
 
 # define feature importance function
@@ -51,98 +51,101 @@ def feature_importance(X, y, names):
     rf.fit(X, y.flatten())
     return sorted(list(zip(rf.feature_importances_,names)), key=lambda x: x[0], reverse=True)
 
+def add_to_dict(sdict, slist, idx):
+    keys = list(sdict.keys())
+    for char in sdict[keys[0]]:
+        for i, (fi, name) in enumerate(slist):
+            if name == char:
+                sdict[keys[idx]].append(fi)
+        
 # LightGBM vs LSAM
 ## corrupted data
 ### NLL
 X = corrupt[ccols]
 y = (corrupt.nll_lsam < corrupt.nll_gbm).astype(float)
 fi = feature_importance(X.values, y.values, list(X))
-print('NLL')
-print(fi)
+add_to_dict(store_corrupted, fi, 2)
 X = corrupt[ccols]
 y = (corrupt.acc_lsam > corrupt.acc_gbm).astype(float)
 fi = feature_importance(X.values, y.values, list(X))
-print('Accuracy')
-print(fi)
+add_to_dict(store_corrupted, fi, 1)
 
 ## noncorrupted data
 X = noncorrupt[ncols]
 y = (noncorrupt.nll_lsam < noncorrupt.nll_gbm).astype(float)
 fi = feature_importance(X.values, y.values, list(X))
-print('NLL')
-print(fi)
+add_to_dict(store_noncorrupted, fi, 2)
 X = noncorrupt[ncols]
 y = (noncorrupt.acc_lsam > noncorrupt.acc_gbm).astype(float)
 fi = feature_importance(X.values, y.values, list(X))
-print('Accuracy')
-print(fi)
+add_to_dict(store_noncorrupted, fi, 1)
+
+# function to deal with repeated pattern
+def get_fi_lsam(ds, imp):
+    if "missingness_None" in list(ds):
+        t = ds.loc[
+            (ds.imputation == imp) &
+            (ds.missingness_None == 0)
+            ]
+        n = ds.loc[
+            (ds.imputation == 'None') &
+            (ds.missingness_None == 0)
+            ]
+        X = t[ccols]
+    else:
+        t = ds.loc[
+            (ds.imputation == imp) 
+            ]
+        n = ds.loc[
+            (ds.imputation == 'None')
+            ]
+        X = t[ncols]
+
+    y = (n.acc_lsam.values > t.acc_lsam.values).astype(float)
+    fi_acc = feature_importance(X.values, y, list(X))
+    y = (n.nll_lsam.values < t.nll_lsam.values).astype(float)
+    fi_nll = feature_importance(X.values, y, list(X))
+    return fi_acc, fi_nll
 
 # LSAM None vs Simple
 ## corrupted data
-t = corrupt.loc[
+fi_acc, fi_nll = get_fi_lsam(corrupt, "simple")
+add_to_dict(store_corrupted, fi_acc, 3)
+add_to_dict(store_corrupted, fi_nll, 4)
 
-    (corrupt.imputation == 'simple') &
-    (corrupt.missingness_None == 0)
-    ]
-n = corrupt.loc[
-
-    (corrupt.imputation == 'None') &
-    (corrupt.missingness_None == 0)
-    ]
-X = t[ccols]
-y = (n.acc_lsam.values > t.acc_lsam.values).astype(float)
-fi = feature_importance(X.values, y, list(X))
-print('Accuracy')
-print(fi)
-y = (n.nll_lsam.values < t.nll_lsam.values).astype(float)
-fi = feature_importance(X.values, y, list(X))
-print('NLL')
-print(fi)
 ## noncorrupted data
-t = noncorrupt.loc[
-
-    (noncorrupt.imputation == 'simple') 
-    ]
-n = noncorrupt.loc[
-
-    (noncorrupt.imputation == 'None') 
-    ]
-X = t[ncols]
-y = (n.acc_lsam.values > t.acc_lsam.values).astype(float)
-fi = feature_importance(X.values, y, list(X))
-print('Accuracy')
-print(fi)
-y = (n.nll_lsam.values < t.nll_lsam.values).astype(float)
-fi = feature_importance(X.values, y, list(X))
-print('NLL')
-print(fi)
-
+fi_acc, fi_nll = get_fi_lsam(noncorrupt, "simple")
+add_to_dict(store_noncorrupted, fi_acc, 3)
+add_to_dict(store_noncorrupted, fi_nll, 4)
 
 # LSAM None vs Iterative
 ## corrupted data
+fi_acc, fi_nll = get_fi_lsam(corrupt, "iterative")
+add_to_dict(store_corrupted, fi_acc, 5)
+add_to_dict(store_corrupted, fi_nll, 6)
 
 ## noncorrupted data
+fi_acc, fi_nll = get_fi_lsam(noncorrupt, "iterative")
+add_to_dict(store_noncorrupted, fi_acc, 5)
+add_to_dict(store_noncorrupted, fi_nll, 6)
 
 # LSAM None vs Miceforest
 ## corrupted data
+fi_acc, fi_nll = get_fi_lsam(corrupt, "miceforest")
+add_to_dict(store_corrupted, fi_acc, 7)
+add_to_dict(store_corrupted, fi_nll, 8)
 
 ## noncorrupted data
+fi_acc, fi_nll = get_fi_lsam(noncorrupt, "miceforest")
+add_to_dict(store_noncorrupted, fi_acc, 7)
+add_to_dict(store_noncorrupted, fi_nll, 8)
 
+nondf = pd.DataFrame(store_noncorrupted)
+snon = nondf.style.hide().format(precision=2).highlight_max(axis=0, props="textbf:--rwrap;")
+print(nondf)
+print(snon.to_latex())
 
-
-predictors = ["NumberOfFeatures", "NumberOfInstances", "NumberOfClasses", "NumberOfNumericFeatures", "NumberOfSymbolicFeatures", ]
-outcomes = ["winner_lsam_acc", "winner_lsam_nll"]
-df_hps=pd.DataFrame(store_results)
-print(df_hps)
-X=df_hps[predictors]
-y=df_hps[outcomes]
-X["NumericRatio"]=X.NumberOfNumericFeatures.values / X.NumberOfFeatures.values
-X["FeatureInstanceRatio"]=X.NumberOfFeatures.values / X.NumberOfInstances.values
-rf_acc = RandomForestClassifier()
-rf_acc.fit(X.values, y.winner_lsam_acc.values)
-acc_feat_importance = sorted(list(zip(rf_acc.feature_importances_,list(X))), key=lambda x: x[0])
-rf_nll = RandomForestClassifier()
-rf_nll.fit(X.values, y.winner_lsam_nll.values)
-nll_feat_importance = sorted(list(zip(rf_nll.feature_importances_,list(X))),key=lambda x: x[0])
-print(acc_feat_importance)
-print(nll_feat_importance)
+corrdf = pd.DataFrame(store_corrupted)
+cnon = corrdf.style.hide().format(precision=2).highlight_max(axis=0, props="textbf:--rwrap;")
+print(corrdf)
+print(cnon.to_latex())

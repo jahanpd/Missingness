@@ -4,21 +4,21 @@ import jax
 from jax.example_libraries.optimizers import l2_norm
 
 def binary_cross_entropy(
-    l2_reg=1e-2,
+    l2_reg=1e-3,
     dropout_reg=1e-4
     ):
     def loss_fun(params, output, labels):
             logits = output[0]
+            embed = output[2]
             probs = jax.nn.sigmoid(logits)
             p_drop = jax.nn.sigmoid(params["logits"])
             @jax.vmap
             def binary_cross_entropy(probs, labels):
                 return -(labels * jnp.log(probs + 1e-7) 
-                        + (1-labels) * jnp.log(1 - probs + 1e-7))
+                        + (1-labels) * jnp.log(1 - probs + 1e-7)).sum()
 
             bce = binary_cross_entropy(probs, labels).mean()
-            norm_params = [params[key] for key in params.keys() if key not in ["logits"]] 
-            l2 = l2_norm(norm_params)
+            l2 = jnp.mean(params["x_shift"]**2) + jnp.mean(params["y_shift"]**2) + jnp.mean(embed**2)
             entropy = p_drop * jnp.log(p_drop + 1e-7)
             entropy += (1.0 - p_drop) * jnp.log(1.0 - p_drop + 1e-7)
             entropy = entropy.mean()
@@ -35,13 +35,12 @@ def binary_cross_entropy(
 
 def cross_entropy(
     classes,
-    l2_reg=1e-2,
+    l2_reg=1e-3,
     dropout_reg=1e-4
     ):
     def loss_fun(params, output, labels):
             logits = output[0]
             embed = output[2]
-            latent = output[-1]
             one_hot = jax.nn.one_hot(labels, classes)
             probs = jax.nn.softmax(logits)
             # probs = jnp.mean(jax.nn.sigmoid(jnp.stack(logits, axis=0)), axis=0)

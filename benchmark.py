@@ -49,7 +49,7 @@ def check_run(entity, project, run_name, overwrite):
         path="{}/{}".format(entity,"LSAM"),
         filters={"config.run_name":"{}".format(run_name)}
     )
-    print("Benchmark exists with {} runs, will run? {}".format(len(runs), overwrite))
+    print("Benchmark exists with {} runs for {}, will run? {}".format(len(runs), run_name, overwrite))
     return len(runs) == 0 or overwrite
 
 
@@ -102,7 +102,7 @@ for i, row in enumerate(datalist.values):
                 print("imputation {} and missingess {} so skipping".format(imputation, missingness))
                 continue
             run_name = "{}-{}-{}-{}".format(row[3],missingness,imputation,args.corrupt)
-            if check_run(ENTITY, PROJECT, run_name, args.overwrite):
+            if check_run(ENTITY, "LSAM", run_name, args.overwrite):
                 params = parameters.copy()
                 params["run_name"] = run_name
                 params["seed"] = seed

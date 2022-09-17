@@ -2,7 +2,7 @@
 
 # Ensure in environment with requirements.txt installed before running
 # SYNTHETIC EXPERIMENTS
-repeats=10
+repeats=30
 
 python spiral_experiment1.py $repeats
 python spiral_experiment2.py $repeats

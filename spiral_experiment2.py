@@ -50,7 +50,7 @@ def run(iterations, missing="None", epochs=10):
         optim="adam",
     )
 
-    loss_fun = binary_cross_entropy(l2_reg=1e-3, dropout_reg=1e-8)
+    loss_fun = binary_cross_entropy(l2_reg=1e-8, dropout_reg=1e-8)
     
     # create data, initialize models, train and record distances bootstraps
     d1_uat, d2_uat = [], []
