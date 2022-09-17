@@ -1,4 +1,4 @@
-# Dealing with missing data through attention and latent space regularization
+# Dealing with missing data using attention and latent space regularization
 
 A principled strategy for training and performing inference on observed data only, without imputation or dropping rows. 
 
