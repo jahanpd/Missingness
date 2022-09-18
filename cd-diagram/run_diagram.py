@@ -17,12 +17,20 @@ if not args.corrupt:
             'accuracy':[]
         }
     for i, dsname in enumerate(raw.dsname.values):
-        df_perf["classifier_name"].append("LSAM ({})".format(raw.loc[i, "imputation"]))
-        df_perf["dataset_name"].append(dsname)
-        df_perf["accuracy"].append(raw.loc[i,"acc_lsam"])
-        df_perf["classifier_name"].append("LightGBM ({})".format(raw.loc[i, "imputation"]))
-        df_perf["dataset_name"].append(dsname)
-        df_perf["accuracy"].append(raw.loc[i,"acc_gbm"])
+        if raw.loc[i, "imputation"] == "None":
+            df_perf["classifier_name"].append("LSAM")
+            df_perf["dataset_name"].append(dsname)
+            df_perf["accuracy"].append(raw.loc[i,"acc_lsam"])
+            df_perf["classifier_name"].append("LightGBM")
+            df_perf["dataset_name"].append(dsname)
+            df_perf["accuracy"].append(raw.loc[i,"acc_gbm"])
+        else:
+            df_perf["classifier_name"].append("LSAM" + "+" + raw.loc[i, "imputation"])
+            df_perf["dataset_name"].append(dsname)
+            df_perf["accuracy"].append(raw.loc[i,"acc_lsam"])
+            df_perf["classifier_name"].append("LightGBM" + "+" + raw.loc[i, "imputation"])
+            df_perf["dataset_name"].append(dsname)
+            df_perf["accuracy"].append(raw.loc[i,"acc_gbm"])
 
     df_perf = pd.DataFrame(df_perf)
     print(df_perf)
@@ -35,12 +43,20 @@ if not args.corrupt:
             'accuracy':[]
         }
     for i, dsname in enumerate(raw.dsname.values):
-        df_perf["classifier_name"].append("LSAM ({})".format(raw.loc[i, "imputation"]))
-        df_perf["dataset_name"].append(dsname)
-        df_perf["accuracy"].append(-raw.loc[i,"nll_lsam"])
-        df_perf["classifier_name"].append("LightGBM ({})".format(raw.loc[i, "imputation"]))
-        df_perf["dataset_name"].append(dsname)
-        df_perf["accuracy"].append(-raw.loc[i,"nll_gbm"])
+        if raw.loc[i, "imputation"] == "None":
+            df_perf["classifier_name"].append("LSAM")
+            df_perf["dataset_name"].append(dsname)
+            df_perf["accuracy"].append(-raw.loc[i,"nll_lsam"])
+            df_perf["classifier_name"].append("LightGBM")
+            df_perf["dataset_name"].append(dsname)
+            df_perf["accuracy"].append(-raw.loc[i,"nll_gbm"])
+        else:
+            df_perf["classifier_name"].append("LSAM" + "+" + raw.loc[i, "imputation"])
+            df_perf["dataset_name"].append(dsname)
+            df_perf["accuracy"].append(-raw.loc[i,"nll_lsam"])
+            df_perf["classifier_name"].append("LightGBM" + "+" + raw.loc[i, "imputation"])
+            df_perf["dataset_name"].append(dsname)
+            df_perf["accuracy"].append(-raw.loc[i,"nll_gbm"])
 
     df_perf = pd.DataFrame(df_perf)
     print(df_perf)

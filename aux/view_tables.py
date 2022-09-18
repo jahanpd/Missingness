@@ -223,19 +223,19 @@ final_results.to_pickle('../results/openml/openml_nll.pickle')
 final_results.fillna(np.inf, inplace=True)
 print("None")
 sub = final_results["None"] 
-s = sub.style.format(precision=2).highlight_min(axis=1, props="textbf:--rwrap;")
+s = sub.style.format(precision=2).highlight_max(axis=1, props="textbf:--rwrap;")
 print(s.to_latex())
 print("MCAR")
 sub = final_results["MCAR"] 
-s = sub.style.format(precision=2).highlight_min(axis=1, props="textbf:--rwrap;")
+s = sub.style.format(precision=2).highlight_max(axis=1, props="textbf:--rwrap;")
 print(s.to_latex())
 print("MAR")
 sub = final_results["MAR"] 
-s = sub.style.format(precision=2).highlight_min(axis=1, props="textbf:--rwrap;")
+s = sub.style.format(precision=2).highlight_max(axis=1, props="textbf:--rwrap;")
 print(s.to_latex())
 print("MNAR")
 sub = final_results["MNAR"] 
-s = sub.style.format(precision=2).highlight_min(axis=1, props="textbf:--rwrap;")
+s = sub.style.format(precision=2).highlight_max(axis=1, props="textbf:--rwrap;")
 print(s.to_latex())
 print('NLL')
 print("win ratio baseline: {}".format(np.sum(final_results["None"]['None']['LSAM'].values < final_results["None"]['None']['LightGBM'].values) / len(final_results['None']['None'])))
@@ -318,4 +318,12 @@ sub.fillna(np.inf, inplace=True)
 s = sub.style.format(precision=2).highlight_min(axis=1, props="textbf:--rwrap;")
 print(s.to_latex())
 
-
+process_dict = table_maker2("accuracy")
+final_results = pd.DataFrame(process_dict)
+datasets = final_results[" "][" "]["Dataset"].values
+final_results.index = datasets
+final_results.to_pickle('../results/openml/openml_nll_uncorrupted.pickle')
+sub = final_results["None"] 
+sub.fillna(np.inf, inplace=True)
+s = sub.style.format(precision=2).highlight_min(axis=1, props="textbf:--rwrap;")
+print(s.to_latex())
