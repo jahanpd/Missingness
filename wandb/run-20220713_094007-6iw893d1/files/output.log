@@ -1,8 +1,0 @@
-name: Supervised Regression, features: colleges
-{'X_train': {'cols': 0.3376853262385479, 'rows': 1.0}, 'X_valid': {'cols': 0.3253859348198971, 'rows': 1.0}, 'X_test': {'cols': 0.3361345619273139, 'rows': 1.0}}
-dataset sizes
-(4237, 44) (1060, 44) (1766, 44)
-no rows left in dropped dataset...
-key: 3077, k: 1/4, dataset: 42727, missing: None, impute: None
-{'d_model': 88, 'embedding_size': 88, 'embedding_layers': 2, 'encoder_heads': 5, 'encoder_layers': 12, 'decoder_heads': 3, 'decoder_layers': 1, 'net_size': 88, 'net_layers': 1, 'max_steps': 2885, 'learning_rate': 0.0008375865662533179, 'batch_size': 32, 'early_stop': 0.15065580846773252, 'noise_std': 2.5253944151206364}
-MAP

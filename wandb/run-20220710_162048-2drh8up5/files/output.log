@@ -1,8 +1,0 @@
-Traceback (most recent call last):
-  File "/home/jahan/Missingness/train.py", line 107, in <module>
-    "max_steps":config.epochs,
-  File "/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/wandb/sdk/wandb_config.py", line 160, in __getattr__
-    return self.__getitem__(key)
-  File "/home/jahan/.conda/envs/jax/lib/python3.10/site-packages/wandb/sdk/wandb_config.py", line 128, in __getitem__
-    return self._items[key]
-KeyError: 'epochs'
