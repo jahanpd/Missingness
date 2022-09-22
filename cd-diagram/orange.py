@@ -100,43 +100,11 @@ def wilcoxon_holm(alpha=0.05, df_perf=None):
 
 def draw_cd_diagram(df_perf, title="Accuracy", labels=True, savename=None):
     p_values, average_ranks, max_nb_datasets = wilcoxon_holm(alpha=0.05, df_perf=df_perf)
-    print("ranks", average_ranks.values)
-    print("ranks", list(average_ranks.index))
-    print("pvalues",p_values)
-    print("maxnb", max_nb_datasets)
-    cd = Orange.evaluation.compute_CD(average_ranks.values, len(df_perf)) #tested on 30 datasets
+    cd = Orange.evaluation.compute_CD(average_ranks.values, len(df_perf), alpha="0.05", test="nemenyi") #tested on 30 datasets
     Orange.evaluation.graph_ranks(average_ranks.values, average_ranks.index, cd=cd, width=6, textspace=1.5, reverse=True)
     plt.title(title, y=0.9, x=0.5)
     if savename is not None:
         plt.savefig(savename,bbox_inches='tight')
     else:
         plt.show()
-
-print("TESTING")
-
-for missingness in ["MNAR", "MAR", "MCAR"]:
-    raw = pd.read_pickle('../results/openml/openml_nll.pickle').dropna()
-    raw = raw.set_index((" ", " ", "Dataset"))
-    # build 3 column input dataframe
-    df_perf = {
-        'classifier_name':[],
-        'dataset_name':[],
-        'accuracy':[]
-    }
-
-    print(raw.index)
-
-    for r in list(itertools.product(["LSAM", "LightGBM"], ["None", "Simple", "Iterative", "Miceforest"], raw.index)):
-        name = "LSAM" if r[0] == "LSAM" else "LightGBM"
-        if r[1] == "None":
-            df_perf['classifier_name'].append(name)
-        else:
-            df_perf['classifier_name'].append(name + "+" + r[1])
-        df_perf['dataset_name'].append(r[2])
-        df_perf['accuracy'].append(float(raw.loc[r[2]][missingness][r[1]][r[0]]))
-
-    df_perf = pd.DataFrame(df_perf)
-    print(df_perf)
-    draw_cd_diagram(df_perf=df_perf, title='Change in NLL', labels=True)
-
 
