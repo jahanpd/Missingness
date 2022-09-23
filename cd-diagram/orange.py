@@ -5,8 +5,7 @@ import itertools
 # matplotlib.use('agg')
 import matplotlib.pyplot as plt
 
-matplotlib.rcParams['font.family'] = 'sans-serif'
-matplotlib.rcParams['font.sans-serif'] = 'Arial'
+matplotlib.rcParams['font.size'] = 16
 
 import operator
 import math
@@ -104,7 +103,7 @@ def draw_cd_diagram(df_perf, title="Accuracy", labels=True, savename=None):
     Orange.evaluation.graph_ranks(average_ranks.values, average_ranks.index, cd=cd, width=4, textspace=0.5, reverse=True)
     plt.title(title, y=0.9, x=0.5)
     if savename is not None:
-        plt.savefig(savename,bbox_inches='tight')
+        plt.savefig(savename,bbox_inches='tight', dpi=300)
     else:
         plt.show()
 
