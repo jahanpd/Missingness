@@ -101,7 +101,7 @@ def draw_cd_diagram(df_perf, title="Accuracy", labels=True, savename=None):
     p_values, average_ranks, max_nb_datasets = wilcoxon_holm(alpha=0.05, df_perf=df_perf)
     cd = Orange.evaluation.compute_CD(average_ranks.values, len(df_perf), alpha="0.05", test="nemenyi") #tested on 30 datasets
     Orange.evaluation.graph_ranks(average_ranks.values, average_ranks.index, cd=cd, width=4, textspace=0.5, reverse=True)
-    plt.title(title, y=0.9, x=0.5)
+    # plt.title(title, y=0.9, x=0.5)
     if savename is not None:
         plt.savefig(savename,bbox_inches='tight', dpi=300)
     else:
