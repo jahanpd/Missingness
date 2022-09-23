@@ -5,8 +5,8 @@ import itertools
 # matplotlib.use('agg')
 import matplotlib.pyplot as plt
 
-matplotlib.rcParams['font.size'] = 16
-
+matplotlib.rcParams['font.size'] = 13
+matplotlib.rcParams['font.family'] = "Noto Serif"
 import operator
 import math
 from scipy.stats import wilcoxon
